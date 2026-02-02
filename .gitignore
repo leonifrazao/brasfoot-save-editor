@@ -1,5 +1,27 @@
-editor-final.jar
-build/
+# Maven
+target/
+*.log
+
+# IDEs
+.idea/
+*.iml
+.eclipse/
+.classpath
+.project
+.settings/
+.vscode/
+
+# Logs e Temporarios
+spring-shell.log
 fatjar_temp/
 temp/
+build/
+
+# Arquivos do Jogo/Backups
 *.s22
+*.bak
+
+# Ignorar JARs na raiz, mas permitir na lib
+*.jar
+!lib/*.jar
+!editor-final.jar

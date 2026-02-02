@@ -1,0 +1,10 @@
+{
+    "name": "SuperZagueiro",
+    "type": "PLAYER",
+    "attributes": {
+        "PLAYER_TACKLING": 100,
+        "PLAYER_HEADING": 100,
+        "PLAYER_OVERALL": 90,
+        "PLAYER_AGE": 24
+    }
+}

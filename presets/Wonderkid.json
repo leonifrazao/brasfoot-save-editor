@@ -1,0 +1,8 @@
+{
+    "name": "Wonderkid",
+    "type": "PLAYER",
+    "attributes": {
+        "PLAYER_AGE": 16,
+        "PLAYER_OVERALL": 40
+    }
+}

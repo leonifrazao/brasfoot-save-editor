@@ -1,0 +1,9 @@
+{
+    "name": "BillionaireClub",
+    "type": "TEAM",
+    "attributes": {
+        "TEAM_MONEY": 2000000000,
+        "TEAM_REPUTATION": 5,
+        "TEAM_STADIUM_CAPACITY": 200000
+    }
+}

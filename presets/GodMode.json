@@ -1,0 +1,9 @@
+{
+    "name": "GodMode",
+    "type": "PLAYER",
+    "attributes": {
+        "PLAYER_AGE": 18,
+        "PLAYER_OVERALL": 100,
+        "PLAYER_CONTRACT_END": 2524608000000
+    }
+}

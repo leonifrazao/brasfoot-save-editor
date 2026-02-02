@@ -1,0 +1,9 @@
+{
+    "name": "Aposentado",
+    "type": "PLAYER",
+    "attributes": {
+        "PLAYER_AGE": 45,
+        "PLAYER_OVERALL": 15,
+        "PLAYER_ENERGY": 10
+    }
+}

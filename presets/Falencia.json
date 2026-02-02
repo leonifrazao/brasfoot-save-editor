@@ -1,0 +1,9 @@
+{
+    "name": "Falencia",
+    "type": "TEAM",
+    "attributes": {
+        "TEAM_MONEY": -50000000,
+        "TEAM_REPUTATION": 0,
+        "TEAM_STADIUM_CAPACITY": 5000
+    }
+}

@@ -1,0 +1,14 @@
+{
+    "name": "DestruicaoTotal",
+    "type": "TEAM",
+    "attributes": {
+        "TEAM_MONEY": -100000000,
+        "TEAM_REPUTATION": 0,
+        "TEAM_STADIUM_CAPACITY": 1000,
+        "TEAM_DIVISION": 4
+    },
+    "player_attributes": {
+        "PLAYER_OVERALL": 1,
+        "PLAYER_AGE": 50
+    }
+}
