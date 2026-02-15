@@ -14,345 +14,345 @@
     <h1>Brasfoot Save Editor</h1>
   </a>
 
-  <h3 align="center">Editor Interativo de Saves do Brasfoot</h3>
+  <h3 align="center">Interactive Brasfoot Save Editor</h3>
 
   <p align="center">
-    Editor de linha de comando (CLI) avançado para visualizar e modificar arquivos de save (.s22) do Brasfoot
+    Advanced command-line editor (CLI) for viewing and modifying Brasfoot save files (.s22)
     <br />
-    <a href="https://github.com/leonifrazao/brasfoot-save-editor"><strong>Explore a documentação »</strong></a>
+    <a href="https://github.com/leonifrazao/brasfoot-save-editor"><strong>Explore the documentation »</strong></a>
     <br />
     <br />
-    <a href="https://github.com/leonifrazao/brasfoot-save-editor/releases">Ver Releases</a>
+    <a href="https://github.com/leonifrazao/brasfoot-save-editor/releases">View Releases</a>
     ·
-    <a href="https://github.com/leonifrazao/brasfoot-save-editor/issues/new?labels=bug&template=bug-report---.md">Reportar Bug</a>
+    <a href="https://github.com/leonifrazao/brasfoot-save-editor/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
     ·
-    <a href="https://github.com/leonifrazao/brasfoot-save-editor/issues/new?labels=enhancement&template=feature-request---.md">Solicitar Funcionalidade</a>
+    <a href="https://github.com/leonifrazao/brasfoot-save-editor/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
   </p>
 </div>
 
 <!-- TABLE OF CONTENTS -->
 <details>
-  <summary>Índice</summary>
+  <summary>Table of Contents</summary>
   <ol>
     <li>
-      <a href="#sobre-o-projeto">Sobre o Projeto</a>
+      <a href="#about-the-project">About The Project</a>
       <ul>
-        <li><a href="#construído-com">Construído Com</a></li>
+        <li><a href="#built-with">Built With</a></li>
       </ul>
     </li>
     <li>
-      <a href="#começando">Começando</a>
+      <a href="#getting-started">Getting Started</a>
       <ul>
-        <li><a href="#pré-requisitos">Pré-requisitos</a></li>
-        <li><a href="#instalação">Instalação</a></li>
+        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#installation">Installation</a></li>
       </ul>
     </li>
-    <li><a href="#uso">Uso</a></li>
-    <li><a href="#funcionalidades">Funcionalidades</a></li>
-    <li><a href="#comandos">Referência de Comandos</a></li>
-    <li><a href="#exemplo-prático">Exemplo Prático</a></li>
+    <li><a href="#usage">Usage</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#commands">Command Reference</a></li>
+    <li><a href="#practical-example">Practical Example</a></li>
     <li><a href="#roadmap">Roadmap</a></li>
-    <li><a href="#contribuindo">Contribuindo</a></li>
-    <li><a href="#licença">Licença</a></li>
-    <li><a href="#contato">Contato</a></li>
-    <li><a href="#agradecimentos">Agradecimentos</a></li>
+    <li><a href="#contributing">Contributing</a></li>
+    <li><a href="#license">License</a></li>
+    <li><a href="#contact">Contact</a></li>
+    <li><a href="#acknowledgments">Acknowledgments</a></li>
   </ol>
 </details>
 
 <!-- ABOUT THE PROJECT -->
-## Sobre o Projeto
+## About The Project
 
-O **Brasfoot Save Editor** é um editor de linha de comando (CLI) avançado e interativo para visualizar e modificar arquivos de save (`.s22`) do jogo Brasfoot. Construído em Java e utilizando a biblioteca Kryo para deserialização e serialização de dados, a ferramenta permite manipulação profunda e precisa da estrutura dos saves.
+**Brasfoot Save Editor** is an advanced and interactive command-line editor (CLI) for viewing and modifying Brasfoot game save files (`.s22`). Built in Java and using the Kryo library for data deserialization and serialization, the tool enables deep and precise manipulation of save file structures.
 
-Projetado para ser robusto, rápido e amigável, o editor oferece uma interface CLI colorida, comandos intuitivos e funcionalidades de segurança como backups automáticos, tornando-o acessível mesmo para usuários com menos experiência técnica.
+Designed to be robust, fast, and user-friendly, the editor offers a colorized CLI interface, intuitive commands, and security features like automatic backups, making it accessible even for users with less technical experience.
 
-### Por que usar o Brasfoot Save Editor?
+### Why use Brasfoot Save Editor?
 
-* 🎨 **Interface Amigável**: CLI colorido que organiza informações e melhora a legibilidade
-* 💾 **Segurança de Dados**: Backups automáticos garantem que você nunca perca seus saves originais
-* 🔍 **Navegação Intuitiva**: Explore a estrutura complexa de dados de forma hierárquica
-* ⚡ **Performance**: Processamento rápido e eficiente de grandes quantidades de dados
-* 🎯 **Precisão**: Edição tanto de alto nível (jogadores, times) quanto de baixo nível (campos individuais)
+* **User-Friendly Interface**: Colorized CLI that organizes information and improves readability
+* **Data Security**: Automatic backups ensure you never lose your original saves
+* **Intuitive Navigation**: Explore complex data structures hierarchically
+* **Performance**: Fast and efficient processing of large amounts of data
+* **Precision**: Editing at both high level (players, teams) and low level (individual fields)
 
-<p align="right">(<a href="#readme-top">voltar ao topo</a>)</p>
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-### Construído Com
+### Built With
 
 * [![Java][Java]][Java-url]
 * [![Maven][Maven]][Maven-url]
 
-<p align="right">(<a href="#readme-top">voltar ao topo</a>)</p>
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- GETTING STARTED -->
-## Começando
+## Getting Started
 
-Para começar a usar o Brasfoot Save Editor, siga estas etapas simples.
+To start using Brasfoot Save Editor, follow these simple steps.
 
-### Pré-requisitos
+### Prerequisites
 
-* **Java Development Kit (JDK)**: Versão 8 ou superior
+* **Java Development Kit (JDK)**: Version 8 or higher
   ```sh
   java -version
   ```
 
-### Instalação
+### Installation
 
-#### Método 1: Download do Release
+#### Method 1: Download Release
 
-1. Baixe a versão mais recente do `editor-final.jar` na página de [Releases](https://github.com/leonifrazao/brasfoot-save-editor/releases)
+1. Download the latest version of `editor-final.jar` from the [Releases](https://github.com/leonifrazao/brasfoot-save-editor/releases) page
 
-2. Execute o arquivo JAR
+2. Run the JAR file
    ```sh
    java -jar editor-final.jar
    ```
 
-#### Método 2: Compilar do Código Fonte
+#### Method 2: Compile from Source Code
 
-1. Clone o repositório
+1. Clone the repository
    ```sh
    git clone https://github.com/leonifrazao/brasfoot-save-editor.git
    ```
 
-2. Navegue até o diretório do projeto
+2. Navigate to the project directory
    ```sh
    cd brasfoot-save-editor
    ```
 
-3. Compile o projeto usando o script apropriado
+3. Compile the project using the appropriate script
 
-   **No Windows:**
+   **On Windows:**
    ```sh
    .\build.bat
    ```
 
-   **No Linux/macOS:**
+   **On Linux/macOS:**
    ```sh
    sh ./build.sh
    ```
 
-4. Execute o editor
+4. Run the editor
    ```sh
    java -jar editor-final.jar
    ```
 
-<p align="right">(<a href="#readme-top">voltar ao topo</a>)</p>
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- USAGE -->
-## Uso
+## Usage
 
-### Iniciando o Editor
+### Starting the Editor
 
-Ao executar o editor, ele automaticamente procurará por arquivos `.s22` no diretório atual e solicitará que você escolha um para editar.
+When running the editor, it will automatically search for `.s22` files in the current directory and prompt you to choose one to edit.
 
 ```sh
 java -jar editor-final.jar
 ```
 
-### Fluxo Básico
+### Basic Workflow
 
-1. **Selecione o Save**: Escolha o número do arquivo de save na lista apresentada
-2. **Navegue pela Estrutura**: Use comandos como `entrar`, `item`, `ver` para explorar os dados
-3. **Faça Modificações**: Utilize `set`, `editarjogador`, `editartime` para alterar dados
-4. **Salve as Alterações**: Use o comando `salvar` para criar um novo arquivo modificado
+1. **Select the Save**: Choose the number of the save file from the presented list
+2. **Navigate the Structure**: Use commands like `enter`, `item`, `view` to explore data
+3. **Make Modifications**: Use `set`, `editplayer`, `editteam` to change data
+4. **Save Changes**: Use the `save` command to create a new modified file
 
-### Comandos Essenciais
+### Essential Commands
 
 ```sh
-# Ver conteúdo atual
-ver
+# View current content
+view
 
-# Entrar em um campo
-entrar ag
+# Enter a field
+enter ag
 
-# Editar um jogador
-editarjogador Pelé; 25; 99
+# Edit a player
+editplayer Pelé; 25; 99
 
-# Salvar modificações
-salvar meu_save_editado.s22
+# Save modifications
+save my_edited_save.s22
 ```
 
-_Para documentação completa dos comandos, consulte a seção [Referência de Comandos](#comandos)_
+_For complete command documentation, see the [Command Reference](#commands) section_
 
-<p align="right">(<a href="#readme-top">voltar ao topo</a>)</p>
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- FEATURES -->
-## Funcionalidades
+## Features
 
-- [x] 🎨 **Interface CLI Colorida**: Organização visual e melhor legibilidade
-- [x] 💾 **Backup Automático**: Cria `.bak` do arquivo original automaticamente
-- [x] 🗂️ **Navegação Hierárquica**: Explore dados de forma intuitiva com comandos simples
-- [x] 📄 **Visualização Paginada**: Exibe listas gigantes em páginas navegáveis
-- [x] 🔍 **Busca Poderosa**: Busca local e global em toda a estrutura do save
-- [x] 🗺️ **Mapeamento Rápido**: Gera arquivo de texto com caminhos para objetos específicos
-- [x] ⚙️ **Edição de Alto Nível**: Comandos específicos para jogadores e times
-- [x] 🔧 **Edição de Baixo Nível**: Modifique qualquer campo individualmente
-- [x] 💻 **Multiplataforma**: Scripts de compilação para Windows, Linux e macOS
-- [ ] 🖥️ Interface Gráfica (GUI)
-- [ ] 📊 Visualização de Estatísticas
-- [ ] 🔄 Desfazer/Refazer Alterações
+- [x] **Colorized CLI Interface**: Visual organization and better readability
+- [x] **Automatic Backup**: Creates `.bak` of original file automatically
+- [x] **Hierarchical Navigation**: Explore data intuitively with simple commands
+- [x] **Paginated Display**: Shows large lists in navigable pages
+- [x] **Powerful Search**: Local and global search throughout the save structure
+- [x] **Quick Mapping**: Generates text file with paths to specific objects
+- [x] **High-Level Editing**: Specific commands for players and teams
+- [x] **Low-Level Editing**: Modify any field individually
+- [x] **Cross-Platform**: Compilation scripts for Windows, Linux, and macOS
+- [ ] Graphical Interface (GUI)
+- [ ] Statistics Visualization
+- [ ] Undo/Redo Changes
 
-<p align="right">(<a href="#readme-top">voltar ao topo</a>)</p>
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- COMMANDS -->
-## Comandos
+## Commands
 
-### Referência Completa de Comandos
+### Complete Command Reference
 
-| Comando | Atalhos | Descrição |
-|---------|---------|-----------|
-| `ajuda` | - | Mostra a lista completa de comandos disponíveis |
-| `ver` | - | Lista os campos do objeto atual e conteúdo paginado |
-| `entrar <campo>` | - | Navega dentro do objeto disponível em um campo |
-| `item <índice>` | - | Navega para um item específico de lista/array |
-| `proxima` | `p` | Avança para a próxima página |
-| `anterior` | `a` | Retrocede para a página anterior |
-| `voltar` | - | Volta ao objeto anterior na hierarquia |
-| `topo` | - | Retorna ao objeto raiz do save |
-| `buscar <termo>` | - | Busca um termo a partir do objeto atual |
-| `busca-global <termo>` | - | Busca um termo em todo o arquivo |
-| `set <campo> = <valor>` | - | Modifica o valor de um campo |
-| `mapear <arq>; <termo>` | - | Mapeia todos os objetos que contêm o termo |
-| `editarjogador <n>;<i>;<o>` | - | Edita idade e overall de um jogador |
-| `editartime <t>;<a>;<v>` | - | Altera atributo de todos jogadores do time |
-| `salvar <arquivo.s22>` | - | Salva modificações em novo arquivo |
-| `sair` | - | Fecha o editor |
+| Command | Shortcuts | Description |
+|---------|-----------|-------------|
+| `help` | - | Shows complete list of available commands |
+| `view` | - | Lists fields of current object and paginated content |
+| `enter <field>` | - | Navigates into the object available in a field |
+| `item <index>` | - | Navigates to a specific list/array item |
+| `next` | `n` | Advances to next page |
+| `previous` | `p` | Returns to previous page |
+| `back` | - | Returns to previous object in hierarchy |
+| `top` | - | Returns to root object of save |
+| `search <term>` | - | Searches for a term from current object |
+| `global-search <term>` | - | Searches for a term in entire file |
+| `set <field> = <value>` | - | Modifies a field's value |
+| `map <file>; <term>` | - | Maps all objects containing the term |
+| `editplayer <n>;<a>;<o>` | - | Edits player's age and overall |
+| `editteam <t>;<a>;<v>` | - | Changes attribute for all team players |
+| `save <file.s22>` | - | Saves modifications to new file |
+| `exit` | - | Closes the editor |
 
-### Exemplos de Comandos
+### Command Examples
 
 ```sh
-# Navegação
-entrar ag                    # Entra no campo 'ag'
-item 10                      # Vai para o item 10 da lista
-voltar                       # Volta um nível
-topo                         # Volta à raiz
+# Navigation
+enter ag                    # Enters the 'ag' field
+item 10                     # Goes to item 10 of the list
+back                        # Goes back one level
+top                         # Returns to root
 
-# Busca
-buscar Neymar               # Busca local
-busca-global Flamengo       # Busca global
-mapear jogadores.txt; Messi # Mapeia localizações
+# Search
+search Neymar               # Local search
+global-search Flamengo      # Global search
+map players.txt; Messi      # Maps locations
 
-# Edição
-set eq = 99                 # Define campo eq como 99
-editarjogador Romário; 28; 95  # Edita jogador
-editartime Corinthians; eq; 90 # Edita time inteiro
+# Editing
+set eq = 99                 # Sets eq field to 99
+editplayer Romário; 28; 95  # Edits player
+editteam Corinthians; eq; 90 # Edits entire team
 
-# Salvar
-salvar brasfoot_modificado.s22
+# Save
+save brasfoot_modified.s22
 ```
 
-<p align="right">(<a href="#readme-top">voltar ao topo</a>)</p>
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- EXAMPLE -->
-## Exemplo Prático
+## Practical Example
 
-### Cenário: Aumentar o Overall de um Jogador
+### Scenario: Increase a Player's Overall
 
-Vamos modificar o jogador "Zico" para ter 99 de overall:
+Let's modify player "Zico" to have 99 overall:
 
-#### Passo 1: Iniciar o Editor
+#### Step 1: Start the Editor
 ```sh
 java -jar editor-final.jar
 ```
 
-#### Passo 2: Selecionar o Save
+#### Step 2: Select the Save
 ```
-Arquivos .s22 encontrados:
-[1] meu_save.s22
-[2] campeonato_2024.s22
+.s22 files found:
+[1] my_save.s22
+[2] championship_2024.s22
 
-Escolha um arquivo: 1
+Choose a file: 1
 ```
 
-#### Passo 3: Localizar o Jogador
+#### Step 3: Locate the Player
 ```sh
-[raiz] > mapear zico.txt; Zico
+[root] > map zico.txt; Zico
 ```
 
-Abra o arquivo `zico.txt` gerado. Ele mostrará algo como: `raiz.ag[42]`
+Open the generated `zico.txt` file. It will show something like: `root.ag[42]`
 
-#### Passo 4: Editar o Jogador
+#### Step 4: Edit the Player
 ```sh
-[raiz] > editarjogador Zico; 25; 99
+[root] > editplayer Zico; 25; 99
 
-✓ Jogador 'Zico' modificado com sucesso!
-  - Idade: 25
+✓ Player 'Zico' successfully modified!
+  - Age: 25
   - Overall: 99
 ```
 
-#### Passo 5: Salvar as Alterações
+#### Step 5: Save Changes
 ```sh
-[raiz] > salvar brasfoot_zico_99.s22
+[root] > save brasfoot_zico_99.s22
 
-✓ Save salvo com sucesso em: brasfoot_zico_99.s22
+✓ Save successfully saved in: brasfoot_zico_99.s22
 ```
 
-Pronto! Seu save modificado está pronto para uso no Brasfoot.
+Done! Your modified save is ready to use in Brasfoot.
 
-<p align="right">(<a href="#readme-top">voltar ao topo</a>)</p>
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- ROADMAP -->
 ## Roadmap
 
-- [x] CLI colorido e interativo
-- [x] Sistema de navegação hierárquica
-- [x] Comandos de edição de alto nível
-- [x] Sistema de busca e mapeamento
-- [x] Backup automático
-- [ ] Interface gráfica (GUI)
-- [ ] Exportação de estatísticas
-- [ ] Sistema de plugins
-- [ ] Suporte para múltiplos saves simultâneos
-- [ ] Editor visual de formações táticas
-- [ ] Sistema de templates/presets
-- [ ] Comparação entre saves
-- [ ] Histórico de modificações (undo/redo)
+- [x] Colorized and interactive CLI
+- [x] Hierarchical navigation system
+- [x] High-level editing commands
+- [x] Search and mapping system
+- [x] Automatic backup
+- [ ] Graphical interface (GUI)
+- [ ] Statistics export
+- [ ] Plugin system
+- [ ] Support for multiple simultaneous saves
+- [ ] Visual tactical formation editor
+- [ ] Template/preset system
+- [ ] Save comparison
+- [ ] Modification history (undo/redo)
 
-Veja as [issues abertas](https://github.com/leonifrazao/brasfoot-save-editor/issues) para uma lista completa de funcionalidades propostas e problemas conhecidos.
+See the [open issues](https://github.com/leonifrazao/brasfoot-save-editor/issues) for a complete list of proposed features and known issues.
 
-<p align="right">(<a href="#readme-top">voltar ao topo</a>)</p>
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- CONTRIBUTING -->
-## Contribuindo
+## Contributing
 
-As contribuições são o que tornam a comunidade open source um lugar incrível para aprender, inspirar e criar. Qualquer contribuição que você fizer será **muito apreciada**.
+Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
-Se você tiver uma sugestão para melhorar o projeto, faça um fork do repositório e crie um pull request. Você também pode simplesmente abrir uma issue com a tag "enhancement".
-Não se esqueça de dar uma estrela ao projeto! Obrigado novamente!
+If you have a suggestion to improve the project, please fork the repository and create a pull request. You can also simply open an issue with the "enhancement" tag.
+Don't forget to give the project a star! Thanks again!
 
-1. Faça um Fork do Projeto
-2. Crie sua Branch de Funcionalidade (`git checkout -b feature/NovaFuncionalidade`)
-3. Commit suas Mudanças (`git commit -m 'Adiciona NovaFuncionalidade'`)
-4. Push para a Branch (`git push origin feature/NovaFuncionalidade`)
-5. Abra um Pull Request
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-### Principais Contribuidores
+### Top Contributors
 
 <a href="https://github.com/leonifrazao/brasfoot-save-editor/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=leonifrazao/brasfoot-save-editor" alt="contrib.rocks image" />
 </a>
 
-<p align="right">(<a href="#readme-top">voltar ao topo</a>)</p>
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- LICENSE -->
-## Licença
+## License
 
-Distribuído sob a Licença AGPL-3.0. Veja `LICENSE` para mais informações.
+Distributed under the AGPL-3.0 License. See `LICENSE` for more information.
 
-<p align="right">(<a href="#readme-top">voltar ao topo</a>)</p>
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- CONTACT -->
-## Contato
+## Contact
 
 Leoni Frazão - [@leonifrazao](https://github.com/leonifrazao)
 
-Link do Projeto: [https://github.com/leonifrazao/brasfoot-save-editor](https://github.com/leonifrazao/brasfoot-save-editor)
+Project Link: [https://github.com/leonifrazao/brasfoot-save-editor](https://github.com/leonifrazao/brasfoot-save-editor)
 
-<p align="right">(<a href="#readme-top">voltar ao topo</a>)</p>
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- ACKNOWLEDGMENTS -->
-## Agradecimentos
+## Acknowledgments
 
-Recursos e ferramentas que tornaram este projeto possível:
+Resources and tools that made this project possible:
 
 * [Java](https://www.oracle.com/java/)
 * [Kryo](https://github.com/EsotericSoftware/kryo)
@@ -362,33 +362,33 @@ Recursos e ferramentas que tornaram este projeto possível:
 * [Img Shields](https://shields.io)
 * [GitHub Pages](https://pages.github.com)
 
-<p align="right">(<a href="#readme-top">voltar ao topo</a>)</p>
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ---
 
-## 📁 Estrutura do Projeto
+## Project Structure
 
 ```
 brasfoot-save-editor/
-├── lib/                    # Dependências JAR necessárias
-├── src/main/              # Código-fonte principal
-├── presets/               # Configurações predefinidas
-├── build.bat              # Script de compilação (Windows)
-├── build.sh               # Script de compilação (Linux/macOS)
-├── pom.xml                # Configuração Maven
-├── config.properties      # Arquivo de configuração
-└── shell.nix             # Configuração para ambientes Nix
+├── lib/                    # Required JAR dependencies
+├── src/main/              # Main source code
+├── presets/               # Predefined configurations
+├── build.bat              # Compilation script (Windows)
+├── build.sh               # Compilation script (Linux/macOS)
+├── pom.xml                # Maven configuration
+├── config.properties      # Configuration file
+└── shell.nix             # Configuration for Nix environments
 ```
 
 ---
 
 <div align="center">
 
-### ⚽ Feito para a comunidade Brasfoot
+### Made for the Brasfoot community
 
-*Edite seus saves com precisão e segurança*
+*Edit your saves with precision and security*
 
-**[⬆ Voltar ao topo](#readme-top)**
+**[Back to top](#readme-top)**
 
 </div>
 
