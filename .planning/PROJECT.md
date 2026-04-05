@@ -14,12 +14,12 @@ Enable programmatic, reliable, and comprehensive editing of Brasfoot save files 
 
 - ✓ Read/Parse Brasfoot save files into memory (existing capability)
 - ✓ Write/Serialize Brasfoot save files from memory (existing capability)
+- ✓ Expose REST endpoints to upload and download save files — Phase 1
+- ✓ Implement Hexagonal Architecture with strict separation of Domain, Ports, and Adapters — Phase 1
+- ✓ Migrate the existing Spring Shell/CLI application to a Spring Boot REST API (Foundation) — Phase 1
 
 ### Active
 
-- [ ] Migrate the existing Spring Shell/CLI application to a Spring Boot REST API
-- [ ] Implement Hexagonal Architecture with strict separation of Domain, Ports, and Adapters
-- [ ] Expose REST endpoints to upload and download save files
 - [ ] Expose REST endpoints to edit Team and Player stats/finances
 - [ ] Expose REST endpoints to edit Manager data
 - [ ] Expose REST endpoints to edit Tournament/League data
@@ -44,8 +44,8 @@ The project is a migration of an existing Brasfoot save editor (which previously
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Hexagonal Architecture | Decouples the complex save-file parsing logic and domain rules from the delivery mechanism (REST). | — Pending |
-| Stateless/Stateful API Design | Need to decide how to handle the "upload -> edit -> download" flow (e.g., session-based, token-based, or single-shot edits). | — Pending |
+| Hexagonal Architecture | Decouples the complex save-file parsing logic and domain rules from the delivery mechanism (REST). | ✓ Implemented in Phase 1 |
+| Stateless/Stateful API Design | Need to decide how to handle the "upload -> edit -> download" flow (e.g., session-based, token-based, or single-shot edits). | ✓ Decided on stateful session UUIDs cached in-memory (Phase 1) |
 
 ## Evolution
 
@@ -65,4 +65,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: Sun Apr 05 2026 after initialization*
+*Last updated: Sun Apr 05 2026 after Phase 1*
