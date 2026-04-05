@@ -1,5 +1,8 @@
 package br.com.saveeditor.brasfoot.adapters.in.web;
 
+import br.com.saveeditor.brasfoot.domain.exceptions.SessionDeletedException;
+import br.com.saveeditor.brasfoot.domain.exceptions.SessionExpiredException;
+import br.com.saveeditor.brasfoot.domain.exceptions.SessionNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -17,6 +20,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail handleIllegalArgumentException(IllegalArgumentException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler({SessionNotFoundException.class, SessionDeletedException.class})
+    public ProblemDetail handleSessionNotFound(RuntimeException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(SessionExpiredException.class)
+    public ProblemDetail handleSessionExpired(SessionExpiredException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.GONE, ex.getMessage());
     }
 
     @ExceptionHandler(Exception.class)

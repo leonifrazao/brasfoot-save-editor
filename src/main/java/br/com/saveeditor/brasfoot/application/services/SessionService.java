@@ -42,9 +42,10 @@ public class SessionService implements UploadSaveUseCase, DownloadSaveUseCase {
             throw new IllegalArgumentException("Invalid session ID format");
         }
         
-        Session session = sessionStatePort.load(id)
-                .orElseThrow(() -> new IllegalArgumentException("Session not found or expired"));
+        Session session = sessionStatePort.load(id);
                 
-        return writeSavePort.write(session.context());
+        byte[] payload = writeSavePort.write(session.context());
+        sessionStatePort.delete(id);
+        return payload;
     }
 }
