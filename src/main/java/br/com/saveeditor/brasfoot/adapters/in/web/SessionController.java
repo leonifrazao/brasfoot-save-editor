@@ -28,10 +28,14 @@ public class SessionController {
     @Operation(summary = "Upload a save file", description = "Uploads a binary Brasfoot save file to start an editing session.")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<SessionResponse> uploadSave(
-            @Parameter(description = "The binary save file (.sav)", content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE))
+            @Parameter(description = "The binary save file (.s22)", content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE))
             @RequestPart("file") MultipartFile file) throws IOException {
         if (file.isEmpty()) {
             throw new IllegalArgumentException("File cannot be empty");
+        }
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null || !originalFilename.toLowerCase().endsWith(".s22")) {
+            throw new IllegalArgumentException("Invalid file format. Only .s22 files are supported.");
         }
         String sessionId = uploadSaveUseCase.upload(file.getBytes());
         return ResponseEntity.ok(new SessionResponse(sessionId));
