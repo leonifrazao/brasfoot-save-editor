@@ -51,5 +51,10 @@ public class BrasfootConstants {
     public static final String MANAGER_IS_HUMAN = "mW"; // boolean
     public static final String MANAGER_CONFIDENCE_BOARD = "of"; // int
     public static final String MANAGER_CONFIDENCE_FANS = "og"; // int
+    public static final String MANAGER_AGE = "age"; // int - assumed
+    public static final String MANAGER_NATIONALITY = "nationality"; // String - assumed
+    public static final String MANAGER_REPUTATION = "reputation"; // int - assumed
+    public static final String MANAGER_TROPHIES = "trophies"; // List/int - assumed
+    public static final String MANAGER_TEAM_ID = "teamId"; // int - assumed
 
 }
