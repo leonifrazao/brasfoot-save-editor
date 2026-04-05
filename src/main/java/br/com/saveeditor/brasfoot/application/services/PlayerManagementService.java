@@ -8,6 +8,8 @@ import br.com.saveeditor.brasfoot.domain.Session;
 import br.com.saveeditor.brasfoot.service.GameDataService;
 import br.com.saveeditor.brasfoot.util.BrasfootConstants;
 import br.com.saveeditor.brasfoot.util.ReflectionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -16,6 +18,8 @@ import java.util.UUID;
 
 @Service
 public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUseCase {
+
+    private static final Logger log = LoggerFactory.getLogger(PlayerManagementService.class);
 
     private final SessionStatePort sessionStatePort;
     private final GameDataService gameDataService;
@@ -27,6 +31,7 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
 
     @Override
     public List<Player> getTeamPlayers(UUID sessionId, int teamId) {
+        log.debug("Fetching players for team {} in session {}", teamId, sessionId);
         Session session = sessionStatePort.load(sessionId);
         if (session == null || !session.context().isLoaded()) {
             throw new IllegalArgumentException("Session not found or not loaded.");
@@ -50,6 +55,7 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
 
     @Override
     public Player getPlayer(UUID sessionId, int teamId, int playerId) {
+        log.debug("Fetching player {} from team {} in session {}", playerId, teamId, sessionId);
         Session session = sessionStatePort.load(sessionId);
         if (session == null || !session.context().isLoaded()) {
             throw new IllegalArgumentException("Session not found or not loaded.");
@@ -71,6 +77,9 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
 
     @Override
     public Player updatePlayer(UUID sessionId, int teamId, int playerId, Integer age, Integer overall, Integer position, Integer energy, Integer morale) {
+        log.info("Updating player {} in team {} for session {}", playerId, teamId, sessionId);
+        log.debug("Update details - age: {}, overall: {}, position: {}, energy: {}, morale: {}", age, overall, position, energy, morale);
+        
         Session session = sessionStatePort.load(sessionId);
         if (session == null || !session.context().isLoaded()) {
             throw new IllegalArgumentException("Session not found or not loaded.");
@@ -110,6 +119,7 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
             // Wait, morale might be "eT" or similar. We'll ignore morale if we don't have constant.
             
         } catch (Exception e) {
+            log.error("Failed to update player properties", e);
             throw new RuntimeException("Failed to update player properties", e);
         }
 

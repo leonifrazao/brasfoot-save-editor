@@ -9,6 +9,8 @@ import br.com.saveeditor.brasfoot.domain.TeamReputation;
 import br.com.saveeditor.brasfoot.service.GameDataService;
 import br.com.saveeditor.brasfoot.util.BrasfootConstants;
 import br.com.saveeditor.brasfoot.util.ReflectionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,6 +19,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase {
+
+    private static final Logger log = LoggerFactory.getLogger(TeamManagementService.class);
 
     private final SessionStatePort sessionStatePort;
     private final GameDataService gameDataService;
@@ -28,6 +32,7 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
 
     @Override
     public List<Team> getAllTeams(UUID sessionId) {
+        log.debug("Fetching all teams for session {}", sessionId);
         Session session = sessionStatePort.load(sessionId);
         if (session == null || !session.context().isLoaded()) {
             throw new IllegalArgumentException("Session not found or not loaded.");
@@ -43,6 +48,7 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
 
     @Override
     public Team getTeam(UUID sessionId, int teamId) {
+        log.debug("Fetching team {} in session {}", teamId, sessionId);
         Session session = sessionStatePort.load(sessionId);
         if (session == null || !session.context().isLoaded()) {
             throw new IllegalArgumentException("Session not found or not loaded.");
@@ -59,6 +65,9 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
 
     @Override
     public Team updateTeam(UUID sessionId, int teamId, Long money, TeamReputation reputation) {
+        log.info("Updating team {} for session {}", teamId, sessionId);
+        log.debug("Update details - money: {}, reputation: {}", money, reputation);
+
         Session session = sessionStatePort.load(sessionId);
         if (session == null || !session.context().isLoaded()) {
             throw new IllegalArgumentException("Session not found or not loaded.");
@@ -77,6 +86,7 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
             try {
                 ReflectionUtils.setFieldValue(teamObj, BrasfootConstants.TEAM_MONEY, money);
             } catch (Exception e) {
+                log.error("Failed to update team money", e);
                 throw new RuntimeException("Failed to update team money", e);
             }
         }
@@ -85,6 +95,7 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
             try {
                 ReflectionUtils.setFieldValue(teamObj, BrasfootConstants.TEAM_REPUTATION, reputation.getValue());
             } catch (Exception e) {
+                log.error("Failed to update team reputation", e);
                 throw new RuntimeException("Failed to update team reputation", e);
             }
         }
