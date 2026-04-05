@@ -24,7 +24,48 @@ public class PresetService {
 
     public PresetService() {
         this.gson = new GsonBuilder().setPrettyPrinting().create();
-        new File(PRESETS_DIR).mkdirs();
+        initializeDefaultPresets();
+    }
+
+    private void initializeDefaultPresets() {
+        File folder = new File(PRESETS_DIR);
+        if (!folder.exists()) {
+            System.out.println(ConsoleHelper.info("Initializing 'presets' directory with default files..."));
+            if (folder.mkdirs()) {
+                try {
+                    // Read index.txt from classpath
+                    java.io.InputStream indexStream = getClass().getResourceAsStream("/presets/index.txt");
+                    if (indexStream != null) {
+                        try (java.util.Scanner scanner = new java.util.Scanner(indexStream, "UTF-8")) {
+                            while (scanner.hasNextLine()) {
+                                String filename = scanner.nextLine().trim();
+                                if (!filename.isEmpty()) {
+                                    extractResource("/presets/" + filename, new File(folder, filename));
+                                }
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    System.err.println("Failed to extract presets: " + e.getMessage());
+                }
+            }
+        }
+    }
+
+    private void extractResource(String resourcePath, File destination) {
+        try (java.io.InputStream in = getClass().getResourceAsStream(resourcePath)) {
+            if (in == null)
+                return;
+            try (java.io.FileOutputStream out = new java.io.FileOutputStream(destination)) {
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+                while ((bytesRead = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, bytesRead);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error extracting " + resourcePath + ": " + e.getMessage());
+        }
     }
 
     public List<String> listPresets() {
@@ -69,6 +110,46 @@ public class PresetService {
         for (Map.Entry<String, Object> entry : preset.getAttributes().entrySet()) {
             String readableKey = entry.getKey();
             Object value = entry.getValue();
+
+            // Special Handling (e.g. Stadium Sectors)
+            if ("TEAM_STADIUM_SECTORS".equals(readableKey)) {
+                try {
+                    // Navigate to Stadium object
+                    Object stadium = ReflectionUtils.getFieldValue(target, BrasfootConstants.TEAM_STADIUM);
+                    if (stadium != null) {
+                        try {
+                            List<?> listValues = (List<?>) value; // GSON parses array as List
+                            int[] sectorValues = new int[4];
+                            for (int i = 0; i < 4; i++) {
+                                if (i < listValues.size())
+                                    sectorValues[i] = ((Number) listValues.get(i)).intValue();
+                                else
+                                    sectorValues[i] = 10000; // default
+                            }
+
+                            // Get array field (int[])
+                            Field f = stadium.getClass().getDeclaredField(BrasfootConstants.STADIUM_SECTORS);
+                            f.setAccessible(true);
+                            Object sectorsArray = f.get(stadium);
+
+                            if (sectorsArray != null && sectorsArray.getClass().isArray()) {
+                                for (int i = 0; i < 4; i++) {
+                                    java.lang.reflect.Array.setInt(sectorsArray, i, sectorValues[i]);
+                                }
+                                System.out.println(ConsoleHelper.success(
+                                        "Updated stadium sectors to " + java.util.Arrays.toString(sectorValues)));
+                                appliedCount++;
+                            }
+                        } catch (Exception e) {
+                            System.out.println(
+                                    ConsoleHelper.error("Failed to update stadium sectors: " + e.getMessage()));
+                        }
+                    }
+                } catch (Exception e) {
+                    System.out.println(ConsoleHelper.error("Failed to find stadium object: " + e.getMessage()));
+                }
+                continue; // Skip standard handling
+            }
 
             // Resolve readable key to obfuscated field name
             String obfuscatedField = resolveField(readableKey);

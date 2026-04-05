@@ -5,19 +5,16 @@ import br.com.saveeditor.brasfoot.util.ConsoleHelper;
 import br.com.saveeditor.brasfoot.util.ReflectionUtils;
 import br.com.saveeditor.brasfoot.util.StringUtils;
 
-import java.util.Collection;
 import java.util.List;
 import java.lang.reflect.Field;
 
 import org.springframework.stereotype.Service;
 
 @Service
+@SuppressWarnings("unchecked")
 public class CheatService {
 
-    private final EditorService editorService;
-
-    public CheatService(EditorService editorService) {
-        this.editorService = editorService;
+    public CheatService() {
     }
 
     public void injectMoney(Object team, long amount) {

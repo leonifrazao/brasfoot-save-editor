@@ -1,7 +1,7 @@
 package br.com.saveeditor.brasfoot.application.ports.out;
 
-import br.com.saveeditor.brasfoot.shell.EditorShellContext;
+import br.com.saveeditor.brasfoot.domain.SaveContext;
 
 public interface WriteSavePort {
-    byte[] write(EditorShellContext context);
+    byte[] write(SaveContext context);
 }

@@ -6,11 +6,11 @@ import br.com.saveeditor.brasfoot.util.ReflectionUtils;
 import br.com.saveeditor.brasfoot.util.StringUtils;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 @Service
+@SuppressWarnings("unchecked")
 public class GameDataService {
 
     /**

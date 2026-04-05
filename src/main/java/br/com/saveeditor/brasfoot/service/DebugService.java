@@ -1,7 +1,6 @@
 package br.com.saveeditor.brasfoot.service;
 
 import br.com.saveeditor.brasfoot.util.ConsoleHelper;
-import br.com.saveeditor.brasfoot.util.ReflectionUtils;
 import org.springframework.stereotype.Service;
 
 import java.io.FileWriter;
@@ -48,9 +47,11 @@ public class DebugService {
 
         // Arrays
         if (clazz.isArray()) {
-            // Handle array traversal if needed, or simply skip for now to avoid complexity
-            // in this version
-            // For int[] etc it is hard to cast to Object[]
+            int length = Array.getLength(current);
+            for (int i = 0; i < length; i++) {
+                Object item = Array.get(current, i);
+                search(item, valueStr, depth + 1, maxDepth, visited, path + "[" + i + "]", results);
+            }
             return;
         }
 
@@ -223,7 +224,11 @@ public class DebugService {
                 exportRecursive(pw, item, term, path + "[" + i++ + "]", visited, counter);
             }
         } else if (obj.getClass().isArray()) {
-            // Arrays skipped
+            int length = Array.getLength(obj);
+            for (int i = 0; i < length; i++) {
+                Object item = Array.get(obj, i);
+                exportRecursive(pw, item, term, path + "[" + i + "]", visited, counter);
+            }
         } else {
             for (Field f : getAllFields(obj.getClass())) {
                 f.setAccessible(true);

@@ -1,10 +1,8 @@
-package br.com.saveeditor.brasfoot.shell;
+package br.com.saveeditor.brasfoot.domain;
 
 import br.com.saveeditor.brasfoot.model.NavegacaoState;
-import org.springframework.stereotype.Component;
 
-@Component
-public class EditorShellContext {
+public class SaveContext {
     private NavegacaoState state;
     private String currentFilePath;
 

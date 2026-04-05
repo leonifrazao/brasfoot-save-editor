@@ -19,6 +19,8 @@ public class BrasfootConstants {
     public static final String TEAM_REPUTATION = "nc"; // int
     public static final String TEAM_COUNTRY = "pais"; // int
     public static final String TEAM_STADIUM_CAPACITY = "hr"; // int?
+    public static final String TEAM_STADIUM = "dH"; // Stadium object
+    public static final String STADIUM_SECTORS = "dn"; // int[] (Geral, Arq, Cad, Cam) - Inside Stadium
     public static final String TEAM_DIVISION = "divisao"; // int
 
     // --- Player (best.F) ---
@@ -34,12 +36,9 @@ public class BrasfootConstants {
     public static final String PLAYER_SIDE = "ex"; // int (0=Dir?, 1=Esq?)
 
     public static final String PLAYER_ENERGY = "ep"; // int (0-100)
-    public static final String PLAYER_SPEED = "eo"; // int
-    public static final String PLAYER_SHOT = "er"; // int
-    public static final String PLAYER_PASS = "es"; // int
-    public static final String PLAYER_HEADING = "et"; // int
-    public static final String PLAYER_TACKLING = "eu"; // int
     public static final String PLAYER_CONTRACT_END = "eJ"; // long (Timestamp)
+    public static final String PLAYER_STAR_LOCAL = "el"; // boolean
+    public static final String PLAYER_STAR_GLOBAL = "ek"; // boolean
 
     // Disciplinary (Cards/Suspensions)
     public static final String CARD_YELLOW_1 = "eA";

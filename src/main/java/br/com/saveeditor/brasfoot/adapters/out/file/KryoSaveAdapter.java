@@ -4,7 +4,7 @@ import br.com.saveeditor.brasfoot.application.ports.out.LoadSavePort;
 import br.com.saveeditor.brasfoot.application.ports.out.WriteSavePort;
 import br.com.saveeditor.brasfoot.model.NavegacaoState;
 import br.com.saveeditor.brasfoot.service.SaveFileService;
-import br.com.saveeditor.brasfoot.shell.EditorShellContext;
+import br.com.saveeditor.brasfoot.domain.SaveContext;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -17,10 +17,10 @@ public class KryoSaveAdapter implements LoadSavePort, WriteSavePort {
     }
 
     @Override
-    public EditorShellContext load(byte[] payload) {
+    public SaveContext load(byte[] payload) {
         try {
             NavegacaoState state = saveFileService.restoreFromSnapshot(payload, "api-upload");
-            EditorShellContext context = new EditorShellContext();
+            SaveContext context = new SaveContext();
             context.load(state, "api-upload");
             return context;
         } catch (Exception e) {
@@ -29,7 +29,7 @@ public class KryoSaveAdapter implements LoadSavePort, WriteSavePort {
     }
 
     @Override
-    public byte[] write(EditorShellContext context) {
+    public byte[] write(SaveContext context) {
         if (!context.isLoaded() || context.getState() == null) {
             throw new IllegalStateException("Cannot write empty context");
         }

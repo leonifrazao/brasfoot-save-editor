@@ -25,6 +25,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 @Service
+@SuppressWarnings({ "rawtypes" })
 public class SaveFileService {
     private final Kryo kryoReader; // Apenas para leitura
 
@@ -36,7 +37,8 @@ public class SaveFileService {
     private void configurarKryoParaLeitura(Kryo kryo) {
         kryo.setInstantiatorStrategy(new StdInstantiatorStrategy());
         kryo.setRegistrationRequired(false);
-        kryo.setClassLoader(this.getClass().getClassLoader());
+        // Use ContextClassLoader to find classes in Fat JAR
+        kryo.setClassLoader(Thread.currentThread().getContextClassLoader());
 
         // Serializer especial para ArrayList (apenas para leitura)
         CollectionSerializer arrayListSerializer = new CollectionSerializer() {
@@ -55,7 +57,7 @@ public class SaveFileService {
     private Kryo criarKryoParaEscrita() {
         Kryo kryoWriter = new Kryo();
         kryoWriter.setRegistrationRequired(false);
-        kryoWriter.setClassLoader(this.getClass().getClassLoader());
+        kryoWriter.setClassLoader(Thread.currentThread().getContextClassLoader());
         // NÃO configura InstantiatorStrategy nem CollectionSerializer customizado
         return kryoWriter;
     }
@@ -64,19 +66,19 @@ public class SaveFileService {
         // Criar backup
         try {
             String backupPath = filePath + ".bak";
-            System.out.println("A criar backup do ficheiro original em: " + backupPath);
+            // System.out.println("A criar backup do ficheiro original em: " + backupPath);
             Files.copy(Paths.get(filePath), Paths.get(backupPath), StandardCopyOption.REPLACE_EXISTING);
-            System.out.println("✔ Backup criado com sucesso!");
+            // System.out.println("✔ Backup criado com sucesso!");
         } catch (IOException e) {
             System.err.println("✖ Falha ao criar o backup: " + e.getMessage());
         }
 
         // Ler arquivo
-        System.out.println("\nA tentar ler o ficheiro: " + filePath);
+        // System.out.println("\nA tentar ler o ficheiro: " + filePath);
         try (Input input = new Input(new FileInputStream(filePath))) {
             Object objetoRaiz = kryoReader.readClassAndObject(input);
             Object dataAfQ = kryoReader.readClassAndObject(input);
-            System.out.println("✔ Ficheiro lido com sucesso!");
+            // System.out.println("✔ Ficheiro lido com sucesso!");
             return Optional.of(new NavegacaoState(objetoRaiz, dataAfQ, filePath));
         } catch (Exception e) {
             System.err.println("✖ Erro ao ler o ficheiro: " + e.getMessage());
@@ -93,7 +95,8 @@ public class SaveFileService {
         }
         String fullSavePath = Paths.get(parentDirectory, nomeArquivo).toString();
 
-        System.out.println("\n💾 A salvar o estado atual para o ficheiro: " + fullSavePath);
+        // System.out.println("\n💾 A salvar o estado atual para o ficheiro: " +
+        // fullSavePath);
 
         // IMPORTANTE: Criar um Kryo NOVO e LIMPO apenas para escrita!
         Kryo kryoWriter = criarKryoParaEscrita();
@@ -105,14 +108,14 @@ public class SaveFileService {
 
             output.flush(); // Garantir que tudo foi escrito
 
-            System.out.println("✔ Ficheiro salvo com sucesso!");
-            System.out.println("📁 Localização: " + fullSavePath);
+            // System.out.println("✔ Ficheiro salvo com sucesso!");
+            // System.out.println("📁 Localização: " + fullSavePath);
 
             // Atualizar timestamp se for o mesmo arquivo
             try {
                 if (new File(fullSavePath).getCanonicalPath().equals(originalFile.getCanonicalPath())) {
                     estado.setUltimoTimestampModificacao(new File(fullSavePath).lastModified());
-                    System.out.println("🔄 Timestamp atualizado");
+                    // System.out.println("🔄 Timestamp atualizado");
                 }
             } catch (IOException e) {
                 // Ignorar erro de comparação de paths
@@ -160,6 +163,35 @@ public class SaveFileService {
         } catch (Exception e) {
             System.err.println("✖ Validação falhou: " + e.getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Serializes the state to a byte array (Snapshot).
+     */
+    public byte[] createSnapshot(NavegacaoState state) {
+        Kryo kryoWriter = criarKryoParaEscrita();
+        java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+        try (Output output = new Output(baos)) {
+            kryoWriter.writeClassAndObject(output, state.getObjetoRaiz());
+            kryoWriter.writeClassAndObject(output, state.getDataAfQ());
+            output.flush();
+            return baos.toByteArray();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create snapshot", e);
+        }
+    }
+
+    /**
+     * Deserializes a byte array back into a NavegacaoState.
+     */
+    public NavegacaoState restoreFromSnapshot(byte[] snapshot, String originalPath) {
+        try (Input input = new Input(new java.io.ByteArrayInputStream(snapshot))) {
+            Object objetoRaiz = kryoReader.readClassAndObject(input);
+            Object dataAfQ = kryoReader.readClassAndObject(input);
+            return new NavegacaoState(objetoRaiz, dataAfQ, originalPath);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to restore snapshot", e);
         }
     }
 }

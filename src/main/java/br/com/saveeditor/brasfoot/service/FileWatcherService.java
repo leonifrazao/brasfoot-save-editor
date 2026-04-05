@@ -1,6 +1,7 @@
 package br.com.saveeditor.brasfoot.service;
 
 import br.com.saveeditor.brasfoot.config.PreferencesManager;
+import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -14,8 +15,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Serviço para monitorar mudanças externas em arquivos.
  * Usa WatchService API do Java NIO.
  */
+@Service
 public class FileWatcherService {
-    
+
     private final PreferencesManager preferencesManager;
     private WatchService watchService;
     private Thread watcherThread;
@@ -23,13 +25,13 @@ public class FileWatcherService {
     private String lastKnownHash;
     private final AtomicBoolean watching = new AtomicBoolean(false);
     private final AtomicBoolean hasLocalChanges = new AtomicBoolean(false);
-    
+
     private FileChangeListener listener;
-    
+
     public FileWatcherService() {
         this.preferencesManager = PreferencesManager.getInstance();
     }
-    
+
     /**
      * Inicia o monitoramento de um arquivo.
      */
@@ -37,33 +39,33 @@ public class FileWatcherService {
         if (file == null || !file.exists()) {
             throw new IllegalArgumentException("Arquivo inválido ou não existe");
         }
-        
+
         if (!preferencesManager.isAutoRefreshEnabled()) {
             System.out.println("⚠ Auto-refresh desabilitado nas preferências");
             return;
         }
-        
+
         stopWatching();
-        
+
         this.watchedFile = file.toPath();
         this.listener = listener;
         this.lastKnownHash = calculateFileHash(file);
         this.watching.set(true);
-        
+
         // Iniciar thread de monitoramento
         watcherThread = new Thread(this::watchLoop, "FileWatcher-Thread");
         watcherThread.setDaemon(true);
         watcherThread.start();
-        
+
         System.out.println("👁 Monitorando arquivo: " + file.getName());
     }
-    
+
     /**
      * Para o monitoramento.
      */
     public void stopWatching() {
         watching.set(false);
-        
+
         if (watcherThread != null && watcherThread.isAlive()) {
             watcherThread.interrupt();
             try {
@@ -72,7 +74,7 @@ public class FileWatcherService {
                 Thread.currentThread().interrupt();
             }
         }
-        
+
         if (watchService != null) {
             try {
                 watchService.close();
@@ -80,81 +82,48 @@ public class FileWatcherService {
                 // Ignorar
             }
         }
-        
+
         System.out.println("🛑 Monitoramento parado");
     }
-    
+
     /**
-     * Loop principal de monitoramento.
+     * Loop principal de monitoramento - usa polling com verificação de hash.
+     * Mais confiável que WatchService para paths OneDrive/WSL.
      */
     private void watchLoop() {
-        try {
-            // Criar WatchService para o diretório do arquivo
-            Path directory = watchedFile.getParent();
-            if (directory == null) {
-                directory = Paths.get(".");
+        int pollIntervalMs = 2000; // Verificar a cada 2 segundos
+
+        System.out.println("🔄 Polling iniciado (intervalo: " + pollIntervalMs + "ms)");
+
+        while (watching.get() && !Thread.currentThread().isInterrupted()) {
+            try {
+                Thread.sleep(pollIntervalMs);
+            } catch (InterruptedException e) {
+                break;
             }
-            
-            watchService = FileSystems.getDefault().newWatchService();
-            directory.register(watchService, 
-                StandardWatchEventKinds.ENTRY_MODIFY,
-                StandardWatchEventKinds.ENTRY_DELETE);
-            
-            long lastCheckTime = System.currentTimeMillis();
-            int debounceMs = 500; // Evitar múltiplos triggers
-            
-            while (watching.get() && !Thread.currentThread().isInterrupted()) {
-                WatchKey key;
-                try {
-                    // Poll com timeout
-                    key = watchService.poll(1, TimeUnit.SECONDS);
-                } catch (InterruptedException e) {
-                    break;
-                }
-                
-                if (key == null) {
-                    continue;
-                }
-                
-                for (WatchEvent<?> event : key.pollEvents()) {
-                    WatchEvent.Kind<?> kind = event.kind();
-                    
-                    if (kind == StandardWatchEventKinds.OVERFLOW) {
-                        continue;
-                    }
-                    
-                    @SuppressWarnings("unchecked")
-                    WatchEvent<Path> ev = (WatchEvent<Path>) event;
-                    Path filename = ev.context();
-                    
-                    // Verificar se é o arquivo que estamos monitorando
-                    if (filename.equals(watchedFile.getFileName())) {
-                        // Debounce: evitar múltiplos eventos em sequência
-                        long now = System.currentTimeMillis();
-                        if (now - lastCheckTime < debounceMs) {
-                            continue;
-                        }
-                        lastCheckTime = now;
-                        
-                        if (kind == StandardWatchEventKinds.ENTRY_DELETE) {
-                            handleFileDeleted();
-                        } else if (kind == StandardWatchEventKinds.ENTRY_MODIFY) {
-                            handleFileModified();
-                        }
-                    }
-                }
-                
-                key.reset();
+
+            File file = watchedFile.toFile();
+
+            // Verificar se arquivo foi deletado
+            if (!file.exists()) {
+                handleFileDeleted();
+                break;
             }
-            
-        } catch (IOException e) {
-            System.err.println("❌ Erro no FileWatcher: " + e.getMessage());
-            if (listener != null) {
-                listener.onError(e);
+
+            // Verificar se hash mudou
+            String currentHash = calculateFileHash(file);
+
+            if (currentHash != null && !currentHash.equals(lastKnownHash)) {
+                // System.out.println("DEBUG: Hash Mismatch! Old=" + lastKnownHash + ", New=" +
+                // currentHash);
+                // System.out.println("📝 Mudança detectada no arquivo!");
+                handleFileModified();
             }
         }
+
+        System.out.println("🛑 Polling parado");
     }
-    
+
     /**
      * Trata modificação do arquivo.
      */
@@ -165,19 +134,19 @@ public class FileWatcherService {
         } catch (InterruptedException e) {
             return;
         }
-        
+
         File file = watchedFile.toFile();
         if (!file.exists()) {
             return;
         }
-        
+
         // Calcular novo hash
         String newHash = calculateFileHash(file);
-        
+
         // Verificar se realmente mudou
         if (newHash != null && !newHash.equals(lastKnownHash)) {
             System.out.println("🔄 Arquivo modificado externamente detectado");
-            
+
             // Verificar se há conflito (mudanças locais não salvas)
             if (hasLocalChanges.get()) {
                 if (listener != null) {
@@ -192,7 +161,7 @@ public class FileWatcherService {
             }
         }
     }
-    
+
     /**
      * Trata deleção do arquivo.
      */
@@ -203,7 +172,7 @@ public class FileWatcherService {
         }
         stopWatching();
     }
-    
+
     /**
      * Calcula o hash SHA-256 de um arquivo.
      */
@@ -212,11 +181,11 @@ public class FileWatcherService {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] buffer = new byte[8192];
             int bytesRead;
-            
+
             while ((bytesRead = fis.read(buffer)) != -1) {
                 digest.update(buffer, 0, bytesRead);
             }
-            
+
             byte[] hashBytes = digest.digest();
             StringBuilder hexString = new StringBuilder();
             for (byte b : hashBytes) {
@@ -226,22 +195,22 @@ public class FileWatcherService {
                 }
                 hexString.append(hex);
             }
-            
+
             return hexString.toString();
-            
+
         } catch (Exception e) {
             System.err.println("⚠ Erro ao calcular hash: " + e.getMessage());
             return null;
         }
     }
-    
+
     /**
      * Marca que há mudanças locais não salvas.
      */
     public void markLocalChanges(boolean hasChanges) {
         this.hasLocalChanges.set(hasChanges);
     }
-    
+
     /**
      * Atualiza o hash conhecido após salvar.
      */
@@ -250,14 +219,14 @@ public class FileWatcherService {
         this.hasLocalChanges.set(false);
         System.out.println("✅ Hash atualizado após salvamento");
     }
-    
+
     /**
      * Verifica se está monitorando.
      */
     public boolean isWatching() {
         return watching.get();
     }
-    
+
     /**
      * Interface para callbacks de mudanças.
      */
@@ -266,29 +235,29 @@ public class FileWatcherService {
          * Chamado quando o arquivo é modificado externamente (sem conflito).
          */
         void onFileChanged();
-        
+
         /**
          * Chamado quando há conflito (arquivo externo mudou + mudanças locais).
          */
         void onConflictDetected();
-        
+
         /**
          * Chamado quando o arquivo é deletado.
          */
         void onFileDeleted();
-        
+
         /**
          * Chamado quando há erro no watcher.
          */
         void onError(Exception e);
     }
-    
+
     /**
      * Estratégia de resolução de conflito.
      */
     public enum ResolutionStrategy {
-        KEEP_LOCAL,       // Manter mudanças locais (ignorar externas)
-        LOAD_EXTERNAL,    // Carregar mudanças externas (perder locais)
-        SAVE_AND_RELOAD   // Salvar em novo arquivo e recarregar externas
+        KEEP_LOCAL, // Manter mudanças locais (ignorar externas)
+        LOAD_EXTERNAL, // Carregar mudanças externas (perder locais)
+        SAVE_AND_RELOAD // Salvar em novo arquivo e recarregar externas
     }
 }

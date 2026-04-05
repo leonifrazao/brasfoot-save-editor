@@ -6,7 +6,7 @@ import br.com.saveeditor.brasfoot.application.ports.out.LoadSavePort;
 import br.com.saveeditor.brasfoot.application.ports.out.SessionStatePort;
 import br.com.saveeditor.brasfoot.application.ports.out.WriteSavePort;
 import br.com.saveeditor.brasfoot.domain.Session;
-import br.com.saveeditor.brasfoot.shell.EditorShellContext;
+import br.com.saveeditor.brasfoot.domain.SaveContext;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
@@ -26,7 +26,7 @@ public class SessionService implements UploadSaveUseCase, DownloadSaveUseCase {
 
     @Override
     public String upload(byte[] payload) {
-        EditorShellContext context = loadSavePort.load(payload);
+        SaveContext context = loadSavePort.load(payload);
         UUID sessionId = UUID.randomUUID();
         Session session = new Session(sessionId, context);
         sessionStatePort.save(session);

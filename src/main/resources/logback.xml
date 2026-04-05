@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%msg%n</pattern>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+    </appender>
+
+    <root level="ERROR">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+    <!-- Silence all Spring Boot startup logs -->
+    <logger name="org.springframework" level="ERROR"/>
+    <logger name="org.hibernate" level="ERROR"/>
+    <logger name="org.jline" level="ERROR"/>
+    <logger name="br.com.saveeditor" level="ERROR"/>
+</configuration>
