@@ -68,6 +68,12 @@
             <version>4.0.2</version>
         </dependency>
 
+        <!-- Cache -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
         <!-- UI Look and Feel (Keeping for GUI compatibility if needed) -->
         <dependency>
             <groupId>com.formdev</groupId>
