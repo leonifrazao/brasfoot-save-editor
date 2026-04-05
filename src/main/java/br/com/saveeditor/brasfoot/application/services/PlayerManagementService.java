@@ -112,12 +112,15 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
                 ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_POSITION, position);
             }
             if (energy != null) {
-                if (energy < 0 || energy > 100) throw new IllegalArgumentException("Invalid energy: must be between 0 and 100");
+                if (energy < -1 || energy > 100) throw new IllegalArgumentException("Invalid energy: must be between -1 and 100");
                 ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_ENERGY, energy);
             }
             // Morale isn't in Constants, skipping or maybe it's not present yet. 
             // Wait, morale might be "eT" or similar. We'll ignore morale if we don't have constant.
             
+        } catch (IllegalArgumentException e) {
+            log.warn("Validation error during player update: {}", e.getMessage());
+            throw e;
         } catch (Exception e) {
             log.error("Failed to update player properties", e);
             throw new RuntimeException("Failed to update player properties", e);
