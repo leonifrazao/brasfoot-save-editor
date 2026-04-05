@@ -46,7 +46,7 @@ public class SessionController {
     public ResponseEntity<byte[]> downloadSave(@PathVariable("id") String id) {
         byte[] payload = downloadSaveUseCase.download(id);
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"save.sav\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"save.s22\"")
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(payload);
     }
