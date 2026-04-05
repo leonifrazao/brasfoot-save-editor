@@ -2,6 +2,9 @@ package br.com.saveeditor.brasfoot.adapters.in.web;
 
 import br.com.saveeditor.brasfoot.application.ports.in.DownloadSaveUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.UploadSaveUseCase;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -22,8 +25,11 @@ public class SessionController {
         this.downloadSaveUseCase = downloadSaveUseCase;
     }
 
-    @PostMapping
-    public ResponseEntity<SessionResponse> uploadSave(@RequestParam("file") MultipartFile file) throws IOException {
+    @Operation(summary = "Upload a save file", description = "Uploads a binary Brasfoot save file to start an editing session.")
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<SessionResponse> uploadSave(
+            @Parameter(description = "The binary save file (.sav)", content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE))
+            @RequestPart("file") MultipartFile file) throws IOException {
         if (file.isEmpty()) {
             throw new IllegalArgumentException("File cannot be empty");
         }
@@ -31,6 +37,7 @@ public class SessionController {
         return ResponseEntity.ok(new SessionResponse(sessionId));
     }
 
+    @Operation(summary = "Download a save file", description = "Downloads the modified binary save file for the given session.")
     @GetMapping("/{id}/download")
     public ResponseEntity<byte[]> downloadSave(@PathVariable("id") String id) {
         byte[] payload = downloadSaveUseCase.download(id);
