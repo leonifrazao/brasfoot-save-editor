@@ -5,6 +5,7 @@ import br.com.saveeditor.brasfoot.application.ports.in.UpdateTeamUseCase;
 import br.com.saveeditor.brasfoot.application.ports.out.SessionStatePort;
 import br.com.saveeditor.brasfoot.domain.Session;
 import br.com.saveeditor.brasfoot.domain.Team;
+import br.com.saveeditor.brasfoot.domain.TeamReputation;
 import br.com.saveeditor.brasfoot.service.GameDataService;
 import br.com.saveeditor.brasfoot.util.BrasfootConstants;
 import br.com.saveeditor.brasfoot.util.ReflectionUtils;
@@ -57,7 +58,7 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
     }
 
     @Override
-    public Team updateTeam(UUID sessionId, int teamId, Long money, Integer reputation) {
+    public Team updateTeam(UUID sessionId, int teamId, Long money, TeamReputation reputation) {
         Session session = sessionStatePort.load(sessionId);
         if (session == null || !session.context().isLoaded()) {
             throw new IllegalArgumentException("Session not found or not loaded.");
@@ -82,7 +83,7 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
 
         if (reputation != null) {
             try {
-                ReflectionUtils.setFieldValue(teamObj, BrasfootConstants.TEAM_REPUTATION, reputation);
+                ReflectionUtils.setFieldValue(teamObj, BrasfootConstants.TEAM_REPUTATION, reputation.getValue());
             } catch (Exception e) {
                 throw new RuntimeException("Failed to update team reputation", e);
             }
@@ -98,9 +99,9 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
             int id = (int) ReflectionUtils.getFieldValue(teamObj, BrasfootConstants.TEAM_ID);
             String name = (String) ReflectionUtils.getFieldValue(teamObj, BrasfootConstants.TEAM_NAME);
             long money = (long) ReflectionUtils.getFieldValue(teamObj, BrasfootConstants.TEAM_MONEY);
-            int reputation = (int) ReflectionUtils.getFieldValue(teamObj, BrasfootConstants.TEAM_REPUTATION);
+            int reputationInt = (int) ReflectionUtils.getFieldValue(teamObj, BrasfootConstants.TEAM_REPUTATION);
 
-            return new Team(id, name, money, reputation);
+            return new Team(id, name, money, TeamReputation.fromValue(reputationInt));
         } catch (Exception e) {
             throw new RuntimeException("Failed to map team object to domain", e);
         }

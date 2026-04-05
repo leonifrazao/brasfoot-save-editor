@@ -28,7 +28,7 @@ public class CheatService {
 
     public void maxReputation(Object team) {
         try {
-            ReflectionUtils.setFieldValue(team, BrasfootConstants.TEAM_REPUTATION, 10000);
+            ReflectionUtils.setFieldValue(team, BrasfootConstants.TEAM_REPUTATION, 5);
             System.out.println(ConsoleHelper.success("Reputation maximized!"));
         } catch (Exception e) {
             throw new RuntimeException("Failed to set reputation: " + e.getMessage());

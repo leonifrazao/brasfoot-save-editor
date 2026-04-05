@@ -12,8 +12,8 @@
 
 ### Edit
 
-- [ ] **EDIT-01**: User can edit Team stats and finances
-- [ ] **EDIT-02**: User can edit Player attributes
+- [x] **EDIT-01**: User can edit Team stats and finances
+- [x] **EDIT-02**: User can edit Player attributes
 - [ ] **EDIT-03**: User can edit Manager profile data
 
 ### Developer Experience & Reliability (DX)
@@ -42,8 +42,8 @@
 |-------------|-------|--------|
 | SESS-01 | Phase 1 | Pending |
 | SESS-02 | Phase 1 | Pending |
-| EDIT-01 | Phase 2 | Pending |
-| EDIT-02 | Phase 2 | Pending |
+| EDIT-01 | Phase 2 | Complete |
+| EDIT-02 | Phase 2 | Complete |
 | EDIT-03 | Phase 3 | Pending |
 | DX-01 | Phase 1 | Pending |
 | DX-02 | Phase 3 | Pending |

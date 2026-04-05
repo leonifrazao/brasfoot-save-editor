@@ -30,7 +30,9 @@
   1. User can update team statistics and finances via API
   2. User can update individual player attributes via API
   3. Changes to teams and players are successfully reflected in the downloaded save file
-**Plans**: TBD
+**Plans**:
+- [x] 02-01-PLAN.md — Team Management API
+- [x] 02-02-PLAN.md — Player Management API
 
 ### Phase 3: Manager & Batch Operations
 **Goal**: Users can edit manager data and perform bulk updates efficiently
@@ -40,7 +42,9 @@
   1. User can update manager profile information via API
   2. User can submit a single batch request to apply multiple edits at once
   3. All batch edits accurately update the in-memory state for download
-**Plans**: TBD
+**Plans**:
+- [x] 02-01-PLAN.md — Team Management API
+- [ ] 02-02-PLAN.md — Player Management API
 
 ## Progress
 

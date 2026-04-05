@@ -4,5 +4,6 @@ public record Team(
     int id,
     String name,
     long money,
-    int reputation
+    TeamReputation reputation
 ) {}
+
