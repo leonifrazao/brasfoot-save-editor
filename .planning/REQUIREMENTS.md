@@ -14,12 +14,12 @@
 
 - [x] **EDIT-01**: User can edit Team stats and finances
 - [x] **EDIT-02**: User can edit Player attributes
-- [ ] **EDIT-03**: User can edit Manager profile data
+- [x] **EDIT-03**: User can edit Manager profile data
 
 ### Developer Experience & Reliability (DX)
 
 - [ ] **DX-01**: System validates uploaded saves for corruption before initiating a session
-- [ ] **DX-02**: User can apply batch edits to multiple entities in a single request
+- [x] **DX-02**: User can apply batch edits to multiple entities in a single request
 - [ ] **DX-03**: Developer can view and test all endpoints via an auto-generated OpenAPI 3 Swagger UI
 
 ## v2 Requirements
@@ -44,9 +44,9 @@
 | SESS-02 | Phase 1 | Pending |
 | EDIT-01 | Phase 2 | Complete |
 | EDIT-02 | Phase 2 | Complete |
-| EDIT-03 | Phase 3 | Pending |
+| EDIT-03 | Phase 3 | Complete |
 | DX-01 | Phase 1 | Pending |
-| DX-02 | Phase 3 | Pending |
+| DX-02 | Phase 3 | Complete |
 | DX-03 | Phase 1 | Pending |
 
 **Coverage:**
