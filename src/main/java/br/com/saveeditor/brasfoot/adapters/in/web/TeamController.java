@@ -6,6 +6,7 @@ import br.com.saveeditor.brasfoot.application.ports.in.GetTeamUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.UpdateTeamUseCase;
 import br.com.saveeditor.brasfoot.domain.Team;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,7 +29,11 @@ public class TeamController {
     }
 
     @GetMapping
-    @Operation(summary = "Get all teams", description = "Retrieves a list of all teams in the session")
+    @Operation(summary = "Get all teams", description = "Retrieves a comprehensive list of all teams currently loaded in the session.",
+               responses = {
+                   @ApiResponse(responseCode = "200", description = "Successfully retrieved the list of teams."),
+                   @ApiResponse(responseCode = "404", description = "Session not found.")
+               })
     public ResponseEntity<List<TeamDto>> getAllTeams(@PathVariable UUID sessionId) {
         List<Team> teams = getTeamUseCase.getAllTeams(sessionId);
         List<TeamDto> dtos = teams.stream()
@@ -38,7 +43,11 @@ public class TeamController {
     }
 
     @GetMapping("/{teamId}")
-    @Operation(summary = "Get a specific team", description = "Retrieves details of a specific team by its ID")
+    @Operation(summary = "Get a specific team", description = "Retrieves detailed information of a specific team by its unique ID.",
+               responses = {
+                   @ApiResponse(responseCode = "200", description = "Successfully retrieved team details."),
+                   @ApiResponse(responseCode = "404", description = "Session or team not found.")
+               })
     public ResponseEntity<TeamDto> getTeam(
             @PathVariable UUID sessionId,
             @PathVariable int teamId) {
@@ -47,7 +56,12 @@ public class TeamController {
     }
 
     @PatchMapping("/{teamId}")
-    @Operation(summary = "Update a team", description = "Updates specific properties of a team, such as money or reputation")
+    @Operation(summary = "Update a team", description = "Updates specific financial and prestige properties of a team, such as money or reputation. Fields left blank will not be updated.",
+               responses = {
+                   @ApiResponse(responseCode = "200", description = "Successfully updated the team. Returns the updated team details."),
+                   @ApiResponse(responseCode = "400", description = "Invalid input data."),
+                   @ApiResponse(responseCode = "404", description = "Session or team not found.")
+               })
     public ResponseEntity<TeamDto> updateTeam(
             @PathVariable UUID sessionId,
             @PathVariable int teamId,

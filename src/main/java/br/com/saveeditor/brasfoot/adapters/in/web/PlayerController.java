@@ -6,6 +6,7 @@ import br.com.saveeditor.brasfoot.application.ports.in.GetPlayerUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.UpdatePlayerUseCase;
 import br.com.saveeditor.brasfoot.domain.Player;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,7 +29,11 @@ public class PlayerController {
     }
 
     @GetMapping
-    @Operation(summary = "Get all players in a team", description = "Retrieves a list of all players for the specified team")
+    @Operation(summary = "Get all players in a team", description = "Retrieves a list of all players currently playing for the specified team.",
+               responses = {
+                   @ApiResponse(responseCode = "200", description = "Successfully retrieved the list of players."),
+                   @ApiResponse(responseCode = "404", description = "Session or team not found.")
+               })
     public ResponseEntity<List<PlayerDto>> getTeamPlayers(
             @PathVariable UUID sessionId,
             @PathVariable int teamId) {
@@ -41,7 +46,11 @@ public class PlayerController {
     }
 
     @GetMapping("/{playerId}")
-    @Operation(summary = "Get a specific player", description = "Retrieves details of a specific player by ID (index)")
+    @Operation(summary = "Get a specific player", description = "Retrieves details of a specific player by their ID (index within the team).",
+               responses = {
+                   @ApiResponse(responseCode = "200", description = "Successfully retrieved player details."),
+                   @ApiResponse(responseCode = "404", description = "Session, team, or player not found.")
+               })
     public ResponseEntity<PlayerDto> getPlayer(
             @PathVariable UUID sessionId,
             @PathVariable int teamId,
@@ -52,7 +61,12 @@ public class PlayerController {
     }
 
     @PatchMapping("/{playerId}")
-    @Operation(summary = "Update a player", description = "Updates specific properties of a player")
+    @Operation(summary = "Update a player", description = "Updates specific properties of a player, such as age, overall, energy, or morale. Only the fields provided in the request will be updated.",
+               responses = {
+                   @ApiResponse(responseCode = "200", description = "Successfully updated the player. Returns the updated player details."),
+                   @ApiResponse(responseCode = "400", description = "Invalid input data."),
+                   @ApiResponse(responseCode = "404", description = "Session, team, or player not found.")
+               })
     public ResponseEntity<PlayerDto> updatePlayer(
             @PathVariable UUID sessionId,
             @PathVariable int teamId,
