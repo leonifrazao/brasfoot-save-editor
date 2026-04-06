@@ -1,5 +1,6 @@
 package br.com.saveeditor.brasfoot.adapters.in.web;
 
+import br.com.saveeditor.brasfoot.adapters.in.web.mapper.TeamMapper;
 import br.com.saveeditor.brasfoot.adapters.in.web.record.in.TeamBatchUpdateRequest;
 import br.com.saveeditor.brasfoot.adapters.in.web.record.in.TeamUpdateRequest;
 import br.com.saveeditor.brasfoot.adapters.in.web.record.out.TeamDto;
@@ -24,10 +25,13 @@ public class TeamController {
 
     private final GetTeamUseCase getTeamUseCase;
     private final UpdateTeamUseCase updateTeamUseCase;
+    private final TeamMapper teamMapper;
 
-    public TeamController(GetTeamUseCase getTeamUseCase, UpdateTeamUseCase updateTeamUseCase) {
+    public TeamController(GetTeamUseCase getTeamUseCase, UpdateTeamUseCase updateTeamUseCase,
+                         TeamMapper teamMapper) {
         this.getTeamUseCase = getTeamUseCase;
         this.updateTeamUseCase = updateTeamUseCase;
+        this.teamMapper = teamMapper;
     }
 
     @GetMapping
@@ -38,9 +42,7 @@ public class TeamController {
                })
     public ResponseEntity<List<TeamDto>> getAllTeams(@PathVariable UUID sessionId) {
         List<Team> teams = getTeamUseCase.getAllTeams(sessionId);
-        List<TeamDto> dtos = teams.stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+        List<TeamDto> dtos = teamMapper.toDtoList(teams);
         return ResponseEntity.ok(dtos);
     }
 
@@ -54,7 +56,7 @@ public class TeamController {
             @PathVariable UUID sessionId,
             @PathVariable int teamId) {
         Team team = getTeamUseCase.getTeam(sessionId, teamId);
-        return ResponseEntity.ok(mapToDto(team));
+        return ResponseEntity.ok(teamMapper.toDto(team));
     }
 
     @PatchMapping("/{teamId}")
@@ -76,7 +78,7 @@ public class TeamController {
                 request.reputation()
         );
         
-        return ResponseEntity.ok(mapToDto(updatedTeam));
+        return ResponseEntity.ok(teamMapper.toDto(updatedTeam));
     }
 
     @PatchMapping("/batch")
@@ -96,19 +98,8 @@ public class TeamController {
 
         List<Team> updatedTeams = updateTeamUseCase.batchUpdateTeams(sessionId, commands);
         
-        List<TeamDto> dtos = updatedTeams.stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+        List<TeamDto> dtos = teamMapper.toDtoList(updatedTeams);
                 
         return ResponseEntity.ok(dtos);
-    }
-
-    private TeamDto mapToDto(Team team) {
-        return new TeamDto(
-                team.id(),
-                team.name(),
-                team.money(),
-                team.reputation()
-        );
     }
 }
