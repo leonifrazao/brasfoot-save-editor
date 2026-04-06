@@ -1,8 +1,8 @@
 package br.com.saveeditor.brasfoot.adapters.in.web;
 
-import br.com.saveeditor.brasfoot.adapters.in.web.record.PlayerBatchUpdateRequest;
-import br.com.saveeditor.brasfoot.adapters.in.web.record.PlayerDto;
-import br.com.saveeditor.brasfoot.adapters.in.web.record.PlayerUpdateRequest;
+import br.com.saveeditor.brasfoot.adapters.in.web.record.in.PlayerBatchUpdateRequest;
+import br.com.saveeditor.brasfoot.adapters.in.web.record.in.PlayerUpdateRequest;
+import br.com.saveeditor.brasfoot.adapters.in.web.record.out.PlayerDto;
 import br.com.saveeditor.brasfoot.application.ports.in.GetPlayerUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.UpdatePlayerUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.record.PlayerBatchUpdateCommand;

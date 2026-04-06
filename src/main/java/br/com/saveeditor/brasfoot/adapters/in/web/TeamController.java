@@ -1,8 +1,8 @@
 package br.com.saveeditor.brasfoot.adapters.in.web;
 
-import br.com.saveeditor.brasfoot.adapters.in.web.record.TeamBatchUpdateRequest;
-import br.com.saveeditor.brasfoot.adapters.in.web.record.TeamDto;
-import br.com.saveeditor.brasfoot.adapters.in.web.record.TeamUpdateRequest;
+import br.com.saveeditor.brasfoot.adapters.in.web.record.in.TeamBatchUpdateRequest;
+import br.com.saveeditor.brasfoot.adapters.in.web.record.in.TeamUpdateRequest;
+import br.com.saveeditor.brasfoot.adapters.in.web.record.out.TeamDto;
 import br.com.saveeditor.brasfoot.application.ports.in.GetTeamUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.UpdateTeamUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.record.TeamBatchUpdateCommand;

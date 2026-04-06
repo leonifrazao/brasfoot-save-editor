@@ -1,4 +1,4 @@
-package br.com.saveeditor.brasfoot.adapters.in.web.record;
+package br.com.saveeditor.brasfoot.adapters.in.web.record.in;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;

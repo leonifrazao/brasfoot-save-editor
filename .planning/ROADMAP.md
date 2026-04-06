@@ -58,7 +58,7 @@
 | 2. Team & Player Management | 2/2 | Complete | ✓ |
 | 3. Manager & Batch Operations | 3/3 | Complete | ✓ |
 | 4. Domain Model & Architecture Consistency | 4/4 | Complete | ✓ |
-| 5. Manager & Batch Contract Closure | 0/0 | Not Started |  |
+| 5. Manager & Batch Contract Closure | 2/2 | Planned |  |
 | 6. Requirements Traceability & Evidence Realignment | 0/0 | Not Started |  |
 
 ### Phase 4: add lombok and create real Domains, with self validation. fix project inconsistency like 2 services, all the services/usecase need a interface; Organize the “record” and “domain” folders. The ‘domain’ folder must be separate; the “record” folder goes in a different folder; keep the folders separate.
@@ -78,6 +78,12 @@ Plans:
 **Goal:** Close milestone-blocking manager and batch contract gaps by aligning API behavior, typed contracts, and verification evidence with v1.0 requirements.
 **Requirements:** EDIT-03, DX-02
 **Depends on:** Phase 4
+**Plans:** 2 plans
+
+Plans:
+- [ ] 05-01-PLAN.md — Complete manager field updates (age, nationality, reputation, trophies)
+- [ ] 05-02-PLAN.md — Implement batch 207 Multi-Status response with index-based error tracking
+
 **Gap Closure:** Closes requirement, integration, and flow gaps identified in `v1.0-v1.0-MILESTONE-AUDIT.md` for manager completeness and batch partial-failure semantics.
 
 ### Phase 6: Requirements Traceability & Evidence Realignment

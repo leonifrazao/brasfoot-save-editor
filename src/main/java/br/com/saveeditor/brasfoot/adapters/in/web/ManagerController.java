@@ -1,7 +1,7 @@
 package br.com.saveeditor.brasfoot.adapters.in.web;
 
-import br.com.saveeditor.brasfoot.adapters.in.web.record.ManagerDto;
-import br.com.saveeditor.brasfoot.adapters.in.web.record.ManagerUpdateRequest;
+import br.com.saveeditor.brasfoot.adapters.in.web.record.in.ManagerUpdateRequest;
+import br.com.saveeditor.brasfoot.adapters.in.web.record.out.ManagerDto;
 import br.com.saveeditor.brasfoot.application.ports.in.BatchUpdateManagerUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.GetManagerUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.record.ManagerBatchUpdateCommand;

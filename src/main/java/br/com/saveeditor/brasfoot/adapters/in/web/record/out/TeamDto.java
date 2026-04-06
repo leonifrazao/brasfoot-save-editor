@@ -1,4 +1,4 @@
-package br.com.saveeditor.brasfoot.adapters.in.web.record;
+package br.com.saveeditor.brasfoot.adapters.in.web.record.out;
 
 import br.com.saveeditor.brasfoot.domain.TeamReputation;
 
