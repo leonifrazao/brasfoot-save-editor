@@ -1,5 +1,6 @@
 package br.com.saveeditor.brasfoot.adapters.in.web;
 
+import br.com.saveeditor.brasfoot.adapters.in.web.mapper.ManagerMapper;
 import br.com.saveeditor.brasfoot.adapters.in.web.record.in.ManagerUpdateRequest;
 import br.com.saveeditor.brasfoot.adapters.in.web.record.out.ManagerDto;
 import br.com.saveeditor.brasfoot.adapters.in.web.record.out.BatchResponse;
@@ -29,13 +30,16 @@ public class ManagerController {
     private final GetManagerUseCase getManagerUseCase;
     private final UpdateManagerUseCase updateManagerUseCase;
     private final BatchUpdateManagerUseCase batchUpdateManagerUseCase;
+    private final ManagerMapper managerMapper;
 
     public ManagerController(GetManagerUseCase getManagerUseCase,
                              UpdateManagerUseCase updateManagerUseCase,
-                             BatchUpdateManagerUseCase batchUpdateManagerUseCase) {
+                             BatchUpdateManagerUseCase batchUpdateManagerUseCase,
+                             ManagerMapper managerMapper) {
         this.getManagerUseCase = getManagerUseCase;
         this.updateManagerUseCase = updateManagerUseCase;
         this.batchUpdateManagerUseCase = batchUpdateManagerUseCase;
+        this.managerMapper = managerMapper;
     }
 
     @GetMapping
@@ -46,7 +50,7 @@ public class ManagerController {
                })
     public ResponseEntity<List<ManagerDto>> getAllManagers(@PathVariable String sessionId) {
         List<Manager> managers = getManagerUseCase.getManagers(sessionId);
-        List<ManagerDto> dtos = managers.stream().map(this::toDto).collect(Collectors.toList());
+        List<ManagerDto> dtos = managerMapper.toDtoList(managers);
         return ResponseEntity.ok(dtos);
     }
 
@@ -60,7 +64,7 @@ public class ManagerController {
             @PathVariable String sessionId,
             @PathVariable int managerId) {
         return getManagerUseCase.getManager(sessionId, managerId)
-                .map(manager -> ResponseEntity.ok(toDto(manager)))
+                .map(manager -> ResponseEntity.ok(managerMapper.toDto(manager)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -75,9 +79,9 @@ public class ManagerController {
             @PathVariable String sessionId,
             @PathVariable int managerId,
             @Valid @RequestBody ManagerUpdateRequest request) {
-        Manager updateData = toDomain(request);
+        Manager updateData = managerMapper.toDomain(request);
         Manager updated = updateManagerUseCase.updateManager(sessionId, managerId, updateData);
-        return ResponseEntity.ok(toDto(updated));
+        return ResponseEntity.ok(managerMapper.toDto(updated));
     }
 
     @PatchMapping("/batch")
@@ -99,7 +103,7 @@ public class ManagerController {
         List<BatchResult<ManagerDto>> dtoResults = new ArrayList<>();
         for (BatchResult<Manager> result : response.getResults()) {
             if (result.isSuccess()) {
-                dtoResults.add(BatchResult.success(result.getIndex(), toDto(result.getData())));
+                dtoResults.add(BatchResult.success(result.getIndex(), managerMapper.toDto(result.getData())));
             } else {
                 dtoResults.add(BatchResult.failure(result.getIndex(), result.getError()));
             }
@@ -112,30 +116,5 @@ public class ManagerController {
         HttpStatus status = anyFailed ? HttpStatus.MULTI_STATUS : HttpStatus.OK;
         
         return ResponseEntity.status(status).body(dtoResponse);
-    }
-
-    private ManagerDto toDto(Manager manager) {
-        ManagerDto dto = new ManagerDto();
-        dto.setId(manager.getId());
-        dto.setName(manager.getName());
-        dto.setIsHuman(manager.getIsHuman());
-        dto.setTeamId(manager.getTeamId());
-        dto.setConfidenceBoard(manager.getConfidenceBoard());
-        dto.setConfidenceFans(manager.getConfidenceFans());
-        dto.setAge(manager.getAge());
-        dto.setNationality(manager.getNationality());
-        dto.setReputation(manager.getReputation());
-        dto.setTrophies(manager.getTrophies());
-        return dto;
-    }
-
-    private Manager toDomain(ManagerUpdateRequest request) {
-        Manager manager = new Manager();
-        manager.setName(request.getName());
-        manager.setAge(request.getAge());
-        manager.setNationality(request.getNationality());
-        manager.setReputation(request.getReputation());
-        manager.setTrophies(request.getTrophies());
-        return manager;
     }
 }
