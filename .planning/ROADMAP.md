@@ -2,9 +2,9 @@
 
 ## Phases
 
-- [ ] **Phase 1: Session Management & API Foundation** - Users can initialize and retrieve save file sessions via a documented API
-- [ ] **Phase 2: Team & Player Management** - Users can modify core game entities (teams and players) within an active session
-- [ ] **Phase 3: Manager & Batch Operations** - Users can edit manager data and perform bulk updates efficiently
+- [x] **Phase 1: Session Management & API Foundation** - Users can initialize and retrieve save file sessions via a documented API
+- [x] **Phase 2: Team & Player Management** - Users can modify core game entities (teams and players) within an active session
+- [x] **Phase 3: Manager & Batch Operations** - Users can edit manager data and perform bulk updates efficiently
 
 ## Phase Details
 
@@ -51,6 +51,19 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Session Management & API Foundation | 3/3 | Complete | - |
-| 2. Team & Player Management | 2/2 | Complete | - |
-| 3. Manager & Batch Operations | 0/3 | Planned | - |
+| 1. Session Management & API Foundation | 3/3 | Complete | ✓ |
+| 2. Team & Player Management | 2/2 | Complete | ✓ |
+| 3. Manager & Batch Operations | 3/3 | Complete | ✓ |
+
+### Phase 4: add lombok and create real Domains, with self validation. fix project inconsistency like 2 services, all the services/usecase need a interface; Organize the “record” and “domain” folders. The ‘domain’ folder must be separate; the “record” folder goes in a different folder; keep the folders separate.
+
+**Goal:** Standardize the codebase around Lombok-enabled, self-validating domain models with interface-consistent services/use-cases and explicit separation between domain and record transport folders
+**Requirements**: TBD
+**Depends on:** Phase 3
+**Plans:** 4 plans
+
+Plans:
+- [x] 04-01-PLAN.md — Enable Lombok and define interface-first architecture contracts
+- [x] 04-02-PLAN.md — Implement self-validating domain models and rewire validations
+- [x] 04-03-PLAN.md — Enforce service/use-case interface consistency and manager batch contract
+- [x] 04-04-PLAN.md — Separate record and domain folders with import rewiring
