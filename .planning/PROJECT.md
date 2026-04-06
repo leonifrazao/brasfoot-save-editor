@@ -17,13 +17,17 @@ Enable programmatic, reliable, and comprehensive editing of Brasfoot save files 
 - ✓ Expose REST endpoints to upload and download save files — Phase 1
 - ✓ Implement Hexagonal Architecture with strict separation of Domain, Ports, and Adapters — Phase 1
 - ✓ Migrate the existing Spring Shell/CLI application to a Spring Boot REST API (Foundation) — Phase 1
+- ✓ Expose REST endpoints to edit Team and Player stats/finances — Validated in Phase 2 and hardened in Phase 4
+- ✓ Expose REST endpoints to edit Manager data — Validated in Phase 3 and interface-hardened in Phase 4
 
 ### Active
 
-- [ ] Expose REST endpoints to edit Team and Player stats/finances
-- [ ] Expose REST endpoints to edit Manager data
 - [ ] Expose REST endpoints to edit Tournament/League data
 - [ ] Remove all dead code (especially old UI/CLI related code)
+
+## Current State
+
+Phase 4 complete — Lombok-enabled builds, self-validating domain models, interface-consistent management services, and explicit record/domain package separation are now in place.
 
 ### Out of Scope
 
@@ -65,4 +69,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: Sun Apr 05 2026 after Phase 1*
+*Last updated: Sun Apr 05 2026 after Phase 4*
