@@ -1,19 +1,27 @@
 package br.com.saveeditor.brasfoot.domain;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-public record Player(
-    int id,
-    String name,
-    int age,
-    int overall,
-    int position,
-    int energy,
-    int morale
-) {
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Player {
+    private int id;
+    private String name;
+    private int age;
+    private int overall;
+    private int position;
+    private int energy;
+    private int morale;
 
-    @Builder
-    public Player {
+    /**
+     * Validates player attributes.
+     */
+    public void validate() {
         if (age < 15 || age > 50) {
             throw new IllegalArgumentException("Invalid age: must be between 15 and 50");
         }
