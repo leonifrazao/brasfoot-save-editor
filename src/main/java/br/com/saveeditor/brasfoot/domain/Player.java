@@ -1,13 +1,11 @@
 package br.com.saveeditor.brasfoot.domain;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 @Builder
 public class Player {
     private int id;
@@ -18,10 +16,7 @@ public class Player {
     private int energy;
     private int morale;
 
-    /**
-     * Validates player attributes.
-     */
-    public void validate() {
+    public Player(int id, String name, int age, int overall, int position, int energy, int morale) {
         if (age < 15 || age > 50) {
             throw new IllegalArgumentException("Invalid age: must be between 15 and 50");
         }
@@ -37,5 +32,12 @@ public class Player {
         if (morale < 0 || morale > 100) {
             throw new IllegalArgumentException("Invalid morale: must be between 0 and 100");
         }
+        this.id = id;
+        this.name = name;
+        this.age = age;
+        this.overall = overall;
+        this.position = position;
+        this.energy = energy;
+        this.morale = morale;
     }
 }

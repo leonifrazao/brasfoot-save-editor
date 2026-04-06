@@ -42,7 +42,7 @@ public class ManagerManagementService implements GetManagerUseCase, UpdateManage
             throw new IllegalArgumentException("Session not found");
         }
         
-        Object root = session.context().getState().getObjetoRaiz();
+        Object root = session.getContext().getState().getObjetoRaiz();
         List<Object> managerObjects = getManagerObjectsSafe(root);
         
         List<Manager> managers = new ArrayList<>();
@@ -60,7 +60,7 @@ public class ManagerManagementService implements GetManagerUseCase, UpdateManage
             throw new IllegalArgumentException("Session not found");
         }
         
-        Object root = session.context().getState().getObjetoRaiz();
+        Object root = session.getContext().getState().getObjetoRaiz();
         List<Object> managerObjects = getManagerObjectsSafe(root);
         
         if (managerId >= 0 && managerId < managerObjects.size()) {
@@ -77,7 +77,7 @@ public class ManagerManagementService implements GetManagerUseCase, UpdateManage
             throw new IllegalArgumentException("Session not found");
         }
         
-        Object root = session.context().getState().getObjetoRaiz();
+        Object root = session.getContext().getState().getObjetoRaiz();
         List<Object> managerObjects = getManagerObjectsSafe(root);
         
         if (managerId < 0 || managerId >= managerObjects.size()) {
@@ -85,8 +85,6 @@ public class ManagerManagementService implements GetManagerUseCase, UpdateManage
         }
         
         Object managerObj = managerObjects.get(managerId);
-
-        updateData.validate();
         
         try {
             if (updateData.getName() != null) {
@@ -129,7 +127,7 @@ public class ManagerManagementService implements GetManagerUseCase, UpdateManage
             throw new IllegalArgumentException("Session not found");
         }
 
-        Object root = session.context().getState().getObjetoRaiz();
+        Object root = session.getContext().getState().getObjetoRaiz();
         List<Object> managerObjects = getManagerObjectsSafe(root);
         List<BatchResult<Manager>> results = new ArrayList<>();
 
@@ -146,21 +144,20 @@ public class ManagerManagementService implements GetManagerUseCase, UpdateManage
                 Object managerObj = managerObjects.get(managerId);
                 Manager candidate = Manager.of(
                         managerId,
-                        command.name(),
+                        command.getName(),
                         null,
                         null,
                         command.confidenceBoard(),
                         command.confidenceFans(),
-                        command.age(),
+                        command.getAge(),
                         command.nationality(),
-                        command.reputation(),
+                        command.getReputation(),
                         command.trophies()
                 );
-                candidate.validate();
 
                 try {
-                    if (command.name() != null) {
-                        ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_NAME, command.name());
+                    if (command.getName() != null) {
+                        ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_NAME, command.getName());
                     }
                     if (command.confidenceBoard() != null) {
                         ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_CONFIDENCE_BOARD, command.confidenceBoard());
@@ -168,14 +165,14 @@ public class ManagerManagementService implements GetManagerUseCase, UpdateManage
                     if (command.confidenceFans() != null) {
                         ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_CONFIDENCE_FANS, command.confidenceFans());
                     }
-                    if (command.age() != null) {
-                        ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_AGE, command.age());
+                    if (command.getAge() != null) {
+                        ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_AGE, command.getAge());
                     }
                     if (command.nationality() != null) {
                         ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_NATIONALITY, command.nationality());
                     }
-                    if (command.reputation() != null) {
-                        ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_REPUTATION, command.reputation());
+                    if (command.getReputation() != null) {
+                        ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_REPUTATION, command.getReputation());
                     }
                     if (command.trophies() != null) {
                         ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_TROPHIES, command.trophies());

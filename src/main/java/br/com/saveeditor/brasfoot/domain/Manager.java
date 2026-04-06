@@ -1,13 +1,11 @@
 package br.com.saveeditor.brasfoot.domain;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 @Builder
 public class Manager {
     private Integer id; // Index in the list
@@ -21,23 +19,19 @@ public class Manager {
     private Integer reputation;
     private Integer trophies;
 
-    /**
-     * Post-construct validator called by Builder.
-     */
-    public static class ManagerBuilder {
-        public Manager build() {
-            Manager manager = new Manager(id, name, isHuman, teamId, confidenceBoard, confidenceFans, age, nationality, reputation, trophies);
-            manager.validate();
-            return manager;
-        }
-    }
-
-    /**
-     * Validates confidence values.
-     */
-    public void validate() {
+    public Manager(Integer id, String name, Boolean isHuman, Integer teamId, Integer confidenceBoard, Integer confidenceFans, Integer age, String nationality, Integer reputation, Integer trophies) {
         validateConfidence("confidenceBoard", confidenceBoard);
         validateConfidence("confidenceFans", confidenceFans);
+        this.id = id;
+        this.name = name;
+        this.isHuman = isHuman;
+        this.teamId = teamId;
+        this.confidenceBoard = confidenceBoard;
+        this.confidenceFans = confidenceFans;
+        this.age = age;
+        this.nationality = nationality;
+        this.reputation = reputation;
+        this.trophies = trophies;
     }
 
     private void validateConfidence(String fieldName, Integer value) {
