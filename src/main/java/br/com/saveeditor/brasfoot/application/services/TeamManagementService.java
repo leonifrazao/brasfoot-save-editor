@@ -2,11 +2,11 @@ package br.com.saveeditor.brasfoot.application.services;
 
 import br.com.saveeditor.brasfoot.application.ports.in.GetTeamUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.UpdateTeamUseCase;
+import br.com.saveeditor.brasfoot.application.ports.out.GameDataPort;
 import br.com.saveeditor.brasfoot.application.ports.out.SessionStatePort;
 import br.com.saveeditor.brasfoot.domain.Session;
 import br.com.saveeditor.brasfoot.domain.Team;
 import br.com.saveeditor.brasfoot.domain.TeamReputation;
-import br.com.saveeditor.brasfoot.service.GameDataService;
 import br.com.saveeditor.brasfoot.util.BrasfootConstants;
 import br.com.saveeditor.brasfoot.util.ReflectionUtils;
 import org.slf4j.Logger;
@@ -23,11 +23,11 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
     private static final Logger log = LoggerFactory.getLogger(TeamManagementService.class);
 
     private final SessionStatePort sessionStatePort;
-    private final GameDataService gameDataService;
+    private final GameDataPort gameDataPort;
 
-    public TeamManagementService(SessionStatePort sessionStatePort, GameDataService gameDataService) {
+    public TeamManagementService(SessionStatePort sessionStatePort, GameDataPort gameDataPort) {
         this.sessionStatePort = sessionStatePort;
-        this.gameDataService = gameDataService;
+        this.gameDataPort = gameDataPort;
     }
 
     @Override
@@ -39,7 +39,7 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
         }
 
         Object root = session.context().getState().getObjetoRaiz();
-        List<Object> teamObjects = gameDataService.getTeams(root);
+        List<Object> teamObjects = gameDataPort.getTeams(root);
 
         return teamObjects.stream()
                 .map(this::mapToTeamDomain)
@@ -55,7 +55,7 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
         }
 
         Object root = session.context().getState().getObjetoRaiz();
-        Object teamObj = gameDataService.getTeamById(root, teamId);
+        Object teamObj = gameDataPort.getTeamById(root, teamId);
         if (teamObj == null) {
             throw new IllegalArgumentException("Team not found with ID: " + teamId);
         }
@@ -74,15 +74,20 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
         }
 
         Object root = session.context().getState().getObjetoRaiz();
-        Object teamObj = gameDataService.getTeamById(root, teamId);
+        Object teamObj = gameDataPort.getTeamById(root, teamId);
         if (teamObj == null) {
             throw new IllegalArgumentException("Team not found with ID: " + teamId);
         }
 
+        Team currentTeam = mapToTeamDomain(teamObj);
+
         if (money != null) {
-            if (money < 0) {
-                throw new IllegalArgumentException("Money cannot be negative");
-            }
+            Team.builder()
+                    .id(currentTeam.id())
+                    .name(currentTeam.name())
+                    .money(money)
+                    .reputation(currentTeam.reputation())
+                    .build();
             try {
                 ReflectionUtils.setFieldValue(teamObj, BrasfootConstants.TEAM_MONEY, money);
             } catch (Exception e) {
@@ -118,16 +123,21 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
         List<Team> updatedTeams = new java.util.ArrayList<>();
 
         for (var command : commands) {
-            Object teamObj = gameDataService.getTeamById(root, command.teamId());
+            Object teamObj = gameDataPort.getTeamById(root, command.teamId());
             if (teamObj == null) {
                 log.warn("Team not found with ID: {}", command.teamId());
                 continue;
             }
 
+            Team currentTeam = mapToTeamDomain(teamObj);
+
             if (command.money() != null) {
-                if (command.money() < 0) {
-                    throw new IllegalArgumentException("Money cannot be negative for team " + command.teamId());
-                }
+                Team.builder()
+                        .id(currentTeam.id())
+                        .name(currentTeam.name())
+                        .money(command.money())
+                        .reputation(currentTeam.reputation())
+                        .build();
                 try {
                     ReflectionUtils.setFieldValue(teamObj, BrasfootConstants.TEAM_MONEY, command.money());
                 } catch (Exception e) {

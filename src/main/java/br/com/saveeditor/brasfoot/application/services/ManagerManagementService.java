@@ -2,10 +2,10 @@ package br.com.saveeditor.brasfoot.application.services;
 
 import br.com.saveeditor.brasfoot.application.ports.in.GetManagerUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.UpdateManagerUseCase;
+import br.com.saveeditor.brasfoot.application.ports.out.GameDataPort;
 import br.com.saveeditor.brasfoot.application.ports.out.SessionStatePort;
 import br.com.saveeditor.brasfoot.domain.Manager;
 import br.com.saveeditor.brasfoot.domain.Session;
-import br.com.saveeditor.brasfoot.service.GameDataService;
 import br.com.saveeditor.brasfoot.util.BrasfootConstants;
 import br.com.saveeditor.brasfoot.util.ReflectionUtils;
 import org.slf4j.Logger;
@@ -16,7 +16,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 public class ManagerManagementService implements GetManagerUseCase, UpdateManagerUseCase {
@@ -24,11 +23,11 @@ public class ManagerManagementService implements GetManagerUseCase, UpdateManage
     private static final Logger log = LoggerFactory.getLogger(ManagerManagementService.class);
 
     private final SessionStatePort sessionStatePort;
-    private final GameDataService gameDataService;
+    private final GameDataPort gameDataPort;
 
-    public ManagerManagementService(SessionStatePort sessionStatePort, GameDataService gameDataService) {
+    public ManagerManagementService(SessionStatePort sessionStatePort, GameDataPort gameDataPort) {
         this.sessionStatePort = sessionStatePort;
-        this.gameDataService = gameDataService;
+        this.gameDataPort = gameDataPort;
     }
 
     @Override
@@ -82,6 +81,8 @@ public class ManagerManagementService implements GetManagerUseCase, UpdateManage
         }
         
         Object managerObj = managerObjects.get(managerId);
+
+        updateData.validate();
         
         try {
             if (updateData.getName() != null) {
@@ -105,38 +106,36 @@ public class ManagerManagementService implements GetManagerUseCase, UpdateManage
     
     @SuppressWarnings("unchecked")
     private List<Object> getManagerObjectsSafe(Object root) {
-        try {
-            return (List<Object>) ReflectionUtils.getFieldValue(root, BrasfootConstants.HUMAN_MANAGERS_LIST);
-        } catch (Exception e) {
-            log.warn("Could not load managers list from root", e);
-            return new ArrayList<>();
-        }
+        return gameDataPort.getManagers(root);
     }
 
     private Manager mapToDomain(Object managerObj, int id) {
-        Manager domain = new Manager();
-        domain.setId(id);
-        
+        Integer confidenceBoard = null;
+        Integer confidenceFans = null;
+        String name = null;
+        Boolean isHuman = null;
+        Integer teamId = null;
+
         try {
-            domain.setName((String) ReflectionUtils.getFieldValue(managerObj, BrasfootConstants.MANAGER_NAME));
-        } catch (Exception e) { log.trace("Field not found", e); }
-        
-        try {
-            domain.setIsHuman((Boolean) ReflectionUtils.getFieldValue(managerObj, BrasfootConstants.MANAGER_IS_HUMAN));
-        } catch (Exception e) { log.trace("Field not found", e); }
-        
-        try {
-            domain.setConfidenceBoard((Integer) ReflectionUtils.getFieldValue(managerObj, BrasfootConstants.MANAGER_CONFIDENCE_BOARD));
-        } catch (Exception e) { log.trace("Field not found", e); }
-        
-        try {
-            domain.setConfidenceFans((Integer) ReflectionUtils.getFieldValue(managerObj, BrasfootConstants.MANAGER_CONFIDENCE_FANS));
-        } catch (Exception e) { log.trace("Field not found", e); }
-        
-        try {
-            domain.setTeamId((Integer) ReflectionUtils.getFieldValue(managerObj, "nU")); // Used in getHumanTeam
+            name = (String) ReflectionUtils.getFieldValue(managerObj, BrasfootConstants.MANAGER_NAME);
         } catch (Exception e) { log.trace("Field not found", e); }
 
-        return domain;
+        try {
+            isHuman = (Boolean) ReflectionUtils.getFieldValue(managerObj, BrasfootConstants.MANAGER_IS_HUMAN);
+        } catch (Exception e) { log.trace("Field not found", e); }
+
+        try {
+            confidenceBoard = (Integer) ReflectionUtils.getFieldValue(managerObj, BrasfootConstants.MANAGER_CONFIDENCE_BOARD);
+        } catch (Exception e) { log.trace("Field not found", e); }
+
+        try {
+            confidenceFans = (Integer) ReflectionUtils.getFieldValue(managerObj, BrasfootConstants.MANAGER_CONFIDENCE_FANS);
+        } catch (Exception e) { log.trace("Field not found", e); }
+
+        try {
+            teamId = (Integer) ReflectionUtils.getFieldValue(managerObj, "nU"); // Used in getHumanTeam
+        } catch (Exception e) { log.trace("Field not found", e); }
+
+        return Manager.of(id, name, isHuman, teamId, confidenceBoard, confidenceFans, null, null, null, null);
     }
 }

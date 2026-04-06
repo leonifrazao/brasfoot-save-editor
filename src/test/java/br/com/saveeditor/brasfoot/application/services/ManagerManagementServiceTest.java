@@ -1,11 +1,11 @@
 package br.com.saveeditor.brasfoot.application.services;
 
 import br.com.saveeditor.brasfoot.application.ports.out.SessionStatePort;
+import br.com.saveeditor.brasfoot.application.ports.out.GameDataPort;
 import br.com.saveeditor.brasfoot.domain.Manager;
 import br.com.saveeditor.brasfoot.domain.SaveContext;
 import br.com.saveeditor.brasfoot.domain.Session;
 import br.com.saveeditor.brasfoot.model.NavegacaoState;
-import br.com.saveeditor.brasfoot.service.GameDataService;
 import br.com.saveeditor.brasfoot.util.BrasfootConstants;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,6 +22,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
 
 @ExtendWith(MockitoExtension.class)
 class ManagerManagementServiceTest {
@@ -30,7 +31,7 @@ class ManagerManagementServiceTest {
     private SessionStatePort sessionStatePort;
 
     @Mock
-    private GameDataService gameDataService;
+    private GameDataPort gameDataPort;
 
     @InjectMocks
     private ManagerManagementService managerManagementService;
@@ -64,6 +65,8 @@ class ManagerManagementServiceTest {
         when(mockContext.getState()).thenReturn(mockState);
 
         mockSession = new Session(sessionId, mockContext);
+
+        when(gameDataPort.getManagers(rootObject)).thenReturn(dummyManagersList);
     }
 
     @Test

@@ -2,10 +2,10 @@ package br.com.saveeditor.brasfoot.application.services;
 
 import br.com.saveeditor.brasfoot.application.ports.in.GetPlayerUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.UpdatePlayerUseCase;
+import br.com.saveeditor.brasfoot.application.ports.out.GameDataPort;
 import br.com.saveeditor.brasfoot.application.ports.out.SessionStatePort;
 import br.com.saveeditor.brasfoot.domain.Player;
 import br.com.saveeditor.brasfoot.domain.Session;
-import br.com.saveeditor.brasfoot.service.GameDataService;
 import br.com.saveeditor.brasfoot.util.BrasfootConstants;
 import br.com.saveeditor.brasfoot.util.ReflectionUtils;
 import org.slf4j.Logger;
@@ -22,11 +22,11 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
     private static final Logger log = LoggerFactory.getLogger(PlayerManagementService.class);
 
     private final SessionStatePort sessionStatePort;
-    private final GameDataService gameDataService;
+    private final GameDataPort gameDataPort;
 
-    public PlayerManagementService(SessionStatePort sessionStatePort, GameDataService gameDataService) {
+    public PlayerManagementService(SessionStatePort sessionStatePort, GameDataPort gameDataPort) {
         this.sessionStatePort = sessionStatePort;
-        this.gameDataService = gameDataService;
+        this.gameDataPort = gameDataPort;
     }
 
     @Override
@@ -38,12 +38,12 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
         }
 
         Object root = session.context().getState().getObjetoRaiz();
-        Object teamObj = gameDataService.getTeamById(root, teamId);
+        Object teamObj = gameDataPort.getTeamById(root, teamId);
         if (teamObj == null) {
             throw new IllegalArgumentException("Team not found with ID: " + teamId);
         }
 
-        List<Object> playerObjects = gameDataService.getPlayers(teamObj);
+        List<Object> playerObjects = gameDataPort.getPlayers(teamObj);
         List<Player> players = new ArrayList<>();
         
         for (int i = 0; i < playerObjects.size(); i++) {
@@ -62,12 +62,12 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
         }
 
         Object root = session.context().getState().getObjetoRaiz();
-        Object teamObj = gameDataService.getTeamById(root, teamId);
+        Object teamObj = gameDataPort.getTeamById(root, teamId);
         if (teamObj == null) {
             throw new IllegalArgumentException("Team not found with ID: " + teamId);
         }
 
-        List<Object> playerObjects = gameDataService.getPlayers(teamObj);
+        List<Object> playerObjects = gameDataPort.getPlayers(teamObj);
         if (playerId < 0 || playerId >= playerObjects.size()) {
             throw new IllegalArgumentException("Player index out of bounds");
         }
@@ -86,12 +86,12 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
         }
 
         Object root = session.context().getState().getObjetoRaiz();
-        Object teamObj = gameDataService.getTeamById(root, teamId);
+        Object teamObj = gameDataPort.getTeamById(root, teamId);
         if (teamObj == null) {
             throw new IllegalArgumentException("Team not found with ID: " + teamId);
         }
 
-        List<Object> playerObjects = gameDataService.getPlayers(teamObj);
+        List<Object> playerObjects = gameDataPort.getPlayers(teamObj);
         if (playerId < 0 || playerId >= playerObjects.size()) {
             throw new IllegalArgumentException("Player index out of bounds");
         }
@@ -99,20 +99,54 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
         Object playerObj = playerObjects.get(playerId);
 
         try {
+            Player currentPlayer = mapToPlayerDomain(playerObj, playerId);
+
             if (age != null) {
-                if (age < 15 || age > 50) throw new IllegalArgumentException("Invalid age: must be between 15 and 50");
+                Player.builder()
+                        .id(currentPlayer.id())
+                        .name(currentPlayer.name())
+                        .age(age)
+                        .overall(currentPlayer.overall())
+                        .position(currentPlayer.position())
+                        .energy(currentPlayer.energy())
+                        .morale(currentPlayer.morale())
+                        .build();
                 ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_AGE, age);
             }
             if (overall != null) {
-                if (overall < 1 || overall > 100) throw new IllegalArgumentException("Invalid overall: must be between 1 and 100");
+                Player.builder()
+                        .id(currentPlayer.id())
+                        .name(currentPlayer.name())
+                        .age(currentPlayer.age())
+                        .overall(overall)
+                        .position(currentPlayer.position())
+                        .energy(currentPlayer.energy())
+                        .morale(currentPlayer.morale())
+                        .build();
                 ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_OVERALL, overall);
             }
             if (position != null) {
-                if (position < 0 || position > 4) throw new IllegalArgumentException("Invalid position: must be 0 to 4");
+                Player.builder()
+                        .id(currentPlayer.id())
+                        .name(currentPlayer.name())
+                        .age(currentPlayer.age())
+                        .overall(currentPlayer.overall())
+                        .position(position)
+                        .energy(currentPlayer.energy())
+                        .morale(currentPlayer.morale())
+                        .build();
                 ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_POSITION, position);
             }
             if (energy != null) {
-                if (energy < -1 || energy > 100) throw new IllegalArgumentException("Invalid energy: must be between -1 and 100");
+                Player.builder()
+                        .id(currentPlayer.id())
+                        .name(currentPlayer.name())
+                        .age(currentPlayer.age())
+                        .overall(currentPlayer.overall())
+                        .position(currentPlayer.position())
+                        .energy(energy)
+                        .morale(currentPlayer.morale())
+                        .build();
                 ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_ENERGY, energy);
             }
             // Morale isn't in Constants, skipping or maybe it's not present yet. 
@@ -140,12 +174,12 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
         }
 
         Object root = session.context().getState().getObjetoRaiz();
-        Object teamObj = gameDataService.getTeamById(root, teamId);
+        Object teamObj = gameDataPort.getTeamById(root, teamId);
         if (teamObj == null) {
             throw new IllegalArgumentException("Team not found with ID: " + teamId);
         }
 
-        List<Object> playerObjects = gameDataService.getPlayers(teamObj);
+        List<Object> playerObjects = gameDataPort.getPlayers(teamObj);
         List<Player> updatedPlayers = new ArrayList<>();
 
         for (var command : commands) {
@@ -158,20 +192,54 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
             Object playerObj = playerObjects.get(playerId);
 
             try {
+                Player currentPlayer = mapToPlayerDomain(playerObj, playerId);
+
                 if (command.age() != null) {
-                    if (command.age() < 15 || command.age() > 50) throw new IllegalArgumentException("Invalid age for player " + playerId + ": must be between 15 and 50");
+                    Player.builder()
+                            .id(currentPlayer.id())
+                            .name(currentPlayer.name())
+                            .age(command.age())
+                            .overall(currentPlayer.overall())
+                            .position(currentPlayer.position())
+                            .energy(currentPlayer.energy())
+                            .morale(currentPlayer.morale())
+                            .build();
                     ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_AGE, command.age());
                 }
                 if (command.overall() != null) {
-                    if (command.overall() < 1 || command.overall() > 100) throw new IllegalArgumentException("Invalid overall for player " + playerId + ": must be between 1 and 100");
+                    Player.builder()
+                            .id(currentPlayer.id())
+                            .name(currentPlayer.name())
+                            .age(currentPlayer.age())
+                            .overall(command.overall())
+                            .position(currentPlayer.position())
+                            .energy(currentPlayer.energy())
+                            .morale(currentPlayer.morale())
+                            .build();
                     ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_OVERALL, command.overall());
                 }
                 if (command.position() != null) {
-                    if (command.position() < 0 || command.position() > 4) throw new IllegalArgumentException("Invalid position for player " + playerId + ": must be 0 to 4");
+                    Player.builder()
+                            .id(currentPlayer.id())
+                            .name(currentPlayer.name())
+                            .age(currentPlayer.age())
+                            .overall(currentPlayer.overall())
+                            .position(command.position())
+                            .energy(currentPlayer.energy())
+                            .morale(currentPlayer.morale())
+                            .build();
                     ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_POSITION, command.position());
                 }
                 if (command.energy() != null) {
-                    if (command.energy() < -1 || command.energy() > 100) throw new IllegalArgumentException("Invalid energy for player " + playerId + ": must be between -1 and 100");
+                    Player.builder()
+                            .id(currentPlayer.id())
+                            .name(currentPlayer.name())
+                            .age(currentPlayer.age())
+                            .overall(currentPlayer.overall())
+                            .position(currentPlayer.position())
+                            .energy(command.energy())
+                            .morale(currentPlayer.morale())
+                            .build();
                     ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_ENERGY, command.energy());
                 }
             } catch (IllegalArgumentException e) {
