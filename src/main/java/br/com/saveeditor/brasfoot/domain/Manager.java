@@ -1,10 +1,14 @@
 package br.com.saveeditor.brasfoot.domain;
 
 import lombok.Builder;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
-@Data
+@Getter
+@ToString
+@EqualsAndHashCode
 @NoArgsConstructor
 @Builder
 public class Manager {
@@ -41,6 +45,78 @@ public class Manager {
         if (value < 0 || value > 100) {
             throw new IllegalArgumentException("Invalid " + fieldName + ": must be between 0 and 100");
         }
+    }
+
+    /**
+     * Setter with validation for confidenceBoard field.
+     */
+    public void setConfidenceBoard(Integer value) {
+        validateConfidence("confidenceBoard", value);
+        this.confidenceBoard = value;
+    }
+
+    /**
+     * Setter with validation for confidenceFans field.
+     */
+    public void setConfidenceFans(Integer value) {
+        validateConfidence("confidenceFans", value);
+        this.confidenceFans = value;
+    }
+
+    /**
+     * Setter without validation for id field.
+     */
+    public void setId(Integer value) {
+        this.id = value;
+    }
+
+    /**
+     * Setter without validation for name field.
+     */
+    public void setName(String value) {
+        this.name = value;
+    }
+
+    /**
+     * Setter without validation for isHuman field.
+     */
+    public void setIsHuman(Boolean value) {
+        this.isHuman = value;
+    }
+
+    /**
+     * Setter without validation for teamId field.
+     */
+    public void setTeamId(Integer value) {
+        this.teamId = value;
+    }
+
+    /**
+     * Setter without validation for age field.
+     */
+    public void setAge(Integer value) {
+        this.age = value;
+    }
+
+    /**
+     * Setter without validation for nationality field.
+     */
+    public void setNationality(String value) {
+        this.nationality = value;
+    }
+
+    /**
+     * Setter without validation for reputation field.
+     */
+    public void setReputation(Integer value) {
+        this.reputation = value;
+    }
+
+    /**
+     * Setter without validation for trophies field.
+     */
+    public void setTrophies(Integer value) {
+        this.trophies = value;
     }
 
     /**
