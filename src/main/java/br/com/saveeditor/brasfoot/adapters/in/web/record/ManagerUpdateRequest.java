@@ -1,15 +1,15 @@
-package br.com.saveeditor.brasfoot.adapters.in.web.dto;
+package br.com.saveeditor.brasfoot.adapters.in.web.record;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 
 public class ManagerUpdateRequest {
     private String name;
-    
+
     @Min(15)
     @Max(100)
     private Integer age;
-    
+
     private String nationality;
     private Integer reputation;
     private Integer trophies;

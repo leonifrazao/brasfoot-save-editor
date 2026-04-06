@@ -1,8 +1,10 @@
 package br.com.saveeditor.brasfoot.adapters.in.web;
 
-import br.com.saveeditor.brasfoot.adapters.in.web.dto.ManagerDto;
-import br.com.saveeditor.brasfoot.adapters.in.web.dto.ManagerUpdateRequest;
+import br.com.saveeditor.brasfoot.adapters.in.web.record.ManagerDto;
+import br.com.saveeditor.brasfoot.adapters.in.web.record.ManagerUpdateRequest;
+import br.com.saveeditor.brasfoot.application.ports.in.BatchUpdateManagerUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.GetManagerUseCase;
+import br.com.saveeditor.brasfoot.application.ports.in.record.ManagerBatchUpdateCommand;
 import br.com.saveeditor.brasfoot.application.ports.in.UpdateManagerUseCase;
 import br.com.saveeditor.brasfoot.domain.Manager;
 import io.swagger.v3.oas.annotations.Operation;
@@ -22,10 +24,14 @@ public class ManagerController {
 
     private final GetManagerUseCase getManagerUseCase;
     private final UpdateManagerUseCase updateManagerUseCase;
+    private final BatchUpdateManagerUseCase batchUpdateManagerUseCase;
 
-    public ManagerController(GetManagerUseCase getManagerUseCase, UpdateManagerUseCase updateManagerUseCase) {
+    public ManagerController(GetManagerUseCase getManagerUseCase,
+                             UpdateManagerUseCase updateManagerUseCase,
+                             BatchUpdateManagerUseCase batchUpdateManagerUseCase) {
         this.getManagerUseCase = getManagerUseCase;
         this.updateManagerUseCase = updateManagerUseCase;
+        this.batchUpdateManagerUseCase = batchUpdateManagerUseCase;
     }
 
     @GetMapping
@@ -68,6 +74,21 @@ public class ManagerController {
         Manager updateData = toDomain(request);
         Manager updated = updateManagerUseCase.updateManager(sessionId, managerId, updateData);
         return ResponseEntity.ok(toDto(updated));
+    }
+
+    @PatchMapping("/batch")
+    @Operation(summary = "Batch update managers", description = "Updates multiple managers in a single request. Only supplied fields are changed for each manager.",
+               responses = {
+                   @ApiResponse(responseCode = "200", description = "Successfully updated managers. Returns updated manager details."),
+                   @ApiResponse(responseCode = "400", description = "Invalid input data."),
+                   @ApiResponse(responseCode = "404", description = "Session or manager not found.")
+               })
+    public ResponseEntity<List<ManagerDto>> batchUpdateManagers(
+            @PathVariable String sessionId,
+            @RequestBody List<ManagerBatchUpdateCommand> commands) {
+        List<Manager> updatedManagers = batchUpdateManagerUseCase.batchUpdateManagers(sessionId, commands);
+        List<ManagerDto> dtos = updatedManagers.stream().map(this::toDto).collect(Collectors.toList());
+        return ResponseEntity.ok(dtos);
     }
 
     private ManagerDto toDto(Manager manager) {

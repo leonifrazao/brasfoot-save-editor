@@ -1,5 +1,6 @@
 package br.com.saveeditor.brasfoot.application.ports.in;
 
+import br.com.saveeditor.brasfoot.application.ports.in.record.ManagerBatchUpdateCommand;
 import br.com.saveeditor.brasfoot.domain.Manager;
 
 import java.util.List;

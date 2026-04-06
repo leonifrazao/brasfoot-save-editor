@@ -2,7 +2,7 @@ package br.com.saveeditor.brasfoot.application.services;
 
 import br.com.saveeditor.brasfoot.application.ports.in.GetManagerUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.BatchUpdateManagerUseCase;
-import br.com.saveeditor.brasfoot.application.ports.in.ManagerBatchUpdateCommand;
+import br.com.saveeditor.brasfoot.application.ports.in.record.ManagerBatchUpdateCommand;
 import br.com.saveeditor.brasfoot.application.ports.in.UpdateManagerUseCase;
 import br.com.saveeditor.brasfoot.application.ports.out.GameDataPort;
 import br.com.saveeditor.brasfoot.application.ports.out.SessionStatePort;
