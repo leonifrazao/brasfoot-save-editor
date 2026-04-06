@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Milestone complete
-stopped_at: Completed 04-04-PLAN.md
-last_updated: "2026-04-06T01:45:52.943Z"
+status: Phase 5 complete - gap closure finished
+stopped_at: Completed 05-02-PLAN.md
+last_updated: "2026-04-06T02:50:00.000Z"
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 12
-  completed_plans: 12
+  total_phases: 5
+  completed_phases: 5
+  total_plans: 14
+  completed_plans: 14
   percent: 100
 ---
 
@@ -18,49 +18,69 @@ progress:
 ## Project Reference
 
 **Core Value**: Enable programmatic, reliable, and comprehensive editing of Brasfoot save files through a clean REST API without any coupled UI or dead code.
-**Current Focus**: All phases complete - v1.0 milestone ready for verification.
+**Current Focus**: Phase 5 gap closure complete - EDIT-03 (manager fields) and DX-02 (batch semantics) satisfied.
 
 ## Current Position
 
-Phase: 04
-Plan: Not started
-**Phase**: 3 of 3 - Manager & Batch Operations (Complete)
+Phase: 05
+Plan: 2 of 2 (complete)
+**Phase**: 5 of 5 - Manager & Batch Contract Closure (Complete)
 **Plan**: All plans complete
-**Status**: Milestone complete
+**Status**: Phase complete - all gap closure plans executed
 **Progress**: [████████████████████] 100%
 
 ## Performance Metrics
 
-- **Total Phases**: 3
-- **Completed Phases**: 3
-- **Total Plans**: 8
-- **Completed Plans**: 8
+- **Total Phases**: 5
+- **Completed Phases**: 5
+- **Total Plans**: 14
+- **Completed Plans**: 14
+- **Phase 5 Metrics**: 2 plans, 9 tasks, 5 files modified, 2 files created, duration: 35 minutes
 
 ## Accumulated Context
 
-- **Decisions**: Hexagonal architecture and in-memory caching chosen for strict domain isolation and stateless REST design. Implemented session tombstoning for proper 404/410 handling.
+- **Decisions**: 
+  - Hexagonal architecture and in-memory caching chosen for strict domain isolation and stateless REST design.
+  - Implemented session tombstoning for proper 404/410 handling.
+  - Manager field names use 'assumed' constants from BrasfootConstants per Phase 4 tech debt deferral; silent failure if field not found.
+  - Batch response uses index-based error mapping (request array position) not entity IDs for client correlation.
+  - 207 Multi-Status returned for partial batch failures; 200 for all-success (backward compatible).
+
+- **Completed Requirements**:
+  - EDIT-03: Manager field updates completeness (age, nationality, reputation, trophies)
+  - DX-02: Batch operations 207 multi-status semantics with index-based error mapping
+
 - **Todos**: None
 - **Blockers**: None
 
 ### Roadmap Evolution
 
-- Phase 4 added: add lombok and create real Domains, with self validation. fix project inconsistency like 2 services, all the services/usecase need a interface; Organize the “record” and “domain” folders. The ‘domain’ folder must be separate; the “record” folder goes in a different folder; keep the folders separate.
+- Phase 5: Gap closure for EDIT-03 and DX-02 - manager field completeness and batch response semantics
+- Phase 4: Added lombok and created real Domains with self validation; fixed project structure (domain/record folders separate)
 
-### Quick Tasks Completed
+### Phase 5 Execution Summary
 
-| # | Description | Date | Commit | Directory |
-|---|-------------|------|--------|-----------|
-| 260405-pv4 | increase the multipart upload size limit to 500MB... | 2026-04-05 | 823b930 | [260405-pv4-increase-the-multipart-upload-size-limit](./quick/260405-pv4-increase-the-multipart-upload-size-limit/) |
-| 260405-q11 | after the session file is downloaded via GET /api/v1/sessions/{id}/download, automatically delete the session from cache. also add edge case handling: session not found (404), expired session (410 Gone), and attempting to download an already-deleted session (404). | 2026-04-05 | 50b3207 | [260405-q11-after-the-session-file-is-downloaded-via](./quick/260405-q11-after-the-session-file-is-downloaded-via/) |
-| 260405-rc7 | add proper observability and structured logging to the application. use SLF4J with Logback. add request/response logging for all endpoints (method, path, status, duration). add detailed error logging with full stack traces in the exception handlers. add domain-level logging in use cases (session created, player updated, session deleted, etc). configure log levels properly: INFO for normal flow, DEBUG for domain details, ERROR with stack trace for exceptions. | 2026-04-05 | da4129b | [260405-rc7-add-proper-observability-and-structured-](./quick/260405-rc7-add-proper-observability-and-structured-/) |
-| 260405-rzh | fix PlayerManagementService energy validation to allow -1 to 100 and map IllegalArgumentException to 400 Bad Request RFC-7807 problem detail in GlobalExceptionHandler | 2026-04-05 | 049fd87 | [260405-rzh-fix-playermanagementservice-energy-valid](./quick/260405-rzh-fix-playermanagementservice-energy-valid/) |
-| 260405-t6d | now i need batch editing working. also i want a very good documentation on swagger | 2026-04-06 | 0138a4a | [260405-t6d-now-i-need-batch-editing-working-also-i-](./quick/260405-t6d-now-i-need-batch-editing-working-also-i-/) |
-| 260405-tfu | now do a excellent swagger documentation, that anyone can understand | 2026-04-06 | 2737748 | [260405-tfu-now-do-a-excellent-swagger-documentation](./quick/260405-tfu-now-do-a-excellent-swagger-documentation/) |
-| 260405-uac | implement the batch update API endpoints and logic for teams and players that were previously just stubbed | 2026-04-06 | 2977541 | [260405-uac-implement-the-batch-update-api-endpoints](./quick/260405-uac-implement-the-batch-update-api-endpoints/) |
-| Phase 04 Pall | 31min | 9 tasks | 24 files |
+| Plan | Requirement | Status | Files Modified | Commit |
+|------|-------------|--------|-----------------|--------|
+| 05-01 | EDIT-03 | ✅ Complete | ManagerManagementService.java | 04561f6 |
+| 05-02 | DX-02 | ✅ Complete | ManagerController, ManagerManagementService, BatchUpdateManagerUseCase, BatchResponse, BatchResult | 4101e9d |
+
+### Key Changes - Phase 5
+
+**Plan 05-01 (EDIT-03):**
+- Added missing manager field reflections to updateManager() and batchUpdateManagers()
+- All 5 manager fields now supported: name, age, nationality, reputation, trophies, confidenceBoard, confidenceFans
+- Domain validation runs before reflection for all fields
+
+**Plan 05-02 (DX-02):**
+- Created generic BatchResponse<T> and BatchResult<T> DTOs
+- Updated BatchUpdateManagerUseCase port to return BatchResponse<Manager>
+- ManagerManagementService.batchUpdateManagers() now wraps results with index tracking
+- ManagerController.batchUpdateManagers() returns 207 Multi-Status for partial failures, 200 for all-success
+- Errors include array index for client-side correlation
 
 ## Session Continuity
 
-Last session: 2026-04-06T01:45:32.653Z
-Stopped at: Completed 04-04-PLAN.md
+Last session: 2026-04-06T02:50:00.000Z
+Stopped at: Completed 05-02-PLAN.md
 Resume file: None
