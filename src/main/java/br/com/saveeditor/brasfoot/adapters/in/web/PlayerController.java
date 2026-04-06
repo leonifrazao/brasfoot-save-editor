@@ -1,5 +1,6 @@
 package br.com.saveeditor.brasfoot.adapters.in.web;
 
+import br.com.saveeditor.brasfoot.adapters.in.web.mapper.PlayerMapper;
 import br.com.saveeditor.brasfoot.adapters.in.web.record.in.PlayerBatchUpdateRequest;
 import br.com.saveeditor.brasfoot.adapters.in.web.record.in.PlayerUpdateRequest;
 import br.com.saveeditor.brasfoot.adapters.in.web.record.out.PlayerDto;
@@ -24,10 +25,13 @@ public class PlayerController {
 
     private final GetPlayerUseCase getPlayerUseCase;
     private final UpdatePlayerUseCase updatePlayerUseCase;
+    private final PlayerMapper playerMapper;
 
-    public PlayerController(GetPlayerUseCase getPlayerUseCase, UpdatePlayerUseCase updatePlayerUseCase) {
+    public PlayerController(GetPlayerUseCase getPlayerUseCase, UpdatePlayerUseCase updatePlayerUseCase,
+                           PlayerMapper playerMapper) {
         this.getPlayerUseCase = getPlayerUseCase;
         this.updatePlayerUseCase = updatePlayerUseCase;
+        this.playerMapper = playerMapper;
     }
 
     @GetMapping
@@ -41,9 +45,7 @@ public class PlayerController {
             @PathVariable int teamId) {
         
         List<Player> players = getPlayerUseCase.getTeamPlayers(sessionId, teamId);
-        List<PlayerDto> dtos = players.stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+        List<PlayerDto> dtos = playerMapper.toDtoList(players);
         return ResponseEntity.ok(dtos);
     }
 
@@ -59,7 +61,7 @@ public class PlayerController {
             @PathVariable int playerId) {
         
         Player player = getPlayerUseCase.getPlayer(sessionId, teamId, playerId);
-        return ResponseEntity.ok(mapToDto(player));
+        return ResponseEntity.ok(playerMapper.toDto(player));
     }
 
     @PatchMapping("/{playerId}")
@@ -86,7 +88,7 @@ public class PlayerController {
                 request.morale()
         );
         
-        return ResponseEntity.ok(mapToDto(updatedPlayer));
+        return ResponseEntity.ok(playerMapper.toDto(updatedPlayer));
     }
 
     @PatchMapping("/batch")
@@ -107,22 +109,8 @@ public class PlayerController {
 
         List<Player> updatedPlayers = updatePlayerUseCase.batchUpdatePlayers(sessionId, teamId, commands);
         
-        List<PlayerDto> dtos = updatedPlayers.stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+        List<PlayerDto> dtos = playerMapper.toDtoList(updatedPlayers);
                 
         return ResponseEntity.ok(dtos);
-    }
-
-    private PlayerDto mapToDto(Player player) {
-        return new PlayerDto(
-                player.id(),
-                player.name(),
-                player.age(),
-                player.overall(),
-                player.position(),
-                player.energy(),
-                player.morale()
-        );
     }
 }
