@@ -2,6 +2,8 @@ package br.com.saveeditor.brasfoot.adapters.in.web;
 
 import br.com.saveeditor.brasfoot.adapters.in.web.record.in.ManagerUpdateRequest;
 import br.com.saveeditor.brasfoot.adapters.in.web.record.out.ManagerDto;
+import br.com.saveeditor.brasfoot.adapters.in.web.record.out.BatchResponse;
+import br.com.saveeditor.brasfoot.adapters.in.web.record.out.BatchResult;
 import br.com.saveeditor.brasfoot.application.ports.in.BatchUpdateManagerUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.GetManagerUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.record.ManagerBatchUpdateCommand;
@@ -11,9 +13,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -77,18 +81,37 @@ public class ManagerController {
     }
 
     @PatchMapping("/batch")
-    @Operation(summary = "Batch update managers", description = "Updates multiple managers in a single request. Only supplied fields are changed for each manager.",
+    @Operation(summary = "Batch update managers", 
+               description = "Updates multiple managers in a single request. Returns 207 Multi-Status if any updates fail, 200 if all succeed. Only supplied fields are changed for each manager.",
                responses = {
-                   @ApiResponse(responseCode = "200", description = "Successfully updated managers. Returns updated manager details."),
-                   @ApiResponse(responseCode = "400", description = "Invalid input data."),
-                   @ApiResponse(responseCode = "404", description = "Session or manager not found.")
+                    @ApiResponse(responseCode = "200", description = "All managers successfully updated. Returns successful manager details."),
+                    @ApiResponse(responseCode = "207", description = "Partial success. Some managers failed to update. Response includes index-based error mapping."),
+                    @ApiResponse(responseCode = "400", description = "Invalid input data."),
+                    @ApiResponse(responseCode = "404", description = "Session not found.")
                })
-    public ResponseEntity<List<ManagerDto>> batchUpdateManagers(
+    public ResponseEntity<BatchResponse<ManagerDto>> batchUpdateManagers(
             @PathVariable String sessionId,
             @RequestBody List<ManagerBatchUpdateCommand> commands) {
-        List<Manager> updatedManagers = batchUpdateManagerUseCase.batchUpdateManagers(sessionId, commands);
-        List<ManagerDto> dtos = updatedManagers.stream().map(this::toDto).collect(Collectors.toList());
-        return ResponseEntity.ok(dtos);
+        
+        BatchResponse<Manager> response = batchUpdateManagerUseCase.batchUpdateManagers(sessionId, commands);
+        
+        // Convert Manager results to ManagerDto
+        List<BatchResult<ManagerDto>> dtoResults = new ArrayList<>();
+        for (BatchResult<Manager> result : response.getResults()) {
+            if (result.isSuccess()) {
+                dtoResults.add(BatchResult.success(result.getIndex(), toDto(result.getData())));
+            } else {
+                dtoResults.add(BatchResult.failure(result.getIndex(), result.getError()));
+            }
+        }
+        
+        BatchResponse<ManagerDto> dtoResponse = new BatchResponse<>(dtoResults);
+        
+        // Determine status: 207 if any failed, 200 if all succeeded
+        boolean anyFailed = response.getResults().stream().anyMatch(r -> !r.isSuccess());
+        HttpStatus status = anyFailed ? HttpStatus.MULTI_STATUS : HttpStatus.OK;
+        
+        return ResponseEntity.status(status).body(dtoResponse);
     }
 
     private ManagerDto toDto(Manager manager) {

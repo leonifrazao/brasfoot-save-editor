@@ -1,9 +1,11 @@
 package br.com.saveeditor.brasfoot.application.services;
 
+import br.com.saveeditor.brasfoot.adapters.in.web.record.out.BatchResponse;
+import br.com.saveeditor.brasfoot.adapters.in.web.record.out.BatchResult;
 import br.com.saveeditor.brasfoot.application.ports.in.GetManagerUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.BatchUpdateManagerUseCase;
-import br.com.saveeditor.brasfoot.application.ports.in.record.ManagerBatchUpdateCommand;
 import br.com.saveeditor.brasfoot.application.ports.in.UpdateManagerUseCase;
+import br.com.saveeditor.brasfoot.application.ports.in.record.ManagerBatchUpdateCommand;
 import br.com.saveeditor.brasfoot.application.ports.out.GameDataPort;
 import br.com.saveeditor.brasfoot.application.ports.out.SessionStatePort;
 import br.com.saveeditor.brasfoot.domain.Manager;
@@ -119,7 +121,7 @@ public class ManagerManagementService implements GetManagerUseCase, UpdateManage
     }
 
     @Override
-    public List<Manager> batchUpdateManagers(String sessionId, List<ManagerBatchUpdateCommand> commands) {
+    public BatchResponse<Manager> batchUpdateManagers(String sessionId, List<ManagerBatchUpdateCommand> commands) {
         log.info("Batch updating {} managers for session {}", commands.size(), sessionId);
 
         Session session = sessionStatePort.load(UUID.fromString(sessionId));
@@ -129,61 +131,70 @@ public class ManagerManagementService implements GetManagerUseCase, UpdateManage
 
         Object root = session.context().getState().getObjetoRaiz();
         List<Object> managerObjects = getManagerObjectsSafe(root);
-        List<Manager> updatedManagers = new ArrayList<>();
+        List<BatchResult<Manager>> results = new ArrayList<>();
 
-        for (ManagerBatchUpdateCommand command : commands) {
+        for (int i = 0; i < commands.size(); i++) {
+            ManagerBatchUpdateCommand command = commands.get(i);
             int managerId = command.managerId();
-            if (managerId < 0 || managerId >= managerObjects.size()) {
-                throw new IllegalArgumentException("Manager not found with ID: " + managerId);
-            }
-
-            Object managerObj = managerObjects.get(managerId);
-            Manager candidate = Manager.of(
-                    managerId,
-                    command.name(),
-                    null,
-                    null,
-                    command.confidenceBoard(),
-                    command.confidenceFans(),
-                    command.age(),
-                    command.nationality(),
-                    command.reputation(),
-                    command.trophies()
-            );
-            candidate.validate();
-
+            
             try {
-                if (command.name() != null) {
-                    ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_NAME, command.name());
+                if (managerId < 0 || managerId >= managerObjects.size()) {
+                    results.add(BatchResult.failure(i, "Manager not found with ID: " + managerId));
+                    continue;
                 }
-                if (command.confidenceBoard() != null) {
-                    ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_CONFIDENCE_BOARD, command.confidenceBoard());
-                }
-                if (command.confidenceFans() != null) {
-                    ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_CONFIDENCE_FANS, command.confidenceFans());
-                }
-                if (command.age() != null) {
-                    ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_AGE, command.age());
-                }
-                if (command.nationality() != null) {
-                    ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_NATIONALITY, command.nationality());
-                }
-                if (command.reputation() != null) {
-                    ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_REPUTATION, command.reputation());
-                }
-                if (command.trophies() != null) {
-                    ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_TROPHIES, command.trophies());
-                }
-            } catch (Exception e) {
-                log.warn("Failed to set manager field during batch update", e);
-                throw new RuntimeException("Failed to update manager fields", e);
-            }
 
-            updatedManagers.add(mapToDomain(managerObj, managerId));
+                Object managerObj = managerObjects.get(managerId);
+                Manager candidate = Manager.of(
+                        managerId,
+                        command.name(),
+                        null,
+                        null,
+                        command.confidenceBoard(),
+                        command.confidenceFans(),
+                        command.age(),
+                        command.nationality(),
+                        command.reputation(),
+                        command.trophies()
+                );
+                candidate.validate();
+
+                try {
+                    if (command.name() != null) {
+                        ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_NAME, command.name());
+                    }
+                    if (command.confidenceBoard() != null) {
+                        ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_CONFIDENCE_BOARD, command.confidenceBoard());
+                    }
+                    if (command.confidenceFans() != null) {
+                        ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_CONFIDENCE_FANS, command.confidenceFans());
+                    }
+                    if (command.age() != null) {
+                        ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_AGE, command.age());
+                    }
+                    if (command.nationality() != null) {
+                        ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_NATIONALITY, command.nationality());
+                    }
+                    if (command.reputation() != null) {
+                        ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_REPUTATION, command.reputation());
+                    }
+                    if (command.trophies() != null) {
+                        ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_TROPHIES, command.trophies());
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to set manager field during batch update", e);
+                    results.add(BatchResult.failure(i, "Failed to update manager fields: " + e.getMessage()));
+                    continue;
+                }
+
+                results.add(BatchResult.success(i, mapToDomain(managerObj, managerId)));
+            } catch (Exception e) {
+                log.warn("Batch update failed for item {}", i, e);
+                results.add(BatchResult.failure(i, e.getMessage()));
+            }
         }
 
         sessionStatePort.save(session);
-        return updatedManagers;
+        return new BatchResponse<>(results);
     }
     
     @SuppressWarnings("unchecked")
