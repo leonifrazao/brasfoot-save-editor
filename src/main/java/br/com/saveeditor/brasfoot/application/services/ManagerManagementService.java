@@ -96,6 +96,18 @@ public class ManagerManagementService implements GetManagerUseCase, UpdateManage
             if (updateData.getConfidenceFans() != null) {
                 ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_CONFIDENCE_FANS, updateData.getConfidenceFans());
             }
+            if (updateData.getAge() != null) {
+                ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_AGE, updateData.getAge());
+            }
+            if (updateData.getNationality() != null) {
+                ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_NATIONALITY, updateData.getNationality());
+            }
+            if (updateData.getReputation() != null) {
+                ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_REPUTATION, updateData.getReputation());
+            }
+            if (updateData.getTrophies() != null) {
+                ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_TROPHIES, updateData.getTrophies());
+            }
         } catch (Exception e) {
             log.warn("Failed to set manager field", e);
         }
@@ -149,6 +161,18 @@ public class ManagerManagementService implements GetManagerUseCase, UpdateManage
                 }
                 if (command.confidenceFans() != null) {
                     ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_CONFIDENCE_FANS, command.confidenceFans());
+                }
+                if (command.age() != null) {
+                    ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_AGE, command.age());
+                }
+                if (command.nationality() != null) {
+                    ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_NATIONALITY, command.nationality());
+                }
+                if (command.reputation() != null) {
+                    ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_REPUTATION, command.reputation());
+                }
+                if (command.trophies() != null) {
+                    ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_TROPHIES, command.trophies());
                 }
             } catch (Exception e) {
                 log.warn("Failed to set manager field during batch update", e);
