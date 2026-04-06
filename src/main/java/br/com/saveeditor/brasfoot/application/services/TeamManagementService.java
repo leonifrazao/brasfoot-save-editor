@@ -35,11 +35,11 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
     public List<Team> getAllTeams(UUID sessionId) {
         log.debug("Fetching all teams for session {}", sessionId);
         Session session = sessionStatePort.load(sessionId);
-        if (session == null || !session.context().isLoaded()) {
+        if (session == null || !session.getContext().isLoaded()) {
             throw new IllegalArgumentException("Session not found or not loaded.");
         }
 
-        Object root = session.context().getState().getObjetoRaiz();
+        Object root = session.getContext().getState().getObjetoRaiz();
         List<Object> teamObjects = gameDataPort.getTeams(root);
 
         return teamObjects.stream()
@@ -51,11 +51,11 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
     public Team getTeam(UUID sessionId, int teamId) {
         log.debug("Fetching team {} in session {}", teamId, sessionId);
         Session session = sessionStatePort.load(sessionId);
-        if (session == null || !session.context().isLoaded()) {
+        if (session == null || !session.getContext().isLoaded()) {
             throw new IllegalArgumentException("Session not found or not loaded.");
         }
 
-        Object root = session.context().getState().getObjetoRaiz();
+        Object root = session.getContext().getState().getObjetoRaiz();
         Object teamObj = gameDataPort.getTeamById(root, teamId);
         if (teamObj == null) {
             throw new IllegalArgumentException("Team not found with ID: " + teamId);
@@ -70,11 +70,11 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
         log.debug("Update details - money: {}, reputation: {}", money, reputation);
 
         Session session = sessionStatePort.load(sessionId);
-        if (session == null || !session.context().isLoaded()) {
+        if (session == null || !session.getContext().isLoaded()) {
             throw new IllegalArgumentException("Session not found or not loaded.");
         }
 
-        Object root = session.context().getState().getObjetoRaiz();
+        Object root = session.getContext().getState().getObjetoRaiz();
         Object teamObj = gameDataPort.getTeamById(root, teamId);
         if (teamObj == null) {
             throw new IllegalArgumentException("Team not found with ID: " + teamId);
@@ -84,10 +84,10 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
 
         if (money != null) {
             Team.builder()
-                    .id(currentTeam.id())
-                    .name(currentTeam.name())
+                    .id(currentTeam.getId())
+                    .name(currentTeam.getName())
                     .money(money)
-                    .reputation(currentTeam.reputation())
+                    .reputation(currentTeam.getReputation())
                     .build();
             try {
                 ReflectionUtils.setFieldValue(teamObj, BrasfootConstants.TEAM_MONEY, money);
@@ -114,13 +114,13 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
     @Override
     public List<Team> batchUpdateTeams(UUID sessionId, List<TeamBatchUpdateCommand> commands) {
         log.info("Batch updating {} teams for session {}", commands.size(), sessionId);
-        
+
         Session session = sessionStatePort.load(sessionId);
-        if (session == null || !session.context().isLoaded()) {
+        if (session == null || !session.getContext().isLoaded()) {
             throw new IllegalArgumentException("Session not found or not loaded.");
         }
 
-        Object root = session.context().getState().getObjetoRaiz();
+        Object root = session.getContext().getState().getObjetoRaiz();
         List<Team> updatedTeams = new java.util.ArrayList<>();
 
         for (var command : commands) {
@@ -134,10 +134,10 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
 
             if (command.money() != null) {
                 Team.builder()
-                        .id(currentTeam.id())
-                        .name(currentTeam.name())
+                        .id(currentTeam.getId())
+                        .name(currentTeam.getName())
                         .money(command.money())
-                        .reputation(currentTeam.reputation())
+                        .reputation(currentTeam.getReputation())
                         .build();
                 try {
                     ReflectionUtils.setFieldValue(teamObj, BrasfootConstants.TEAM_MONEY, command.money());
@@ -169,6 +169,12 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
             String name = (String) ReflectionUtils.getFieldValue(teamObj, BrasfootConstants.TEAM_NAME);
             long money = (long) ReflectionUtils.getFieldValue(teamObj, BrasfootConstants.TEAM_MONEY);
             int reputationInt = (int) ReflectionUtils.getFieldValue(teamObj, BrasfootConstants.TEAM_REPUTATION);
+
+            // Sanitize negative money values to 0 (game data corruption safety)
+            if (money < 0) {
+                log.warn("Team {} has negative money value ({}), sanitizing to 0", id, money);
+                money = 0;
+            }
 
             return new Team(id, name, money, TeamReputation.fromValue(reputationInt));
         } catch (Exception e) {
