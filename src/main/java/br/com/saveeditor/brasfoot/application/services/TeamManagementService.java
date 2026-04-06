@@ -106,8 +106,8 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
     }
 
     @Override
-    public List<Team> batchUpdateTeams(UUID sessionId, List<br.com.saveeditor.brasfoot.adapters.in.web.dto.TeamBatchUpdateRequest> requests) {
-        log.info("Batch updating {} teams for session {}", requests.size(), sessionId);
+    public List<Team> batchUpdateTeams(UUID sessionId, List<br.com.saveeditor.brasfoot.application.ports.in.TeamBatchUpdateCommand> commands) {
+        log.info("Batch updating {} teams for session {}", commands.size(), sessionId);
         
         Session session = sessionStatePort.load(sessionId);
         if (session == null || !session.context().isLoaded()) {
@@ -117,30 +117,30 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
         Object root = session.context().getState().getObjetoRaiz();
         List<Team> updatedTeams = new java.util.ArrayList<>();
 
-        for (var request : requests) {
-            Object teamObj = gameDataService.getTeamById(root, request.teamId());
+        for (var command : commands) {
+            Object teamObj = gameDataService.getTeamById(root, command.teamId());
             if (teamObj == null) {
-                log.warn("Team not found with ID: {}", request.teamId());
+                log.warn("Team not found with ID: {}", command.teamId());
                 continue;
             }
 
-            if (request.money() != null) {
-                if (request.money() < 0) {
-                    throw new IllegalArgumentException("Money cannot be negative for team " + request.teamId());
+            if (command.money() != null) {
+                if (command.money() < 0) {
+                    throw new IllegalArgumentException("Money cannot be negative for team " + command.teamId());
                 }
                 try {
-                    ReflectionUtils.setFieldValue(teamObj, BrasfootConstants.TEAM_MONEY, request.money());
+                    ReflectionUtils.setFieldValue(teamObj, BrasfootConstants.TEAM_MONEY, command.money());
                 } catch (Exception e) {
-                    log.error("Failed to update team money for team {}", request.teamId(), e);
+                    log.error("Failed to update team money for team {}", command.teamId(), e);
                     throw new RuntimeException("Failed to update team money", e);
                 }
             }
 
-            if (request.reputation() != null) {
+            if (command.reputation() != null) {
                 try {
-                    ReflectionUtils.setFieldValue(teamObj, BrasfootConstants.TEAM_REPUTATION, request.reputation().getValue());
+                    ReflectionUtils.setFieldValue(teamObj, BrasfootConstants.TEAM_REPUTATION, command.reputation().getValue());
                 } catch (Exception e) {
-                    log.error("Failed to update team reputation for team {}", request.teamId(), e);
+                    log.error("Failed to update team reputation for team {}", command.teamId(), e);
                     throw new RuntimeException("Failed to update team reputation", e);
                 }
             }

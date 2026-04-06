@@ -131,8 +131,8 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
     }
 
     @Override
-    public List<Player> batchUpdatePlayers(UUID sessionId, int teamId, List<br.com.saveeditor.brasfoot.adapters.in.web.dto.PlayerBatchUpdateRequest> requests) {
-        log.info("Batch updating {} players in team {} for session {}", requests.size(), teamId, sessionId);
+    public List<Player> batchUpdatePlayers(UUID sessionId, int teamId, List<br.com.saveeditor.brasfoot.application.ports.in.PlayerBatchUpdateCommand> commands) {
+        log.info("Batch updating {} players in team {} for session {}", commands.size(), teamId, sessionId);
         
         Session session = sessionStatePort.load(sessionId);
         if (session == null || !session.context().isLoaded()) {
@@ -148,8 +148,8 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
         List<Object> playerObjects = gameDataService.getPlayers(teamObj);
         List<Player> updatedPlayers = new ArrayList<>();
 
-        for (var request : requests) {
-            int playerId = request.playerId();
+        for (var command : commands) {
+            int playerId = command.playerId();
             if (playerId < 0 || playerId >= playerObjects.size()) {
                 log.warn("Player index {} out of bounds for team {}", playerId, teamId);
                 continue;
@@ -158,21 +158,21 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
             Object playerObj = playerObjects.get(playerId);
 
             try {
-                if (request.age() != null) {
-                    if (request.age() < 15 || request.age() > 50) throw new IllegalArgumentException("Invalid age for player " + playerId + ": must be between 15 and 50");
-                    ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_AGE, request.age());
+                if (command.age() != null) {
+                    if (command.age() < 15 || command.age() > 50) throw new IllegalArgumentException("Invalid age for player " + playerId + ": must be between 15 and 50");
+                    ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_AGE, command.age());
                 }
-                if (request.overall() != null) {
-                    if (request.overall() < 1 || request.overall() > 100) throw new IllegalArgumentException("Invalid overall for player " + playerId + ": must be between 1 and 100");
-                    ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_OVERALL, request.overall());
+                if (command.overall() != null) {
+                    if (command.overall() < 1 || command.overall() > 100) throw new IllegalArgumentException("Invalid overall for player " + playerId + ": must be between 1 and 100");
+                    ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_OVERALL, command.overall());
                 }
-                if (request.position() != null) {
-                    if (request.position() < 0 || request.position() > 4) throw new IllegalArgumentException("Invalid position for player " + playerId + ": must be 0 to 4");
-                    ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_POSITION, request.position());
+                if (command.position() != null) {
+                    if (command.position() < 0 || command.position() > 4) throw new IllegalArgumentException("Invalid position for player " + playerId + ": must be 0 to 4");
+                    ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_POSITION, command.position());
                 }
-                if (request.energy() != null) {
-                    if (request.energy() < -1 || request.energy() > 100) throw new IllegalArgumentException("Invalid energy for player " + playerId + ": must be between -1 and 100");
-                    ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_ENERGY, request.energy());
+                if (command.energy() != null) {
+                    if (command.energy() < -1 || command.energy() > 100) throw new IllegalArgumentException("Invalid energy for player " + playerId + ": must be between -1 and 100");
+                    ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_ENERGY, command.energy());
                 }
             } catch (IllegalArgumentException e) {
                 log.warn("Validation error during batch player update: {}", e.getMessage());

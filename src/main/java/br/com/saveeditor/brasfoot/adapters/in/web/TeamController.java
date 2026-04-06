@@ -1,5 +1,6 @@
 package br.com.saveeditor.brasfoot.adapters.in.web;
 
+import br.com.saveeditor.brasfoot.adapters.in.web.dto.TeamBatchUpdateRequest;
 import br.com.saveeditor.brasfoot.adapters.in.web.dto.TeamDto;
 import br.com.saveeditor.brasfoot.adapters.in.web.dto.TeamUpdateRequest;
 import br.com.saveeditor.brasfoot.application.ports.in.GetTeamUseCase;
@@ -75,6 +76,30 @@ public class TeamController {
         );
         
         return ResponseEntity.ok(mapToDto(updatedTeam));
+    }
+
+    @PatchMapping("/batch")
+    @Operation(summary = "Batch update teams", description = "Updates specific financial and prestige properties for multiple teams in a single transaction. Fields left blank will not be updated.",
+               responses = {
+                   @ApiResponse(responseCode = "200", description = "Successfully updated the teams. Returns the updated teams details."),
+                   @ApiResponse(responseCode = "400", description = "Invalid input data."),
+                   @ApiResponse(responseCode = "404", description = "Session not found.")
+               })
+    public ResponseEntity<List<TeamDto>> batchUpdateTeams(
+            @PathVariable UUID sessionId,
+            @RequestBody List<TeamBatchUpdateRequest> requests) {
+        
+        List<br.com.saveeditor.brasfoot.application.ports.in.TeamBatchUpdateCommand> commands = requests.stream()
+                .map(req -> new br.com.saveeditor.brasfoot.application.ports.in.TeamBatchUpdateCommand(req.teamId(), req.money(), req.reputation()))
+                .collect(Collectors.toList());
+
+        List<Team> updatedTeams = updateTeamUseCase.batchUpdateTeams(sessionId, commands);
+        
+        List<TeamDto> dtos = updatedTeams.stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+                
+        return ResponseEntity.ok(dtos);
     }
 
     private TeamDto mapToDto(Team team) {

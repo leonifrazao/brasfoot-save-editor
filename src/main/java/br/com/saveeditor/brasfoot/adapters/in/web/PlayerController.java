@@ -1,5 +1,6 @@
 package br.com.saveeditor.brasfoot.adapters.in.web;
 
+import br.com.saveeditor.brasfoot.adapters.in.web.dto.PlayerBatchUpdateRequest;
 import br.com.saveeditor.brasfoot.adapters.in.web.dto.PlayerDto;
 import br.com.saveeditor.brasfoot.adapters.in.web.dto.PlayerUpdateRequest;
 import br.com.saveeditor.brasfoot.application.ports.in.GetPlayerUseCase;
@@ -85,6 +86,31 @@ public class PlayerController {
         );
         
         return ResponseEntity.ok(mapToDto(updatedPlayer));
+    }
+
+    @PatchMapping("/batch")
+    @Operation(summary = "Batch update players", description = "Updates specific properties for multiple players of a team in a single transaction. Only the fields provided in the request will be updated.",
+               responses = {
+                   @ApiResponse(responseCode = "200", description = "Successfully updated the players. Returns the updated players details."),
+                   @ApiResponse(responseCode = "400", description = "Invalid input data."),
+                   @ApiResponse(responseCode = "404", description = "Session or team not found.")
+               })
+    public ResponseEntity<List<PlayerDto>> batchUpdatePlayers(
+            @PathVariable UUID sessionId,
+            @PathVariable int teamId,
+            @RequestBody List<PlayerBatchUpdateRequest> requests) {
+        
+        List<br.com.saveeditor.brasfoot.application.ports.in.PlayerBatchUpdateCommand> commands = requests.stream()
+                .map(req -> new br.com.saveeditor.brasfoot.application.ports.in.PlayerBatchUpdateCommand(req.playerId(), req.age(), req.overall(), req.position(), req.energy(), req.morale()))
+                .collect(Collectors.toList());
+
+        List<Player> updatedPlayers = updatePlayerUseCase.batchUpdatePlayers(sessionId, teamId, commands);
+        
+        List<PlayerDto> dtos = updatedPlayers.stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+                
+        return ResponseEntity.ok(dtos);
     }
 
     private PlayerDto mapToDto(Player player) {
