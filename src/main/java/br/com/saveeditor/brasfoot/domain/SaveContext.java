@@ -1,7 +1,11 @@
 package br.com.saveeditor.brasfoot.domain;
 
 import br.com.saveeditor.brasfoot.model.NavegacaoState;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
+@Getter
+@NoArgsConstructor
 public class SaveContext {
     private NavegacaoState state;
     private String currentFilePath;
@@ -13,13 +17,5 @@ public class SaveContext {
 
     public boolean isLoaded() {
         return state != null;
-    }
-
-    public NavegacaoState getState() {
-        return state;
-    }
-
-    public String getCurrentFilePath() {
-        return currentFilePath;
     }
 }

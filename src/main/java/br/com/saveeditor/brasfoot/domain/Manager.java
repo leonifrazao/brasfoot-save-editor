@@ -1,5 +1,13 @@
 package br.com.saveeditor.brasfoot.domain;
 
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
 public class Manager {
     private Integer id; // Index in the list
     private String name;
@@ -12,35 +20,54 @@ public class Manager {
     private Integer reputation;
     private Integer trophies;
 
-    public Manager() {}
+    @Builder
+    public Manager(Integer id,
+                   String name,
+                   Boolean isHuman,
+                   Integer teamId,
+                   Integer confidenceBoard,
+                   Integer confidenceFans,
+                   Integer age,
+                   String nationality,
+                   Integer reputation,
+                   Integer trophies) {
+        this.id = id;
+        this.name = name;
+        this.isHuman = isHuman;
+        this.teamId = teamId;
+        this.confidenceBoard = confidenceBoard;
+        this.confidenceFans = confidenceFans;
+        this.age = age;
+        this.nationality = nationality;
+        this.reputation = reputation;
+        this.trophies = trophies;
+        validate();
+    }
 
-    public Integer getId() { return id; }
-    public void setId(Integer id) { this.id = id; }
+    public static Manager of(Integer id,
+                             String name,
+                             Boolean isHuman,
+                             Integer teamId,
+                             Integer confidenceBoard,
+                             Integer confidenceFans,
+                             Integer age,
+                             String nationality,
+                             Integer reputation,
+                             Integer trophies) {
+        return new Manager(id, name, isHuman, teamId, confidenceBoard, confidenceFans, age, nationality, reputation, trophies);
+    }
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public void validate() {
+        validateConfidence("confidenceBoard", confidenceBoard);
+        validateConfidence("confidenceFans", confidenceFans);
+    }
 
-    public Boolean getIsHuman() { return isHuman; }
-    public void setIsHuman(Boolean isHuman) { this.isHuman = isHuman; }
-
-    public Integer getTeamId() { return teamId; }
-    public void setTeamId(Integer teamId) { this.teamId = teamId; }
-
-    public Integer getConfidenceBoard() { return confidenceBoard; }
-    public void setConfidenceBoard(Integer confidenceBoard) { this.confidenceBoard = confidenceBoard; }
-
-    public Integer getConfidenceFans() { return confidenceFans; }
-    public void setConfidenceFans(Integer confidenceFans) { this.confidenceFans = confidenceFans; }
-
-    public Integer getAge() { return age; }
-    public void setAge(Integer age) { this.age = age; }
-
-    public String getNationality() { return nationality; }
-    public void setNationality(String nationality) { this.nationality = nationality; }
-
-    public Integer getReputation() { return reputation; }
-    public void setReputation(Integer reputation) { this.reputation = reputation; }
-
-    public Integer getTrophies() { return trophies; }
-    public void setTrophies(Integer trophies) { this.trophies = trophies; }
+    private void validateConfidence(String fieldName, Integer value) {
+        if (value == null) {
+            return;
+        }
+        if (value < 0 || value > 100) {
+            throw new IllegalArgumentException("Invalid " + fieldName + ": must be between 0 and 100");
+        }
+    }
 }
