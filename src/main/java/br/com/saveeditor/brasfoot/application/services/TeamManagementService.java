@@ -2,6 +2,7 @@ package br.com.saveeditor.brasfoot.application.services;
 
 import br.com.saveeditor.brasfoot.application.ports.in.GetTeamUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.UpdateTeamUseCase;
+import br.com.saveeditor.brasfoot.application.ports.in.TeamBatchUpdateCommand;
 import br.com.saveeditor.brasfoot.application.ports.out.GameDataPort;
 import br.com.saveeditor.brasfoot.application.ports.out.SessionStatePort;
 import br.com.saveeditor.brasfoot.domain.Session;
@@ -111,7 +112,7 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
     }
 
     @Override
-    public List<Team> batchUpdateTeams(UUID sessionId, List<br.com.saveeditor.brasfoot.application.ports.in.TeamBatchUpdateCommand> commands) {
+    public List<Team> batchUpdateTeams(UUID sessionId, List<TeamBatchUpdateCommand> commands) {
         log.info("Batch updating {} teams for session {}", commands.size(), sessionId);
         
         Session session = sessionStatePort.load(sessionId);

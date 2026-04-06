@@ -1,5 +1,6 @@
 package br.com.saveeditor.brasfoot.service;
 
+import br.com.saveeditor.brasfoot.application.ports.out.GameDataPort;
 import br.com.saveeditor.brasfoot.util.BrasfootConstants;
 import br.com.saveeditor.brasfoot.util.ConsoleHelper;
 import br.com.saveeditor.brasfoot.util.ReflectionUtils;
@@ -11,7 +12,7 @@ import java.util.List;
 
 @Service
 @SuppressWarnings("unchecked")
-public class GameDataService {
+public class GameDataService implements GameDataPort {
 
     /**
      * Retrieves the list of all teams from the root save object.

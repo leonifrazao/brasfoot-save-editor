@@ -2,6 +2,7 @@ package br.com.saveeditor.brasfoot.application.services;
 
 import br.com.saveeditor.brasfoot.application.ports.in.GetPlayerUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.UpdatePlayerUseCase;
+import br.com.saveeditor.brasfoot.application.ports.in.PlayerBatchUpdateCommand;
 import br.com.saveeditor.brasfoot.application.ports.out.GameDataPort;
 import br.com.saveeditor.brasfoot.application.ports.out.SessionStatePort;
 import br.com.saveeditor.brasfoot.domain.Player;
@@ -165,7 +166,7 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
     }
 
     @Override
-    public List<Player> batchUpdatePlayers(UUID sessionId, int teamId, List<br.com.saveeditor.brasfoot.application.ports.in.PlayerBatchUpdateCommand> commands) {
+    public List<Player> batchUpdatePlayers(UUID sessionId, int teamId, List<PlayerBatchUpdateCommand> commands) {
         log.info("Batch updating {} players in team {} for session {}", commands.size(), teamId, sessionId);
         
         Session session = sessionStatePort.load(sessionId);

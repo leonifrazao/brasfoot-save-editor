@@ -1,6 +1,8 @@
 package br.com.saveeditor.brasfoot.application.services;
 
 import br.com.saveeditor.brasfoot.application.ports.in.GetManagerUseCase;
+import br.com.saveeditor.brasfoot.application.ports.in.BatchUpdateManagerUseCase;
+import br.com.saveeditor.brasfoot.application.ports.in.ManagerBatchUpdateCommand;
 import br.com.saveeditor.brasfoot.application.ports.in.UpdateManagerUseCase;
 import br.com.saveeditor.brasfoot.application.ports.out.GameDataPort;
 import br.com.saveeditor.brasfoot.application.ports.out.SessionStatePort;
@@ -18,7 +20,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
-public class ManagerManagementService implements GetManagerUseCase, UpdateManagerUseCase {
+public class ManagerManagementService implements GetManagerUseCase, UpdateManagerUseCase, BatchUpdateManagerUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(ManagerManagementService.class);
 
@@ -102,6 +104,62 @@ public class ManagerManagementService implements GetManagerUseCase, UpdateManage
         sessionStatePort.save(session);
         
         return mapToDomain(managerObj, managerId);
+    }
+
+    @Override
+    public List<Manager> batchUpdateManagers(String sessionId, List<ManagerBatchUpdateCommand> commands) {
+        log.info("Batch updating {} managers for session {}", commands.size(), sessionId);
+
+        Session session = sessionStatePort.load(UUID.fromString(sessionId));
+        if (session == null) {
+            throw new IllegalArgumentException("Session not found");
+        }
+
+        Object root = session.context().getState().getObjetoRaiz();
+        List<Object> managerObjects = getManagerObjectsSafe(root);
+        List<Manager> updatedManagers = new ArrayList<>();
+
+        for (ManagerBatchUpdateCommand command : commands) {
+            int managerId = command.managerId();
+            if (managerId < 0 || managerId >= managerObjects.size()) {
+                throw new IllegalArgumentException("Manager not found with ID: " + managerId);
+            }
+
+            Object managerObj = managerObjects.get(managerId);
+            Manager candidate = Manager.of(
+                    managerId,
+                    command.name(),
+                    null,
+                    null,
+                    command.confidenceBoard(),
+                    command.confidenceFans(),
+                    command.age(),
+                    command.nationality(),
+                    command.reputation(),
+                    command.trophies()
+            );
+            candidate.validate();
+
+            try {
+                if (command.name() != null) {
+                    ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_NAME, command.name());
+                }
+                if (command.confidenceBoard() != null) {
+                    ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_CONFIDENCE_BOARD, command.confidenceBoard());
+                }
+                if (command.confidenceFans() != null) {
+                    ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_CONFIDENCE_FANS, command.confidenceFans());
+                }
+            } catch (Exception e) {
+                log.warn("Failed to set manager field during batch update", e);
+                throw new RuntimeException("Failed to update manager fields", e);
+            }
+
+            updatedManagers.add(mapToDomain(managerObj, managerId));
+        }
+
+        sessionStatePort.save(session);
+        return updatedManagers;
     }
     
     @SuppressWarnings("unchecked")
