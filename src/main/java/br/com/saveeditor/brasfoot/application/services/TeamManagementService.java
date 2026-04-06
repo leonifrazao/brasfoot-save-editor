@@ -105,6 +105,53 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
         return mapToTeamDomain(teamObj);
     }
 
+    @Override
+    public List<Team> batchUpdateTeams(UUID sessionId, List<br.com.saveeditor.brasfoot.adapters.in.web.dto.TeamBatchUpdateRequest> requests) {
+        log.info("Batch updating {} teams for session {}", requests.size(), sessionId);
+        
+        Session session = sessionStatePort.load(sessionId);
+        if (session == null || !session.context().isLoaded()) {
+            throw new IllegalArgumentException("Session not found or not loaded.");
+        }
+
+        Object root = session.context().getState().getObjetoRaiz();
+        List<Team> updatedTeams = new java.util.ArrayList<>();
+
+        for (var request : requests) {
+            Object teamObj = gameDataService.getTeamById(root, request.teamId());
+            if (teamObj == null) {
+                log.warn("Team not found with ID: {}", request.teamId());
+                continue;
+            }
+
+            if (request.money() != null) {
+                if (request.money() < 0) {
+                    throw new IllegalArgumentException("Money cannot be negative for team " + request.teamId());
+                }
+                try {
+                    ReflectionUtils.setFieldValue(teamObj, BrasfootConstants.TEAM_MONEY, request.money());
+                } catch (Exception e) {
+                    log.error("Failed to update team money for team {}", request.teamId(), e);
+                    throw new RuntimeException("Failed to update team money", e);
+                }
+            }
+
+            if (request.reputation() != null) {
+                try {
+                    ReflectionUtils.setFieldValue(teamObj, BrasfootConstants.TEAM_REPUTATION, request.reputation().getValue());
+                } catch (Exception e) {
+                    log.error("Failed to update team reputation for team {}", request.teamId(), e);
+                    throw new RuntimeException("Failed to update team reputation", e);
+                }
+            }
+
+            updatedTeams.add(mapToTeamDomain(teamObj));
+        }
+
+        sessionStatePort.save(session);
+        return updatedTeams;
+    }
+
     private Team mapToTeamDomain(Object teamObj) {
         try {
             int id = (int) ReflectionUtils.getFieldValue(teamObj, BrasfootConstants.TEAM_ID);

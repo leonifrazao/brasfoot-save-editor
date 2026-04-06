@@ -130,6 +130,65 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
         return mapToPlayerDomain(playerObj, playerId);
     }
 
+    @Override
+    public List<Player> batchUpdatePlayers(UUID sessionId, int teamId, List<br.com.saveeditor.brasfoot.adapters.in.web.dto.PlayerBatchUpdateRequest> requests) {
+        log.info("Batch updating {} players in team {} for session {}", requests.size(), teamId, sessionId);
+        
+        Session session = sessionStatePort.load(sessionId);
+        if (session == null || !session.context().isLoaded()) {
+            throw new IllegalArgumentException("Session not found or not loaded.");
+        }
+
+        Object root = session.context().getState().getObjetoRaiz();
+        Object teamObj = gameDataService.getTeamById(root, teamId);
+        if (teamObj == null) {
+            throw new IllegalArgumentException("Team not found with ID: " + teamId);
+        }
+
+        List<Object> playerObjects = gameDataService.getPlayers(teamObj);
+        List<Player> updatedPlayers = new ArrayList<>();
+
+        for (var request : requests) {
+            int playerId = request.playerId();
+            if (playerId < 0 || playerId >= playerObjects.size()) {
+                log.warn("Player index {} out of bounds for team {}", playerId, teamId);
+                continue;
+            }
+
+            Object playerObj = playerObjects.get(playerId);
+
+            try {
+                if (request.age() != null) {
+                    if (request.age() < 15 || request.age() > 50) throw new IllegalArgumentException("Invalid age for player " + playerId + ": must be between 15 and 50");
+                    ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_AGE, request.age());
+                }
+                if (request.overall() != null) {
+                    if (request.overall() < 1 || request.overall() > 100) throw new IllegalArgumentException("Invalid overall for player " + playerId + ": must be between 1 and 100");
+                    ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_OVERALL, request.overall());
+                }
+                if (request.position() != null) {
+                    if (request.position() < 0 || request.position() > 4) throw new IllegalArgumentException("Invalid position for player " + playerId + ": must be 0 to 4");
+                    ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_POSITION, request.position());
+                }
+                if (request.energy() != null) {
+                    if (request.energy() < -1 || request.energy() > 100) throw new IllegalArgumentException("Invalid energy for player " + playerId + ": must be between -1 and 100");
+                    ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_ENERGY, request.energy());
+                }
+            } catch (IllegalArgumentException e) {
+                log.warn("Validation error during batch player update: {}", e.getMessage());
+                throw e;
+            } catch (Exception e) {
+                log.error("Failed to update player properties for player {}", playerId, e);
+                throw new RuntimeException("Failed to update player properties", e);
+            }
+
+            updatedPlayers.add(mapToPlayerDomain(playerObj, playerId));
+        }
+
+        sessionStatePort.save(session);
+        return updatedPlayers;
+    }
+
     private Player mapToPlayerDomain(Object playerObj, int index) {
         try {
             String name = (String) ReflectionUtils.getFieldValue(playerObj, BrasfootConstants.PLAYER_NAME);
