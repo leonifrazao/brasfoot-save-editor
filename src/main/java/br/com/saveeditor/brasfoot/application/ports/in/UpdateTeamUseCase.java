@@ -1,7 +1,9 @@
 package br.com.saveeditor.brasfoot.application.ports.in;
 
+import br.com.saveeditor.brasfoot.application.ports.in.record.TeamBatchUpdateCommand;
 import br.com.saveeditor.brasfoot.domain.Team;
 import br.com.saveeditor.brasfoot.domain.TeamReputation;
+
 import java.util.List;
 import java.util.UUID;
 

@@ -1,4 +1,4 @@
-package br.com.saveeditor.brasfoot.application.ports.in;
+package br.com.saveeditor.brasfoot.application.ports.in.record;
 
 import br.com.saveeditor.brasfoot.domain.TeamReputation;
 
