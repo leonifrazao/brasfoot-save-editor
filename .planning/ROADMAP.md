@@ -6,7 +6,7 @@
 - [x] **Phase 2: Team & Player Management** - Users can modify core game entities (teams and players) within an active session
 - [x] **Phase 3: Manager & Batch Operations** - Users can edit manager data and perform bulk updates efficiently
 - [x] **Phase 4: Domain Model & Architecture Consistency** - Codebase standardized around interface-first, self-validating domain models and folder separation
-- [ ] **Phase 5: Manager & Batch Contract Closure** - Close v1.0 blocking gaps for manager editing and batch reliability contracts
+- [x] **Phase 5: Manager & Batch Contract Closure** - Close v1.0 blocking gaps for manager editing and batch reliability contracts
 - [ ] **Phase 6: Requirements Traceability & Evidence Realignment** - Restore requirement evidence chain and traceability consistency for v1.0 closure
 
 ## Phase Details
@@ -58,8 +58,8 @@
 | 2. Team & Player Management | 2/2 | Complete | ✓ |
 | 3. Manager & Batch Operations | 3/3 | Complete | ✓ |
 | 4. Domain Model & Architecture Consistency | 4/4 | Complete | ✓ |
-| 5. Manager & Batch Contract Closure | 2/2 | Planned |  |
-| 6. Requirements Traceability & Evidence Realignment | 0/0 | Not Started |  |
+| 5. Manager & Batch Contract Closure | 2/2 | Complete | ✓ |
+| 6. Requirements Traceability & Evidence Realignment | 2/2 | Planned |  |
 
 ### Phase 4: add lombok and create real Domains, with self validation. fix project inconsistency like 2 services, all the services/usecase need a interface; Organize the “record” and “domain” folders. The ‘domain’ folder must be separate; the “record” folder goes in a different folder; keep the folders separate.
 
@@ -81,8 +81,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — Complete manager field updates (age, nationality, reputation, trophies)
-- [ ] 05-02-PLAN.md — Implement batch 207 Multi-Status response with index-based error tracking
+- [x] 05-01-PLAN.md — Complete manager field updates (age, nationality, reputation, trophies)
+- [x] 05-02-PLAN.md — Implement batch 207 Multi-Status response with index-based error tracking
 
 **Gap Closure:** Closes requirement, integration, and flow gaps identified in `v1.0-v1.0-MILESTONE-AUDIT.md` for manager completeness and batch partial-failure semantics.
 
@@ -90,4 +90,10 @@ Plans:
 **Goal:** Reconcile requirement traceability and summary evidence so audited v1.0 requirement coverage is complete and internally consistent.
 **Requirements:** EDIT-01, EDIT-02
 **Depends on:** Phase 5
+**Plans:** 2 plans
+
+Plans:
+- [ ] 06-01-PLAN.md — Add requirements-completed to Phase 2 SUMMARY frontmatter (EDIT-01, EDIT-02)
+- [ ] 06-02-PLAN.md — Create VALIDATION.md files for Phases 1-4 with Nyquist compliance evidence
+
 **Gap Closure:** Closes audit gaps where verification passed but requirements-completed linkage and artifact consistency are incomplete.
