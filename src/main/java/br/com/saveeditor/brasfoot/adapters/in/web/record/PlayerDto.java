@@ -1,4 +1,4 @@
-package br.com.saveeditor.brasfoot.adapters.in.web.dto;
+package br.com.saveeditor.brasfoot.adapters.in.web.record;
 
 public record PlayerDto(
     int id,

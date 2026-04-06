@@ -1,10 +1,11 @@
 package br.com.saveeditor.brasfoot.adapters.in.web;
 
-import br.com.saveeditor.brasfoot.adapters.in.web.dto.PlayerBatchUpdateRequest;
-import br.com.saveeditor.brasfoot.adapters.in.web.dto.PlayerDto;
-import br.com.saveeditor.brasfoot.adapters.in.web.dto.PlayerUpdateRequest;
+import br.com.saveeditor.brasfoot.adapters.in.web.record.PlayerBatchUpdateRequest;
+import br.com.saveeditor.brasfoot.adapters.in.web.record.PlayerDto;
+import br.com.saveeditor.brasfoot.adapters.in.web.record.PlayerUpdateRequest;
 import br.com.saveeditor.brasfoot.application.ports.in.GetPlayerUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.UpdatePlayerUseCase;
+import br.com.saveeditor.brasfoot.application.ports.in.record.PlayerBatchUpdateCommand;
 import br.com.saveeditor.brasfoot.domain.Player;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -100,8 +101,8 @@ public class PlayerController {
             @PathVariable int teamId,
             @RequestBody List<PlayerBatchUpdateRequest> requests) {
         
-        List<br.com.saveeditor.brasfoot.application.ports.in.PlayerBatchUpdateCommand> commands = requests.stream()
-                .map(req -> new br.com.saveeditor.brasfoot.application.ports.in.PlayerBatchUpdateCommand(req.playerId(), req.age(), req.overall(), req.position(), req.energy(), req.morale()))
+        List<PlayerBatchUpdateCommand> commands = requests.stream()
+                .map(req -> new PlayerBatchUpdateCommand(req.playerId(), req.age(), req.overall(), req.position(), req.energy(), req.morale()))
                 .collect(Collectors.toList());
 
         List<Player> updatedPlayers = updatePlayerUseCase.batchUpdatePlayers(sessionId, teamId, commands);
