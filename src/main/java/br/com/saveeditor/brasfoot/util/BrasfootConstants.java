@@ -40,11 +40,6 @@ public class BrasfootConstants {
     public static final String PLAYER_STAR_LOCAL = "el"; // boolean
     public static final String PLAYER_STAR_GLOBAL = "ek"; // boolean
 
-    // Disciplinary (Cards/Suspensions)
-    public static final String CARD_YELLOW_1 = "eA";
-    public static final String CARD_YELLOW_2 = "eB";
-    public static final String CARD_RED = "eC";
-    // ... possibly more disciplinary fields eD..eG, eR
 
     // --- Manager ---
     public static final String MANAGER_NAME = "dm"; // String

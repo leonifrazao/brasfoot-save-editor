@@ -1,4 +1,4 @@
-package br.com.saveeditor.brasfoot.model;
+package br.com.saveeditor.brasfoot.application.shared;
 
 import lombok.Getter;
 

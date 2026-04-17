@@ -1,16 +1,19 @@
-package br.com.saveeditor.brasfoot.adapters.in.web;
+package br.com.saveeditor.brasfoot.infrastructure.adapters.in.web;
 
-import br.com.saveeditor.brasfoot.adapters.in.web.mapper.TeamMapper;
-import br.com.saveeditor.brasfoot.adapters.in.web.record.in.TeamBatchUpdateRequest;
-import br.com.saveeditor.brasfoot.adapters.in.web.record.in.TeamUpdateRequest;
-import br.com.saveeditor.brasfoot.adapters.in.web.record.out.TeamDto;
+import br.com.saveeditor.brasfoot.infrastructure.adapters.in.web.mapper.TeamMapper;
+import br.com.saveeditor.brasfoot.infrastructure.adapters.in.web.record.in.TeamBatchUpdateRequest;
+import br.com.saveeditor.brasfoot.infrastructure.adapters.in.web.record.in.TeamUpdateRequest;
+import br.com.saveeditor.brasfoot.infrastructure.adapters.in.web.record.out.TeamDto;
 import br.com.saveeditor.brasfoot.application.ports.in.GetTeamUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.UpdateTeamUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.record.TeamBatchUpdateCommand;
+import br.com.saveeditor.brasfoot.application.shared.BatchResponse;
+import br.com.saveeditor.brasfoot.application.shared.BatchResult;
 import br.com.saveeditor.brasfoot.domain.Team;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -88,7 +91,7 @@ public class TeamController {
                    @ApiResponse(responseCode = "400", description = "Invalid input data."),
                    @ApiResponse(responseCode = "404", description = "Session not found.")
                })
-    public ResponseEntity<List<TeamDto>> batchUpdateTeams(
+    public ResponseEntity<BatchResponse<TeamDto>> batchUpdateTeams(
             @PathVariable UUID sessionId,
             @RequestBody List<TeamBatchUpdateRequest> requests) {
 
@@ -96,10 +99,19 @@ public class TeamController {
                 .map(req -> new TeamBatchUpdateCommand(req.teamId(), req.money(), req.reputation()))
                 .collect(Collectors.toList());
 
-        List<Team> updatedTeams = updateTeamUseCase.batchUpdateTeams(sessionId, commands);
+        BatchResponse<Team> response = updateTeamUseCase.batchUpdateTeams(sessionId, commands);
 
-        List<TeamDto> dtos = teamMapper.toDtoList(updatedTeams);
+        List<BatchResult<TeamDto>> responseResults = new java.util.ArrayList<>();
+        for (BatchResult<Team> result : response.getResults()) {
+            if (result.isSuccess()) {
+                responseResults.add(BatchResult.success(result.getIndex(), teamMapper.toDto(result.getData())));
+            } else {
+                responseResults.add(BatchResult.failure(result.getIndex(), result.getError()));
+            }
+        }
 
-        return ResponseEntity.ok(dtos);
+        boolean anyFailed = response.getResults().stream().anyMatch(r -> !r.isSuccess());
+        HttpStatus status = anyFailed ? HttpStatus.MULTI_STATUS : HttpStatus.OK;
+        return ResponseEntity.status(status).body(new BatchResponse<>(responseResults));
     }
 }

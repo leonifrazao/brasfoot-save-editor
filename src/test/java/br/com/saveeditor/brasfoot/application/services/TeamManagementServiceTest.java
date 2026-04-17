@@ -3,11 +3,12 @@ package br.com.saveeditor.brasfoot.application.services;
 import br.com.saveeditor.brasfoot.application.ports.in.record.TeamBatchUpdateCommand;
 import br.com.saveeditor.brasfoot.application.ports.out.GameDataPort;
 import br.com.saveeditor.brasfoot.application.ports.out.SessionStatePort;
+import br.com.saveeditor.brasfoot.application.shared.BatchResponse;
 import br.com.saveeditor.brasfoot.domain.SaveContext;
 import br.com.saveeditor.brasfoot.domain.Session;
 import br.com.saveeditor.brasfoot.domain.Team;
-import br.com.saveeditor.brasfoot.domain.TeamReputation;
-import br.com.saveeditor.brasfoot.model.NavegacaoState;
+import br.com.saveeditor.brasfoot.domain.enums.TeamReputation;
+import br.com.saveeditor.brasfoot.application.shared.NavegacaoState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,6 +33,9 @@ class TeamManagementServiceTest {
 
     @Mock
     private GameDataPort gameDataPort;
+
+    @Mock
+    private SessionResolver sessionResolver;
 
     @Mock
     private NavegacaoState navegacaoState;
@@ -61,7 +65,7 @@ class TeamManagementServiceTest {
     void batchUpdateTeams_skipsUnknownTeamIds_andUpdatesKnownOnes() {
         // Arrange
         when(navegacaoState.getObjetoRaiz()).thenReturn(root);
-        when(sessionStatePort.load(sessionId)).thenReturn(session);
+        when(sessionResolver.loadRequired(sessionId)).thenReturn(session);
         when(gameDataPort.getTeamById(root, 1)).thenReturn(team1);
         when(gameDataPort.getTeamById(root, 999)).thenReturn(null);
 
@@ -71,10 +75,12 @@ class TeamManagementServiceTest {
         );
 
         // Act
-        List<Team> updated = teamManagementService.batchUpdateTeams(sessionId, commands);
+        BatchResponse<Team> updated = teamManagementService.batchUpdateTeams(sessionId, commands);
 
         // Assert
-        assertEquals(1, updated.size());
+        assertEquals(2, updated.getResults().size());
+        assertEquals(true, updated.getResults().get(0).isSuccess());
+        assertEquals(false, updated.getResults().get(1).isSuccess());
         assertEquals(5000L, team1.nb);
         assertEquals(TeamReputation.CONTINENTAL.getValue(), team1.nc);
         verify(sessionStatePort).save(session);
@@ -84,7 +90,7 @@ class TeamManagementServiceTest {
     void updateTeam_withNegativeMoney_throwsAndDoesNotSave() {
         // Arrange/Act/Assert
         when(navegacaoState.getObjetoRaiz()).thenReturn(root);
-        when(sessionStatePort.load(sessionId)).thenReturn(session);
+        when(sessionResolver.loadRequired(sessionId)).thenReturn(session);
         when(gameDataPort.getTeamById(root, 1)).thenReturn(team1);
 
         assertThrows(
@@ -98,7 +104,7 @@ class TeamManagementServiceTest {
     void getAllTeams_withMissingSession_throws() {
         // Arrange
         UUID missingSessionId = UUID.randomUUID();
-        when(sessionStatePort.load(missingSessionId)).thenReturn(null);
+        when(sessionResolver.loadRequired(missingSessionId)).thenThrow(new IllegalArgumentException("Session not found"));
 
         // Act/Assert
         assertThrows(IllegalArgumentException.class, () -> teamManagementService.getAllTeams(missingSessionId));

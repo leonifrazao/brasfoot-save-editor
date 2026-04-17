@@ -1,8 +1,8 @@
-package br.com.saveeditor.brasfoot.adapters.in.web;
+package br.com.saveeditor.brasfoot.infrastructure.adapters.in.web;
 
-import br.com.saveeditor.brasfoot.adapters.in.web.mapper.ManagerMapper;
-import br.com.saveeditor.brasfoot.adapters.in.web.record.in.ManagerUpdateRequest;
-import br.com.saveeditor.brasfoot.adapters.in.web.record.out.ManagerResponse;
+import br.com.saveeditor.brasfoot.infrastructure.adapters.in.web.mapper.ManagerMapper;
+import br.com.saveeditor.brasfoot.infrastructure.adapters.in.web.record.in.ManagerUpdateRequest;
+import br.com.saveeditor.brasfoot.infrastructure.adapters.in.web.record.out.ManagerResponse;
 import br.com.saveeditor.brasfoot.application.ports.in.BatchUpdateManagerUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.GetManagerUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.record.ManagerBatchUpdateCommand;

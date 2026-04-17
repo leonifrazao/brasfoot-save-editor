@@ -1,10 +1,7 @@
 package br.com.saveeditor.brasfoot.domain;
 
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import br.com.saveeditor.brasfoot.domain.enums.TeamReputation;
+import lombok.*;
 
 @Getter
 @ToString
@@ -12,9 +9,15 @@ import lombok.ToString;
 @NoArgsConstructor
 @Builder
 public class Team {
+
+    @Setter
     private int id;
+
+    @Setter
     private String name;
     private long money;
+
+    @Setter
     private TeamReputation reputation;
 
     public Team(int id, String name, long money, TeamReputation reputation) {
@@ -27,9 +30,7 @@ public class Team {
         this.reputation = reputation;
     }
 
-    /**
-     * Setter with validation for money field.
-     */
+
     public void setMoney(long value) {
         if (value < 0) {
             throw new IllegalArgumentException("Money cannot be negative");
@@ -37,24 +38,4 @@ public class Team {
         this.money = value;
     }
 
-    /**
-     * Setter without validation for id field.
-     */
-    public void setId(int value) {
-        this.id = value;
-    }
-
-    /**
-     * Setter without validation for name field.
-     */
-    public void setName(String value) {
-        this.name = value;
-    }
-
-    /**
-     * Setter without validation for reputation field.
-     */
-    public void setReputation(TeamReputation value) {
-        this.reputation = value;
-    }
 }

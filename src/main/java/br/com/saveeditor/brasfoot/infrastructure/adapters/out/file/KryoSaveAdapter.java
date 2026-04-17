@@ -1,8 +1,8 @@
-package br.com.saveeditor.brasfoot.adapters.out.file;
+package br.com.saveeditor.brasfoot.infrastructure.adapters.out.file;
 
 import br.com.saveeditor.brasfoot.application.ports.out.LoadSavePort;
 import br.com.saveeditor.brasfoot.application.ports.out.WriteSavePort;
-import br.com.saveeditor.brasfoot.model.NavegacaoState;
+import br.com.saveeditor.brasfoot.application.shared.NavegacaoState;
 import br.com.saveeditor.brasfoot.service.SaveFileService;
 import br.com.saveeditor.brasfoot.domain.SaveContext;
 import org.springframework.stereotype.Component;

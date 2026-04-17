@@ -1,6 +1,6 @@
-package br.com.saveeditor.brasfoot.adapters.in.web.mapper;
+package br.com.saveeditor.brasfoot.infrastructure.adapters.in.web.mapper;
 
-import br.com.saveeditor.brasfoot.adapters.in.web.record.out.PlayerDto;
+import br.com.saveeditor.brasfoot.infrastructure.adapters.in.web.record.out.PlayerDto;
 import br.com.saveeditor.brasfoot.domain.Player;
 import org.springframework.stereotype.Component;
 
@@ -28,7 +28,9 @@ public class PlayerMapper {
                 player.getOverall(),
                 player.getPosition(),
                 player.getEnergy(),
-                player.getMorale()
+                player.getMorale(),
+                player.isStarLocal(),
+                player.isStarGlobal()
         );
     }
 

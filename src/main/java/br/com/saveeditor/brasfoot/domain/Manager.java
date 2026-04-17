@@ -1,10 +1,6 @@
 package br.com.saveeditor.brasfoot.domain;
 
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 
 @Getter
 @ToString
@@ -12,18 +8,20 @@ import lombok.ToString;
 @NoArgsConstructor
 @Builder
 public class Manager {
+
+    @Setter
     private Integer id; // Index in the list
+
+    @Setter
     private String name;
     private Boolean isHuman;
+
+    @Setter
     private Integer teamId;
     private Integer confidenceBoard;
     private Integer confidenceFans;
-    private Integer age;
-    private String nationality;
-    private Integer reputation;
-    private Integer trophies;
 
-    public Manager(Integer id, String name, Boolean isHuman, Integer teamId, Integer confidenceBoard, Integer confidenceFans, Integer age, String nationality, Integer reputation, Integer trophies) {
+    public Manager(Integer id, String name, Boolean isHuman, Integer teamId, Integer confidenceBoard, Integer confidenceFans) {
         validateConfidence("confidenceBoard", confidenceBoard);
         validateConfidence("confidenceFans", confidenceFans);
         this.id = id;
@@ -32,10 +30,6 @@ public class Manager {
         this.teamId = teamId;
         this.confidenceBoard = confidenceBoard;
         this.confidenceFans = confidenceFans;
-        this.age = age;
-        this.nationality = nationality;
-        this.reputation = reputation;
-        this.trophies = trophies;
     }
 
     private void validateConfidence(String fieldName, Integer value) {
@@ -63,61 +57,6 @@ public class Manager {
         this.confidenceFans = value;
     }
 
-    /**
-     * Setter without validation for id field.
-     */
-    public void setId(Integer value) {
-        this.id = value;
-    }
-
-    /**
-     * Setter without validation for name field.
-     */
-    public void setName(String value) {
-        this.name = value;
-    }
-
-    /**
-     * Setter without validation for isHuman field.
-     */
-    public void setIsHuman(Boolean value) {
-        this.isHuman = value;
-    }
-
-    /**
-     * Setter without validation for teamId field.
-     */
-    public void setTeamId(Integer value) {
-        this.teamId = value;
-    }
-
-    /**
-     * Setter without validation for age field.
-     */
-    public void setAge(Integer value) {
-        this.age = value;
-    }
-
-    /**
-     * Setter without validation for nationality field.
-     */
-    public void setNationality(String value) {
-        this.nationality = value;
-    }
-
-    /**
-     * Setter without validation for reputation field.
-     */
-    public void setReputation(Integer value) {
-        this.reputation = value;
-    }
-
-    /**
-     * Setter without validation for trophies field.
-     */
-    public void setTrophies(Integer value) {
-        this.trophies = value;
-    }
 
     /**
      * Factory method for backward compatibility.
@@ -127,22 +66,13 @@ public class Manager {
                              Boolean isHuman,
                              Integer teamId,
                              Integer confidenceBoard,
-                             Integer confidenceFans,
-                             Integer age,
-                             String nationality,
-                             Integer reputation,
-                             Integer trophies) {
+                             Integer confidenceFans) {
         return Manager.builder()
                 .id(id)
                 .name(name)
                 .isHuman(isHuman)
                 .teamId(teamId)
                 .confidenceBoard(confidenceBoard)
-                .confidenceFans(confidenceFans)
-                .age(age)
-                .nationality(nationality)
-                .reputation(reputation)
-                .trophies(trophies)
-                .build();
+                .confidenceFans(confidenceFans).build();
     }
 }

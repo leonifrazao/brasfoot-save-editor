@@ -1,14 +1,14 @@
 package br.com.saveeditor.brasfoot.application.ports.in;
 
 import br.com.saveeditor.brasfoot.application.ports.in.record.TeamBatchUpdateCommand;
+import br.com.saveeditor.brasfoot.application.shared.BatchResponse;
 import br.com.saveeditor.brasfoot.domain.Team;
 import br.com.saveeditor.brasfoot.domain.enums.TeamReputation;
 
-import java.util.List;
 import java.util.UUID;
 
 public interface UpdateTeamUseCase {
     Team updateTeam(UUID sessionId, int teamId, Long money, TeamReputation reputation);
     
-    List<Team> batchUpdateTeams(UUID sessionId, List<TeamBatchUpdateCommand> commands);
+    BatchResponse<Team> batchUpdateTeams(UUID sessionId, java.util.List<TeamBatchUpdateCommand> commands);
 }

@@ -6,5 +6,7 @@ public record PlayerBatchUpdateCommand(
     Integer overall,
     Integer position,
     Integer energy,
-    Integer morale
+    Integer morale,
+    Boolean starLocal,
+    Boolean starGlobal
 ) {}

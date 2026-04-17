@@ -1,5 +1,6 @@
 package br.com.saveeditor.brasfoot.domain;
 
+import br.com.saveeditor.brasfoot.domain.enums.TeamReputation;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;

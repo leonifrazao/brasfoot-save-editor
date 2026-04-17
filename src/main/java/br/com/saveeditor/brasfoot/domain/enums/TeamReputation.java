@@ -1,4 +1,4 @@
-package br.com.saveeditor.brasfoot.domain;
+package br.com.saveeditor.brasfoot.domain.enums;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;

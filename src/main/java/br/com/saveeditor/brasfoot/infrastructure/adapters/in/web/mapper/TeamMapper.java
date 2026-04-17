@@ -1,6 +1,6 @@
-package br.com.saveeditor.brasfoot.adapters.in.web.mapper;
+package br.com.saveeditor.brasfoot.infrastructure.adapters.in.web.mapper;
 
-import br.com.saveeditor.brasfoot.adapters.in.web.record.out.TeamDto;
+import br.com.saveeditor.brasfoot.infrastructure.adapters.in.web.record.out.TeamDto;
 import br.com.saveeditor.brasfoot.domain.Team;
 import org.springframework.stereotype.Component;
 

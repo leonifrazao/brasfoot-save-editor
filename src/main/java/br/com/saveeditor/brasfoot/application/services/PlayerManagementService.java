@@ -5,6 +5,8 @@ import br.com.saveeditor.brasfoot.application.ports.in.UpdatePlayerUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.record.PlayerBatchUpdateCommand;
 import br.com.saveeditor.brasfoot.application.ports.out.GameDataPort;
 import br.com.saveeditor.brasfoot.application.ports.out.SessionStatePort;
+import br.com.saveeditor.brasfoot.application.shared.BatchResponse;
+import br.com.saveeditor.brasfoot.application.shared.BatchResult;
 import br.com.saveeditor.brasfoot.domain.Player;
 import br.com.saveeditor.brasfoot.domain.Session;
 import br.com.saveeditor.brasfoot.util.BrasfootConstants;
@@ -74,9 +76,9 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
     }
 
     @Override
-    public Player updatePlayer(UUID sessionId, int teamId, int playerId, Integer age, Integer overall, Integer position, Integer energy, Integer morale) {
+    public Player updatePlayer(UUID sessionId, int teamId, int playerId, Integer age, Integer overall, Integer position, Integer energy, Integer morale, Boolean starLocal, Boolean starGlobal) {
         log.info("Updating player {} in team {} for session {}", playerId, teamId, sessionId);
-        log.debug("Update details - age: {}, overall: {}, position: {}, energy: {}, morale: {}", age, overall, position, energy, morale);
+        log.debug("Update details - age: {}, overall: {}, position: {}, energy: {}, morale: {}, starLocal: {}, starGlobal: {}", age, overall, position, energy, morale, starLocal, starGlobal);
 
         Session session = sessionResolver.loadRequired(sessionId);
 
@@ -105,6 +107,8 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
                         .position(currentPlayer.getPosition())
                         .energy(currentPlayer.getEnergy())
                         .morale(currentPlayer.getMorale())
+                        .starLocal(currentPlayer.isStarLocal())
+                        .starGlobal(currentPlayer.isStarGlobal())
                         .build();
                 ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_AGE, age);
             }
@@ -117,6 +121,8 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
                         .position(currentPlayer.getPosition())
                         .energy(currentPlayer.getEnergy())
                         .morale(currentPlayer.getMorale())
+                        .starLocal(currentPlayer.isStarLocal())
+                        .starGlobal(currentPlayer.isStarGlobal())
                         .build();
                 ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_OVERALL, overall);
             }
@@ -129,6 +135,8 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
                         .position(position)
                         .energy(currentPlayer.getEnergy())
                         .morale(currentPlayer.getMorale())
+                        .starLocal(currentPlayer.isStarLocal())
+                        .starGlobal(currentPlayer.isStarGlobal())
                         .build();
                 ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_POSITION, position);
             }
@@ -141,11 +149,17 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
                         .position(currentPlayer.getPosition())
                         .energy(energy)
                         .morale(currentPlayer.getMorale())
+                        .starLocal(currentPlayer.isStarLocal())
+                        .starGlobal(currentPlayer.isStarGlobal())
                         .build();
                 ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_ENERGY, energy);
             }
-            // Morale isn't in Constants, skipping or maybe it's not present yet.
-            // Wait, morale might be "eT" or similar. We'll ignore morale if we don't have constant.
+            if (starLocal != null) {
+                ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_STAR_LOCAL, starLocal);
+            }
+            if (starGlobal != null) {
+                ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_STAR_GLOBAL, starGlobal);
+            }
 
         } catch (IllegalArgumentException e) {
             log.warn("Validation error during player update: {}", e.getMessage());
@@ -160,7 +174,7 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
     }
 
     @Override
-    public List<Player> batchUpdatePlayers(UUID sessionId, int teamId, List<PlayerBatchUpdateCommand> commands) {
+    public BatchResponse<Player> batchUpdatePlayers(UUID sessionId, int teamId, List<PlayerBatchUpdateCommand> commands) {
         log.info("Batch updating {} players in team {} for session {}", commands.size(), teamId, sessionId);
 
         Session session = sessionResolver.loadRequired(sessionId);
@@ -172,12 +186,14 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
         }
 
         List<Object> playerObjects = gameDataPort.getPlayers(teamObj);
-        List<Player> updatedPlayers = new ArrayList<>();
+        List<BatchResult<Player>> results = new ArrayList<>();
 
-        for (var command : commands) {
+        for (int i = 0; i < commands.size(); i++) {
+            var command = commands.get(i);
             int playerId = command.playerId();
             if (playerId < 0 || playerId >= playerObjects.size()) {
                 log.warn("Player index {} out of bounds for team {}", playerId, teamId);
+                results.add(BatchResult.failure(i, "Player index out of bounds"));
                 continue;
             }
 
@@ -195,6 +211,8 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
                             .position(currentPlayer.getPosition())
                             .energy(currentPlayer.getEnergy())
                             .morale(currentPlayer.getMorale())
+                            .starLocal(currentPlayer.isStarLocal())
+                            .starGlobal(currentPlayer.isStarGlobal())
                             .build();
                     ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_AGE, command.age());
                 }
@@ -207,6 +225,8 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
                             .position(currentPlayer.getPosition())
                             .energy(currentPlayer.getEnergy())
                             .morale(currentPlayer.getMorale())
+                            .starLocal(currentPlayer.isStarLocal())
+                            .starGlobal(currentPlayer.isStarGlobal())
                             .build();
                     ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_OVERALL, command.overall());
                 }
@@ -219,6 +239,8 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
                             .position(command.position())
                             .energy(currentPlayer.getEnergy())
                             .morale(currentPlayer.getMorale())
+                            .starLocal(currentPlayer.isStarLocal())
+                            .starGlobal(currentPlayer.isStarGlobal())
                             .build();
                     ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_POSITION, command.position());
                 }
@@ -231,22 +253,32 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
                             .position(currentPlayer.getPosition())
                             .energy(command.energy())
                             .morale(currentPlayer.getMorale())
+                            .starLocal(currentPlayer.isStarLocal())
+                            .starGlobal(currentPlayer.isStarGlobal())
                             .build();
                     ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_ENERGY, command.energy());
                 }
+                if (command.starLocal() != null) {
+                    ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_STAR_LOCAL, command.starLocal());
+                }
+                if (command.starGlobal() != null) {
+                    ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_STAR_GLOBAL, command.starGlobal());
+                }
             } catch (IllegalArgumentException e) {
                 log.warn("Validation error during batch player update: {}", e.getMessage());
-                throw e;
+                results.add(BatchResult.failure(i, e.getMessage()));
+                continue;
             } catch (Exception e) {
                 log.error("Failed to update player properties for player {}", playerId, e);
-                throw new RuntimeException("Failed to update player properties", e);
+                results.add(BatchResult.failure(i, "Failed to update player properties: " + e.getMessage()));
+                continue;
             }
 
-            updatedPlayers.add(mapToPlayerDomain(playerObj, playerId));
+            results.add(BatchResult.success(i, mapToPlayerDomain(playerObj, playerId)));
         }
 
         sessionStatePort.save(session);
-        return updatedPlayers;
+        return new BatchResponse<>(results);
     }
 
     private Player mapToPlayerDomain(Object playerObj, int index) {
@@ -256,11 +288,13 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
             int overall = (int) ReflectionUtils.getFieldValue(playerObj, BrasfootConstants.PLAYER_OVERALL);
             int position = (int) ReflectionUtils.getFieldValue(playerObj, BrasfootConstants.PLAYER_POSITION);
             int energy = (int) ReflectionUtils.getFieldValue(playerObj, BrasfootConstants.PLAYER_ENERGY);
+            boolean starLocal = (boolean) ReflectionUtils.getFieldValue(playerObj, BrasfootConstants.PLAYER_STAR_LOCAL);
+            boolean starGlobal = (boolean) ReflectionUtils.getFieldValue(playerObj, BrasfootConstants.PLAYER_STAR_GLOBAL);
 
             // Assume default 100 for morale for now
             int morale = 100;
 
-            return new Player(index, name, age, overall, position, energy, morale);
+            return new Player(index, name, age, overall, position, energy, morale, starLocal, starGlobal);
         } catch (Exception e) {
             throw new RuntimeException("Failed to map player object to domain", e);
         }

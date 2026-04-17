@@ -1,4 +1,4 @@
-package br.com.saveeditor.brasfoot.adapters.in.web.record.in;
+package br.com.saveeditor.brasfoot.infrastructure.adapters.in.web.record.in;
 
 public record PlayerBatchUpdateRequest(
     int playerId,
@@ -6,5 +6,7 @@ public record PlayerBatchUpdateRequest(
     Integer overall,
     Integer position,
     Integer energy,
-    Integer morale
+    Integer morale,
+    Boolean starLocal,
+    Boolean starGlobal
 ) {}

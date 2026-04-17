@@ -1,4 +1,4 @@
-package br.com.saveeditor.brasfoot.adapters.in.web;
+package br.com.saveeditor.brasfoot.infrastructure.adapters.in.web;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

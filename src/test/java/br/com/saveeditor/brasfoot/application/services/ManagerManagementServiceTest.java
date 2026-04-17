@@ -5,7 +5,7 @@ import br.com.saveeditor.brasfoot.application.ports.out.GameDataPort;
 import br.com.saveeditor.brasfoot.domain.Manager;
 import br.com.saveeditor.brasfoot.domain.SaveContext;
 import br.com.saveeditor.brasfoot.domain.Session;
-import br.com.saveeditor.brasfoot.model.NavegacaoState;
+import br.com.saveeditor.brasfoot.application.shared.NavegacaoState;
 import br.com.saveeditor.brasfoot.util.BrasfootConstants;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,14 +33,14 @@ class ManagerManagementServiceTest {
     @Mock
     private GameDataPort gameDataPort;
 
+    @Mock
+    private SessionResolver sessionResolver;
+
     @InjectMocks
     private ManagerManagementService managerManagementService;
 
     private UUID sessionId;
     private Session mockSession;
-    private SaveContext mockContext;
-    private NavegacaoState mockState;
-    private Object rootObject;
     private List<Object> dummyManagersList;
 
     @BeforeEach
@@ -48,20 +48,20 @@ class ManagerManagementServiceTest {
         sessionId = UUID.randomUUID();
         
         // Mock root object
-        rootObject = new Object() {
-            public List<Object> al = new ArrayList<>();
+        Object rootObject = new Object() {
+            public final List<Object> al = new ArrayList<>();
         };
         
         dummyManagersList = (List<Object>) rootObject.getClass().getField(BrasfootConstants.HUMAN_MANAGERS_LIST).get(rootObject);
         
         // Create dummy manager
-        Object dummyManager = new DummyManager("Pep Guardiola", true, 85, 90, 50, "Spanish", 1000, 1);
+        Object dummyManager = new DummyManager("Pep Guardiola", true, 85, 90, 50, "Spanish", 1000, 7, 1);
         dummyManagersList.add(dummyManager);
 
-        mockState = mock(NavegacaoState.class);
+        NavegacaoState mockState = mock(NavegacaoState.class);
         when(mockState.getObjetoRaiz()).thenReturn(rootObject);
 
-        mockContext = mock(SaveContext.class);
+        SaveContext mockContext = mock(SaveContext.class);
         when(mockContext.getState()).thenReturn(mockState);
 
         mockSession = new Session(sessionId, mockContext);
@@ -71,9 +71,9 @@ class ManagerManagementServiceTest {
 
     @Test
     void getManagers_returnsMappedManagers() {
-        when(sessionStatePort.load(sessionId)).thenReturn(mockSession);
+        when(sessionResolver.loadRequired(sessionId)).thenReturn(mockSession);
 
-        List<Manager> managers = managerManagementService.getManagers(sessionId.toString());
+        List<Manager> managers = managerManagementService.getManagers(sessionId);
 
         assertNotNull(managers);
         assertEquals(1, managers.size());
@@ -89,9 +89,9 @@ class ManagerManagementServiceTest {
 
     @Test
     void getManager_withValidId_returnsManager() {
-        when(sessionStatePort.load(sessionId)).thenReturn(mockSession);
+        when(sessionResolver.loadRequired(sessionId)).thenReturn(mockSession);
 
-        Optional<Manager> managerOpt = managerManagementService.getManager(sessionId.toString(), 0);
+        Optional<Manager> managerOpt = managerManagementService.getManager(sessionId, 0);
 
         assertTrue(managerOpt.isPresent());
         assertEquals("Pep Guardiola", managerOpt.get().getName());
@@ -99,27 +99,29 @@ class ManagerManagementServiceTest {
 
     @Test
     void getManager_withInvalidId_returnsEmpty() {
-        when(sessionStatePort.load(sessionId)).thenReturn(mockSession);
+        when(sessionResolver.loadRequired(sessionId)).thenReturn(mockSession);
 
-        Optional<Manager> managerOpt = managerManagementService.getManager(sessionId.toString(), 99);
+        Optional<Manager> managerOpt = managerManagementService.getManager(sessionId, 99);
 
         assertFalse(managerOpt.isPresent());
     }
 
     @Test
     void updateManager_withValidIdAndData_updatesAndSaves() throws Exception {
-        when(sessionStatePort.load(sessionId)).thenReturn(mockSession);
+        when(sessionResolver.loadRequired(sessionId)).thenReturn(mockSession);
 
         Manager updateData = new Manager();
         updateData.setName("Jose Mourinho");
         updateData.setConfidenceBoard(99);
         updateData.setConfidenceFans(100);
 
-        Manager updated = managerManagementService.updateManager(sessionId.toString(), 0, updateData);
+
+        Manager updated = managerManagementService.updateManager(sessionId, 0, updateData);
 
         assertEquals("Jose Mourinho", updated.getName());
         assertEquals(99, updated.getConfidenceBoard());
         assertEquals(100, updated.getConfidenceFans());
+
         
         verify(sessionStatePort, times(1)).save(mockSession);
         
@@ -127,17 +129,19 @@ class ManagerManagementServiceTest {
         Object dummyManager = dummyManagersList.get(0);
         Field nameField = dummyManager.getClass().getField(BrasfootConstants.MANAGER_NAME);
         assertEquals("Jose Mourinho", nameField.get(dummyManager));
+        Field ageField = dummyManager.getClass().getField(BrasfootConstants.MANAGER_AGE);
+        assertEquals(61, ageField.get(dummyManager));
     }
     
     @Test
     void updateManager_withInvalidId_throwsException() {
-        when(sessionStatePort.load(sessionId)).thenReturn(mockSession);
+        when(sessionResolver.loadRequired(sessionId)).thenReturn(mockSession);
 
         Manager updateData = new Manager();
         updateData.setName("Jose Mourinho");
 
         assertThrows(IllegalArgumentException.class, () -> {
-            managerManagementService.updateManager(sessionId.toString(), 99, updateData);
+            managerManagementService.updateManager(sessionId, 99, updateData);
         });
         
         verify(sessionStatePort, never()).save(any());
@@ -152,9 +156,10 @@ class ManagerManagementServiceTest {
         public int age; 
         public String nationality;
         public int reputation;
+        public int trophies;
         public int nU; // TeamId
 
-        public DummyManager(String name, boolean isHuman, int confBoard, int confFans, int age, String nationality, int reputation, int teamId) {
+        public DummyManager(String name, boolean isHuman, int confBoard, int confFans, int age, String nationality, int reputation, int trophies, int teamId) {
             this.dm = name;
             this.mW = isHuman;
             this.of = confBoard;
@@ -162,6 +167,7 @@ class ManagerManagementServiceTest {
             this.age = age;
             this.nationality = nationality;
             this.reputation = reputation;
+            this.trophies = trophies;
             this.nU = teamId;
         }
     }

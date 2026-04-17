@@ -3,10 +3,11 @@ package br.com.saveeditor.brasfoot.application.services;
 import br.com.saveeditor.brasfoot.application.ports.in.record.PlayerBatchUpdateCommand;
 import br.com.saveeditor.brasfoot.application.ports.out.GameDataPort;
 import br.com.saveeditor.brasfoot.application.ports.out.SessionStatePort;
+import br.com.saveeditor.brasfoot.application.shared.BatchResponse;
 import br.com.saveeditor.brasfoot.domain.Player;
 import br.com.saveeditor.brasfoot.domain.SaveContext;
 import br.com.saveeditor.brasfoot.domain.Session;
-import br.com.saveeditor.brasfoot.model.NavegacaoState;
+import br.com.saveeditor.brasfoot.application.shared.NavegacaoState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,6 +35,9 @@ class PlayerManagementServiceTest {
     private GameDataPort gameDataPort;
 
     @Mock
+    private SessionResolver sessionResolver;
+
+    @Mock
     private NavegacaoState navegacaoState;
 
     @InjectMocks
@@ -57,14 +61,14 @@ class PlayerManagementServiceTest {
         context.load(navegacaoState, "save.sav");
         session = new Session(sessionId, context);
 
-        player0 = new DummyPlayer("P0", 20, 70, 2, 80);
-        player1 = new DummyPlayer("P1", 22, 75, 3, 85);
+        player0 = new DummyPlayer("P0", 20, 70, 2, 80, false, false);
+        player1 = new DummyPlayer("P1", 22, 75, 3, 85, true, false);
         players = new ArrayList<>();
         players.add(player0);
         players.add(player1);
 
         when(navegacaoState.getObjetoRaiz()).thenReturn(root);
-        when(sessionStatePort.load(sessionId)).thenReturn(session);
+        when(sessionResolver.loadRequired(sessionId)).thenReturn(session);
         when(gameDataPort.getTeamById(root, 10)).thenReturn(team);
         when(gameDataPort.getPlayers(team)).thenReturn(players);
     }
@@ -74,7 +78,7 @@ class PlayerManagementServiceTest {
         // Arrange/Act/Assert
         assertThrows(
                 IllegalArgumentException.class,
-                () -> playerManagementService.updatePlayer(sessionId, 10, 0, null, null, null, -2, null)
+                () -> playerManagementService.updatePlayer(sessionId, 10, 0, null, null, null, -2, null, null, null)
         );
         verify(sessionStatePort, never()).save(session);
     }
@@ -83,16 +87,19 @@ class PlayerManagementServiceTest {
     void batchUpdatePlayers_skipsOutOfBoundsAndUpdatesValid() {
         // Arrange
         List<PlayerBatchUpdateCommand> commands = List.of(
-                new PlayerBatchUpdateCommand(0, 25, null, null, null, null),
-                new PlayerBatchUpdateCommand(99, 30, null, null, null, null)
+                new PlayerBatchUpdateCommand(0, 25, null, null, null, null, true, false),
+                new PlayerBatchUpdateCommand(99, 30, null, null, null, null, null, null)
         );
 
         // Act
-        List<Player> updated = playerManagementService.batchUpdatePlayers(sessionId, 10, commands);
+        BatchResponse<Player> updated = playerManagementService.batchUpdatePlayers(sessionId, 10, commands);
 
         // Assert
-        assertEquals(1, updated.size());
+        assertEquals(2, updated.getResults().size());
+        assertEquals(true, updated.getResults().get(0).isSuccess());
+        assertEquals(false, updated.getResults().get(1).isSuccess());
         assertEquals(25, player0.em);
+        assertEquals(true, player0.el);
         verify(sessionStatePort).save(session);
     }
 
@@ -109,13 +116,17 @@ class PlayerManagementServiceTest {
         public int eq;
         public int en;
         public int ep;
+        public boolean el;
+        public boolean ek;
 
-        DummyPlayer(String name, int age, int overall, int position, int energy) {
+        DummyPlayer(String name, int age, int overall, int position, int energy, boolean starLocal, boolean starGlobal) {
             this.dm = name;
             this.em = age;
             this.eq = overall;
             this.en = position;
             this.ep = energy;
+            this.el = starLocal;
+            this.ek = starGlobal;
         }
     }
 }

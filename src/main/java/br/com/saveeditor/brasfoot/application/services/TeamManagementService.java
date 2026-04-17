@@ -5,6 +5,8 @@ import br.com.saveeditor.brasfoot.application.ports.in.UpdateTeamUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.record.TeamBatchUpdateCommand;
 import br.com.saveeditor.brasfoot.application.ports.out.GameDataPort;
 import br.com.saveeditor.brasfoot.application.ports.out.SessionStatePort;
+import br.com.saveeditor.brasfoot.application.shared.BatchResponse;
+import br.com.saveeditor.brasfoot.application.shared.BatchResult;
 import br.com.saveeditor.brasfoot.domain.Session;
 import br.com.saveeditor.brasfoot.domain.Team;
 import br.com.saveeditor.brasfoot.domain.enums.TeamReputation;
@@ -106,52 +108,51 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
     }
 
     @Override
-    public List<Team> batchUpdateTeams(UUID sessionId, List<TeamBatchUpdateCommand> commands) {
+    public BatchResponse<Team> batchUpdateTeams(UUID sessionId, List<TeamBatchUpdateCommand> commands) {
         log.info("Batch updating {} teams for session {}", commands.size(), sessionId);
 
         Session session = sessionResolver.loadRequired(sessionId);
 
         Object root = session.getContext().getState().getObjetoRaiz();
-        List<Team> updatedTeams = new java.util.ArrayList<>();
+        List<BatchResult<Team>> results = new java.util.ArrayList<>();
 
-        for (var command : commands) {
-            Object teamObj = gameDataPort.getTeamById(root, command.teamId());
-            if (teamObj == null) {
-                log.warn("Team not found with ID: {}", command.teamId());
-                continue;
-            }
+        for (int i = 0; i < commands.size(); i++) {
+            var command = commands.get(i);
+            try {
+                Object teamObj = gameDataPort.getTeamById(root, command.teamId());
+                if (teamObj == null) {
+                    log.warn("Team not found with ID: {}", command.teamId());
+                    results.add(BatchResult.failure(i, "Team not found with ID: " + command.teamId()));
+                    continue;
+                }
 
-            Team currentTeam = mapToTeamDomain(teamObj);
+                Team currentTeam = mapToTeamDomain(teamObj);
 
-            if (command.money() != null) {
-                Team.builder()
-                        .id(currentTeam.getId())
-                        .name(currentTeam.getName())
-                        .money(command.money())
-                        .reputation(currentTeam.getReputation())
-                        .build();
-                try {
+                if (command.money() != null) {
+                    Team.builder()
+                            .id(currentTeam.getId())
+                            .name(currentTeam.getName())
+                            .money(command.money())
+                            .reputation(currentTeam.getReputation())
+                            .build();
                     ReflectionUtils.setFieldValue(teamObj, BrasfootConstants.TEAM_MONEY, command.money());
-                } catch (Exception e) {
-                    log.error("Failed to update team money for team {}", command.teamId(), e);
-                    throw new RuntimeException("Failed to update team money", e);
                 }
-            }
-
-            if (command.reputation() != null) {
-                try {
+                if (command.reputation() != null) {
                     ReflectionUtils.setFieldValue(teamObj, BrasfootConstants.TEAM_REPUTATION, command.reputation().getValue());
-                } catch (Exception e) {
-                    log.error("Failed to update team reputation for team {}", command.teamId(), e);
-                    throw new RuntimeException("Failed to update team reputation", e);
                 }
-            }
 
-            updatedTeams.add(mapToTeamDomain(teamObj));
+                results.add(BatchResult.success(i, mapToTeamDomain(teamObj)));
+            } catch (IllegalArgumentException e) {
+                log.warn("Validation error during batch team update: {}", e.getMessage());
+                results.add(BatchResult.failure(i, e.getMessage()));
+            } catch (Exception e) {
+                log.error("Failed to update team properties for team {}", command.teamId(), e);
+                results.add(BatchResult.failure(i, "Failed to update team properties: " + e.getMessage()));
+            }
         }
 
         sessionStatePort.save(session);
-        return updatedTeams;
+        return new BatchResponse<>(results);
     }
 
     private Team mapToTeamDomain(Object teamObj) {

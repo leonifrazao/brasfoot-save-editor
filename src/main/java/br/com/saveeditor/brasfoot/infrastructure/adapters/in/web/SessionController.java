@@ -1,6 +1,6 @@
-package br.com.saveeditor.brasfoot.adapters.in.web;
+package br.com.saveeditor.brasfoot.infrastructure.adapters.in.web;
 
-import br.com.saveeditor.brasfoot.adapters.in.web.record.out.SessionResponse;
+import br.com.saveeditor.brasfoot.infrastructure.adapters.in.web.record.out.SessionResponse;
 import br.com.saveeditor.brasfoot.application.ports.in.DownloadSaveUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.UploadSaveUseCase;
 import io.swagger.v3.oas.annotations.Operation;

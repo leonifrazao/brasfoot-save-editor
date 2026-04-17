@@ -1,7 +1,7 @@
-package br.com.saveeditor.brasfoot.adapters.in.web.mapper;
+package br.com.saveeditor.brasfoot.infrastructure.adapters.in.web.mapper;
 
-import br.com.saveeditor.brasfoot.adapters.in.web.record.in.ManagerUpdateRequest;
-import br.com.saveeditor.brasfoot.adapters.in.web.record.out.ManagerResponse;
+import br.com.saveeditor.brasfoot.infrastructure.adapters.in.web.record.in.ManagerUpdateRequest;
+import br.com.saveeditor.brasfoot.infrastructure.adapters.in.web.record.out.ManagerResponse;
 import br.com.saveeditor.brasfoot.domain.Manager;
 import org.springframework.stereotype.Component;
 

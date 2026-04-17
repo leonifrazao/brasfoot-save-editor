@@ -42,41 +42,6 @@ public class GameDataService implements GameDataPort {
     }
 
     /**
-     * Finds the first human manager in the save.
-     */
-    public Object getHumanManager(Object root) {
-        List<Object> managers = getManagers(root);
-        for (Object mgr : managers) {
-            try {
-                Boolean isHuman = (Boolean) ReflectionUtils.getFieldValue(mgr, BrasfootConstants.MANAGER_IS_HUMAN);
-                if (Boolean.TRUE.equals(isHuman)) {
-                    return mgr;
-                }
-            } catch (Exception ignored) {
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Finds the team controlled by the human manager.
-     */
-    public Object getHumanTeam(Object root) {
-        Object humanManager = getHumanManager(root);
-        if (humanManager == null)
-            return null;
-
-        try {
-            // Manager matches Team via ID.
-            // Manager field 'nU' seems to be Team ID based on analysis.
-            int teamId = (int) ReflectionUtils.getFieldValue(humanManager, "nU");
-            return getTeamById(root, teamId);
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    /**
      * Finds a team by its ID.
      */
     public Object getTeamById(Object root, int id) {

@@ -1,4 +1,4 @@
-package br.com.saveeditor.brasfoot.adapters.out.cache;
+package br.com.saveeditor.brasfoot.infrastructure.adapters.out.cache;
 
 import br.com.saveeditor.brasfoot.application.ports.out.SessionStatePort;
 import br.com.saveeditor.brasfoot.domain.Session;

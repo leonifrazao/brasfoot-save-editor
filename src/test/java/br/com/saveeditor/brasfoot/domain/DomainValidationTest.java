@@ -1,10 +1,9 @@
 package br.com.saveeditor.brasfoot.domain;
 
+import br.com.saveeditor.brasfoot.domain.enums.TeamReputation;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 class DomainValidationTest {
 
@@ -163,32 +162,32 @@ class DomainValidationTest {
 
     @Test
     void setManagerConfidenceBoardWithValidValueSucceeds() {
-        Manager manager = new Manager(1, "Manager", true, 1, 50, 75, 45, "BR", 5, 2);
+        Manager manager = new Manager(1, "Manager", true, 1, 50, 75);
         assertDoesNotThrow(() -> manager.setConfidenceBoard(80));
         assertEquals(80, manager.getConfidenceBoard());
         assertDoesNotThrow(() -> manager.setConfidenceBoard(null));
-        assertEquals(null, manager.getConfidenceBoard());
+        assertNull(manager.getConfidenceBoard());
     }
 
     @Test
     void setManagerConfidenceBoardWithInvalidValueThrowsException() {
-        Manager manager = new Manager(1, "Manager", true, 1, 50, 75, 45, "BR", 5, 2);
+        Manager manager = new Manager(1, "Manager", true, 1, 50, 75);
         assertThrows(IllegalArgumentException.class, () -> manager.setConfidenceBoard(-1));
         assertThrows(IllegalArgumentException.class, () -> manager.setConfidenceBoard(101));
     }
 
     @Test
     void setManagerConfidenceFansWithValidValueSucceeds() {
-        Manager manager = new Manager(1, "Manager", true, 1, 50, 75, 45, "BR", 5, 2);
+        Manager manager = new Manager(1, "Manager", true, 1, 50, 75);
         assertDoesNotThrow(() -> manager.setConfidenceFans(60));
         assertEquals(60, manager.getConfidenceFans());
         assertDoesNotThrow(() -> manager.setConfidenceFans(null));
-        assertEquals(null, manager.getConfidenceFans());
+        assertNull(manager.getConfidenceFans());
     }
 
     @Test
     void setManagerConfidenceFansWithInvalidValueThrowsException() {
-        Manager manager = new Manager(1, "Manager", true, 1, 50, 75, 45, "BR", 5, 2);
+        Manager manager = new Manager(1, "Manager", true, 1, 50, 75);
         assertThrows(IllegalArgumentException.class, () -> manager.setConfidenceFans(-1));
         assertThrows(IllegalArgumentException.class, () -> manager.setConfidenceFans(101));
     }
@@ -207,7 +206,7 @@ class DomainValidationTest {
         assertDoesNotThrow(() -> team.setName("NewTeam"));
         assertEquals("NewTeam", team.getName());
 
-        Manager manager = new Manager(1, "Manager", true, 1, 50, 75, 45, "BR", 5, 2);
+        Manager manager = new Manager(1, "Manager", true, 1, 50, 75);
         assertDoesNotThrow(() -> manager.setId(999));
         assertEquals(999, manager.getId());
         assertDoesNotThrow(() -> manager.setName("NewManager"));

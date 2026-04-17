@@ -1,16 +1,19 @@
-package br.com.saveeditor.brasfoot.adapters.in.web;
+package br.com.saveeditor.brasfoot.infrastructure.adapters.in.web;
 
-import br.com.saveeditor.brasfoot.adapters.in.web.mapper.PlayerMapper;
-import br.com.saveeditor.brasfoot.adapters.in.web.record.in.PlayerBatchUpdateRequest;
-import br.com.saveeditor.brasfoot.adapters.in.web.record.in.PlayerUpdateRequest;
-import br.com.saveeditor.brasfoot.adapters.in.web.record.out.PlayerDto;
+import br.com.saveeditor.brasfoot.infrastructure.adapters.in.web.mapper.PlayerMapper;
+import br.com.saveeditor.brasfoot.infrastructure.adapters.in.web.record.in.PlayerBatchUpdateRequest;
+import br.com.saveeditor.brasfoot.infrastructure.adapters.in.web.record.in.PlayerUpdateRequest;
+import br.com.saveeditor.brasfoot.infrastructure.adapters.in.web.record.out.PlayerDto;
 import br.com.saveeditor.brasfoot.application.ports.in.GetPlayerUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.UpdatePlayerUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.record.PlayerBatchUpdateCommand;
+import br.com.saveeditor.brasfoot.application.shared.BatchResponse;
+import br.com.saveeditor.brasfoot.application.shared.BatchResult;
 import br.com.saveeditor.brasfoot.domain.Player;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -85,7 +88,9 @@ public class PlayerController {
                 request.overall(),
                 request.position(),
                 request.energy(),
-                request.morale()
+                request.morale(),
+                request.starLocal(),
+                request.starGlobal()
         );
 
         return ResponseEntity.ok(playerMapper.toDto(updatedPlayer));
@@ -98,19 +103,28 @@ public class PlayerController {
                    @ApiResponse(responseCode = "400", description = "Invalid input data."),
                    @ApiResponse(responseCode = "404", description = "Session or team not found.")
                })
-    public ResponseEntity<List<PlayerDto>> batchUpdatePlayers(
+    public ResponseEntity<BatchResponse<PlayerDto>> batchUpdatePlayers(
             @PathVariable UUID sessionId,
             @PathVariable int teamId,
             @RequestBody List<PlayerBatchUpdateRequest> requests) {
 
         List<PlayerBatchUpdateCommand> commands = requests.stream()
-                .map(req -> new PlayerBatchUpdateCommand(req.playerId(), req.age(), req.overall(), req.position(), req.energy(), req.morale()))
+                .map(req -> new PlayerBatchUpdateCommand(req.playerId(), req.age(), req.overall(), req.position(), req.energy(), req.morale(), req.starLocal(), req.starGlobal()))
                 .collect(Collectors.toList());
 
-        List<Player> updatedPlayers = updatePlayerUseCase.batchUpdatePlayers(sessionId, teamId, commands);
+        BatchResponse<Player> response = updatePlayerUseCase.batchUpdatePlayers(sessionId, teamId, commands);
 
-        List<PlayerDto> dtos = playerMapper.toDtoList(updatedPlayers);
+        List<BatchResult<PlayerDto>> responseResults = new java.util.ArrayList<>();
+        for (BatchResult<Player> result : response.getResults()) {
+            if (result.isSuccess()) {
+                responseResults.add(BatchResult.success(result.getIndex(), playerMapper.toDto(result.getData())));
+            } else {
+                responseResults.add(BatchResult.failure(result.getIndex(), result.getError()));
+            }
+        }
 
-        return ResponseEntity.ok(dtos);
+        boolean anyFailed = response.getResults().stream().anyMatch(r -> !r.isSuccess());
+        HttpStatus status = anyFailed ? HttpStatus.MULTI_STATUS : HttpStatus.OK;
+        return ResponseEntity.status(status).body(new BatchResponse<>(responseResults));
     }
 }

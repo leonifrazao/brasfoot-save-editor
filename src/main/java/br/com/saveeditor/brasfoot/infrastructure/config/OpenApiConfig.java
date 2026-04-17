@@ -1,4 +1,4 @@
-package br.com.saveeditor.brasfoot.config;
+package br.com.saveeditor.brasfoot.infrastructure.config;
 
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.info.Contact;

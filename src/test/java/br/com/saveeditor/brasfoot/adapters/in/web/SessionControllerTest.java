@@ -2,6 +2,7 @@ package br.com.saveeditor.brasfoot.adapters.in.web;
 
 import br.com.saveeditor.brasfoot.application.ports.in.DownloadSaveUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.UploadSaveUseCase;
+import br.com.saveeditor.brasfoot.infrastructure.adapters.in.web.SessionController;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;

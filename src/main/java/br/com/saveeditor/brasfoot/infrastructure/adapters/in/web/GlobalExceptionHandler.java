@@ -1,4 +1,4 @@
-package br.com.saveeditor.brasfoot.adapters.in.web;
+package br.com.saveeditor.brasfoot.infrastructure.adapters.in.web;
 
 import br.com.saveeditor.brasfoot.domain.exceptions.SessionDeletedException;
 import br.com.saveeditor.brasfoot.domain.exceptions.SessionExpiredException;
