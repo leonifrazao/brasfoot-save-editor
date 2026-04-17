@@ -1,0 +1,16 @@
+services:
+  backend:
+    build:
+      context: .
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - BRASFOOT_API_BASE_URL=http://backend:8080
+    depends_on:
+      - backend

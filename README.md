@@ -1,398 +1,329 @@
 <a id="readme-top"></a>
 
-<!-- PROJECT SHIELDS -->
 [![Contributors][contributors-shield]][contributors-url]
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
 [![AGPL License][license-shield]][license-url]
 
-<!-- PROJECT LOGO -->
-<br />
 <div align="center">
-  <a href="https://github.com/leonifrazao/brasfoot-save-editor">
-    <h1>Brasfoot Save Editor</h1>
-  </a>
+  <h1>Brasfoot Save Editor</h1>
+  <h3>Editor de saves .s22 com API REST + interface web</h3>
 
-  <h3 align="center">Interactive Brasfoot Save Editor</h3>
-
-  <p align="center">
-    Advanced command-line editor (CLI) for viewing and modifying Brasfoot save files (.s22)
+  <p>
+    Projeto para carregar, editar e exportar arquivos de save do Brasfoot em uma sessao em memoria.
     <br />
-    <a href="https://github.com/leonifrazao/brasfoot-save-editor"><strong>Explore the documentation »</strong></a>
-    <br />
-    <br />
-    <a href="https://github.com/leonifrazao/brasfoot-save-editor/releases">View Releases</a>
-    ·
-    <a href="https://github.com/leonifrazao/brasfoot-save-editor/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
-    ·
-    <a href="https://github.com/leonifrazao/brasfoot-save-editor/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
+    <a href="https://github.com/leonifrazao/brasfoot-save-editor"><strong>Repositorio no GitHub</strong></a>
   </p>
 </div>
 
-<!-- TABLE OF CONTENTS -->
-<details>
-  <summary>Table of Contents</summary>
-  <ol>
-    <li>
-      <a href="#about-the-project">About The Project</a>
-      <ul>
-        <li><a href="#built-with">Built With</a></li>
-      </ul>
-    </li>
-    <li>
-      <a href="#getting-started">Getting Started</a>
-      <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#installation">Installation</a></li>
-      </ul>
-    </li>
-    <li><a href="#usage">Usage</a></li>
-    <li><a href="#features">Features</a></li>
-    <li><a href="#commands">Command Reference</a></li>
-    <li><a href="#practical-example">Practical Example</a></li>
-    <li><a href="#roadmap">Roadmap</a></li>
-    <li><a href="#contributing">Contributing</a></li>
-    <li><a href="#license">License</a></li>
-    <li><a href="#contact">Contact</a></li>
-    <li><a href="#acknowledgments">Acknowledgments</a></li>
-  </ol>
-</details>
+## Sumario
 
-<!-- ABOUT THE PROJECT -->
-## About The Project
+- [Sobre o projeto](#sobre-o-projeto)
+- [Arquitetura](#arquitetura)
+- [Funcionalidades](#funcionalidades)
+- [Stack](#stack)
+- [Como executar localmente](#como-executar-localmente)
+- [Fluxo de uso](#fluxo-de-uso)
+- [API principal](#api-principal)
+- [Exemplo rapido com curl](#exemplo-rapido-com-curl)
+- [Testes e qualidade](#testes-e-qualidade)
+- [Estrutura do repositorio](#estrutura-do-repositorio)
+- [Contribuicao](#contribuicao)
+- [Licenca](#licenca)
 
-**Brasfoot Save Editor** is an advanced and interactive command-line editor (CLI) for viewing and modifying Brasfoot game save files (`.s22`). Built in Java and using the Kryo library for data deserialization and serialization, the tool enables deep and precise manipulation of save file structures.
+## Sobre o projeto
 
-Designed to be robust, fast, and user-friendly, the editor offers a colorized CLI interface, intuitive commands, and security features like automatic backups, making it accessible even for users with less technical experience.
+O **Brasfoot Save Editor** evoluiu para um produto web com duas partes:
 
-### Why use Brasfoot Save Editor?
+- **Backend Spring Boot** que carrega o arquivo `.s22`, expoe endpoints REST e gerencia sessao em memoria.
+- **Frontend Next.js** para upload, navegacao de workspace e edicao de entidades.
 
-* **User-Friendly Interface**: Colorized CLI that organizes information and improves readability
-* **Data Security**: Automatic backups ensure you never lose your original saves
-* **Intuitive Navigation**: Explore complex data structures hierarchically
-* **Performance**: Fast and efficient processing of large amounts of data
-* **Precision**: Editing at both high level (players, teams) and low level (individual fields)
+### Estado atual
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+- O fluxo principal e: **upload -> editar -> download**.
+- A sessao e mantida em cache por ate **1 hora**.
+- Ao fazer download do save, a sessao e marcada como encerrada (nao reutilizavel).
+- O frontend foi desenhado para **desktop/tablet** (largura >= 768px).
+- Upload limitado a **500 MB**.
 
-### Built With
+## Arquitetura
 
-* [![Java][Java]][Java-url]
-* [![Maven][Maven]][Maven-url]
+### Backend (Spring Boot)
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+- API versionada em `/api/v1`.
+- Organizacao orientada a portas e adaptadores (hexagonal).
+- Persistencia de sessao em cache Caffeine:
+  - sessao ativa: 1 hora
+  - tombstone de sessao expirada/deletada: 24 horas
+- Leitura/escrita de save com Kryo.
 
-<!-- GETTING STARTED -->
-## Getting Started
+### Frontend (Next.js App Router)
 
-To start using Brasfoot Save Editor, follow these simple steps.
+- Tela de intake para upload do `.s22`.
+- Workspace com secoes: **Overview**, **Teams**, **Players**, **Managers**.
+- Proxy interno em `/api/brasfoot/*` para o backend.
+- Edicao individual e em lote nas entidades suportadas.
+- Atalho de navegacao com command palette (`Ctrl/Cmd + K`).
 
-### Prerequisites
+## Funcionalidades
 
-* **Java Development Kit (JDK)**: Version 8 or higher
-  ```sh
-  java -version
-  ```
+- Upload de save `.s22` e abertura de sessao.
+- Download do save editado.
+- Visualizacao e edicao de:
+  - times (dinheiro e reputacao)
+  - jogadores (idade, overall, posicao, energia, moral, estrelas)
+  - tecnicos (nome, confianca da diretoria e torcida)
+- Atualizacao em lote por entidade.
+- Endpoint de comandos mistos em lote (`/commands/batch`).
+- Mensagens de erro padronizadas via `ProblemDetail`.
 
-### Installation
+## Stack
 
-#### Method 1: Download Release
+- Java 17+
+- Spring Boot 3.2
+- Spring Web + Validation + springdoc-openapi
+- Caffeine Cache
+- Kryo
+- Next.js 16 + React 19 + TypeScript
+- Tailwind CSS
 
-1. Download the latest version of `editor-final.jar` from the [Releases](https://github.com/leonifrazao/brasfoot-save-editor/releases) page
+## Como executar localmente
 
-2. Run the JAR file
-   ```sh
-   java -jar editor-final.jar
-   ```
+Você pode executar o projeto de três maneiras diferentes, dependendo da sua preferência:
 
-#### Method 2: Compile from Source Code
+### Opcao 1: Usando Docker Compose (Recomendado)
 
-1. Clone the repository
-   ```sh
-   git clone https://github.com/leonifrazao/brasfoot-save-editor.git
-   ```
+A maneira mais rapida de executar a aplicacao sem instalar as ferramentas localmente. Pre-requisito: ter o Docker instalado.
 
-2. Navigate to the project directory
-   ```sh
-   cd brasfoot-save-editor
-   ```
+1. Clone o repositorio:
+```bash
+git clone https://github.com/leonifrazao/brasfoot-save-editor.git
+cd brasfoot-save-editor
+```
+2. Suba todos os servicos de uma vez em background:
+```bash
+docker compose up -d
+```
+3. Acesse:
+   - Frontend Web: `http://localhost:3000`
+   - Backend API e Swagger: `http://localhost:8080/swagger-ui/index.html`
 
-3. Compile the project using the appropriate script
+### Opcao 2: Usando Nix-shell
 
-   **On Windows:**
-   ```sh
-   .\build.bat
-   ```
+Se voce usa o gerenciador de pacotes **Nix**, o repositorio inclui um `shell.nix` que ja configura o ecossistema exato do projeto (Java 17, Node 20+, Maven, Docker, etc).
 
-   **On Linux/macOS:**
-   ```sh
-   sh ./build.sh
-   ```
+1. Na pasta do projeto clonado, ative o ambiente virtual:
+```bash
+nix-shell
+```
+2. Pronto! Voce tera um painel interativo confirmando todas as versoes e podera executar os comandos manuais para backend (`mvn spring-boot:run`) ou frontend (`cd frontend && npm run dev`) tudo no mesmo shell homogeneo.
 
-4. Run the editor
-   ```sh
-   java -jar editor-final.jar
-   ```
+### Opcao 3: Execucao Manual
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+#### Pre-requisitos
 
-<!-- USAGE -->
-## Usage
+- Java 17 ou superior
+- Maven 3.9+
+- Node.js 20+
+- npm 10+
 
-### Starting the Editor
+#### 1. Clone o repositorio
 
-When running the editor, it will automatically search for `.s22` files in the current directory and prompt you to choose one to edit.
-
-```sh
-java -jar editor-final.jar
+```bash
+git clone https://github.com/leonifrazao/brasfoot-save-editor.git
+cd brasfoot-save-editor
 ```
 
-### Basic Workflow
+#### 2. (Opcional) instalar dependencia proprietaria local
 
-1. **Select the Save**: Choose the number of the save file from the presented list
-2. **Navigate the Structure**: Use commands like `enter`, `item`, `view` to explore data
-3. **Make Modifications**: Use `set`, `editplayer`, `editteam` to change data
-4. **Save Changes**: Use the `save` command to create a new modified file
+Se o Maven reclamar de `com.brasfoot:brasfoot-game:1.0`, instale o jar que ja esta no repositorio:
 
-### Essential Commands
-
-```sh
-# View current content
-view
-
-# Enter a field
-enter ag
-
-# Edit a player
-editplayer Pelé; 25; 99
-
-# Save modifications
-save my_edited_save.s22
+```bash
+mvn install:install-file \
+  -Dfile=lib/brasfoot.jar \
+  -DgroupId=com.brasfoot \
+  -DartifactId=brasfoot-game \
+  -Dversion=1.0 \
+  -Dpackaging=jar
 ```
 
-_For complete command documentation, see the [Command Reference](#commands) section_
+#### 3. Subir o backend (porta 8080)
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-<!-- FEATURES -->
-## Features
-
-- [x] **Colorized CLI Interface**: Visual organization and better readability
-- [x] **Automatic Backup**: Creates `.bak` of original file automatically
-- [x] **Hierarchical Navigation**: Explore data intuitively with simple commands
-- [x] **Paginated Display**: Shows large lists in navigable pages
-- [x] **Powerful Search**: Local and global search throughout the save structure
-- [x] **Quick Mapping**: Generates text file with paths to specific objects
-- [x] **High-Level Editing**: Specific commands for players and teams
-- [x] **Low-Level Editing**: Modify any field individually
-- [x] **Cross-Platform**: Compilation scripts for Windows, Linux, and macOS
-- [ ] Graphical Interface (GUI)
-- [ ] Statistics Visualization
-- [ ] Undo/Redo Changes
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-<!-- COMMANDS -->
-## Commands
-
-### Complete Command Reference
-
-| Command | Shortcuts | Description |
-|---------|-----------|-------------|
-| `help` | - | Shows complete list of available commands |
-| `view` | - | Lists fields of current object and paginated content |
-| `enter <field>` | - | Navigates into the object available in a field |
-| `item <index>` | - | Navigates to a specific list/array item |
-| `next` | `n` | Advances to next page |
-| `previous` | `p` | Returns to previous page |
-| `back` | - | Returns to previous object in hierarchy |
-| `top` | - | Returns to root object of save |
-| `search <term>` | - | Searches for a term from current object |
-| `global-search <term>` | - | Searches for a term in entire file |
-| `set <field> = <value>` | - | Modifies a field's value |
-| `map <file>; <term>` | - | Maps all objects containing the term |
-| `editplayer <n>;<a>;<o>` | - | Edits player's age and overall |
-| `editteam <t>;<a>;<v>` | - | Changes attribute for all team players |
-| `save <file.s22>` | - | Saves modifications to new file |
-| `exit` | - | Closes the editor |
-
-### Command Examples
-
-```sh
-# Navigation
-enter ag                    # Enters the 'ag' field
-item 10                     # Goes to item 10 of the list
-back                        # Goes back one level
-top                         # Returns to root
-
-# Search
-search Neymar               # Local search
-global-search Flamengo      # Global search
-map players.txt; Messi      # Maps locations
-
-# Editing
-set eq = 99                 # Sets eq field to 99
-editplayer Romário; 28; 95  # Edits player
-editteam Corinthians; eq; 90 # Edits entire team
-
-# Save
-save brasfoot_modified.s22
+```bash
+mvn spring-boot:run
 ```
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+Swagger/OpenAPI:
 
-<!-- EXAMPLE -->
-## Practical Example
+- http://localhost:8080/swagger-ui/index.html
+- http://localhost:8080/v3/api-docs
 
-### Scenario: Increase a Player's Overall
+#### 4. Subir o frontend (porta 3000)
 
-Let's modify player "Zico" to have 99 overall:
+Em outro terminal:
 
-#### Step 1: Start the Editor
-```sh
-java -jar editor-final.jar
+```bash
+cd frontend
+npm install
 ```
 
-#### Step 2: Select the Save
-```
-.s22 files found:
-[1] my_save.s22
-[2] championship_2024.s22
+Crie um arquivo `frontend/.env.local` (opcional, recomendado):
 
-Choose a file: 1
+```env
+BRASFOOT_API_BASE_URL=http://localhost:8080
 ```
 
-#### Step 3: Locate the Player
-```sh
-[root] > map zico.txt; Zico
+Depois execute:
+
+```bash
+npm run dev
 ```
 
-Open the generated `zico.txt` file. It will show something like: `root.ag[42]`
+Aplicacao web:
 
-#### Step 4: Edit the Player
-```sh
-[root] > editplayer Zico; 25; 99
+- http://localhost:3000
 
-✓ Player 'Zico' successfully modified!
-  - Age: 25
-  - Overall: 99
+## Fluxo de uso
+
+1. Abra a home do frontend em `http://localhost:3000`.
+2. Envie um arquivo `.s22`.
+3. Navegue pelo workspace (Overview, Teams, Players, Managers).
+4. Salve as alteracoes que quiser por entidade ou em lote.
+5. Clique em **Download save** para exportar o arquivo editado.
+
+> Observacao: apos o download, a sessao e invalidada no backend.
+
+## API principal
+
+| Metodo | Rota | Descricao |
+|---|---|---|
+| `POST` | `/api/v1/sessions` | Upload do save (`multipart/form-data`, campo `file`) |
+| `GET` | `/api/v1/sessions/{sessionId}/download` | Download do save editado e encerramento da sessao |
+| `GET` | `/api/v1/sessions/{sessionId}/teams` | Lista times |
+| `PATCH` | `/api/v1/sessions/{sessionId}/teams/{teamId}` | Atualiza um time |
+| `PATCH` | `/api/v1/sessions/{sessionId}/teams/batch` | Atualiza varios times |
+| `GET` | `/api/v1/sessions/{sessionId}/teams/{teamId}/players` | Lista jogadores do time |
+| `PATCH` | `/api/v1/sessions/{sessionId}/teams/{teamId}/players/{playerId}` | Atualiza um jogador |
+| `PATCH` | `/api/v1/sessions/{sessionId}/teams/{teamId}/players/batch` | Atualiza varios jogadores |
+| `GET` | `/api/v1/sessions/{sessionId}/managers` | Lista tecnicos |
+| `PATCH` | `/api/v1/sessions/{sessionId}/managers/{managerId}` | Atualiza um tecnico |
+| `PATCH` | `/api/v1/sessions/{sessionId}/managers/batch` | Atualiza varios tecnicos |
+| `POST` | `/api/v1/sessions/{sessionId}/commands/batch` | Executa lote misto (`team.update`, `player.update`, `manager.update`) |
+
+### Reputacao de time
+
+Mapeamento utilizado pela API:
+
+- `0`: Municipal
+- `1`: Estadual
+- `2`: Regional
+- `3`: Nacional
+- `4`: Continental
+- `5`: Mundial
+
+## Exemplo rapido com curl
+
+### 1. Upload do save
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/sessions" \
+  -F "file=@meu-save.s22"
 ```
 
-#### Step 5: Save Changes
-```sh
-[root] > save brasfoot_zico_99.s22
+Resposta esperada:
 
-✓ Save successfully saved in: brasfoot_zico_99.s22
+```json
+{
+  "sessionId": "UUID_DA_SESSAO"
+}
 ```
 
-Done! Your modified save is ready to use in Brasfoot.
+### 2. Atualizar um time
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-<!-- ROADMAP -->
-## Roadmap
-
-- [x] Colorized and interactive CLI
-- [x] Hierarchical navigation system
-- [x] High-level editing commands
-- [x] Search and mapping system
-- [x] Automatic backup
-- [ ] Graphical interface (GUI)
-- [ ] Statistics export
-- [ ] Plugin system
-- [ ] Support for multiple simultaneous saves
-- [ ] Visual tactical formation editor
-- [ ] Template/preset system
-- [ ] Save comparison
-- [ ] Modification history (undo/redo)
-
-See the [open issues](https://github.com/leonifrazao/brasfoot-save-editor/issues) for a complete list of proposed features and known issues.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-<!-- CONTRIBUTING -->
-## Contributing
-
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
-
-If you have a suggestion to improve the project, please fork the repository and create a pull request. You can also simply open an issue with the "enhancement" tag.
-Don't forget to give the project a star! Thanks again!
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-### Top Contributors
-
-<a href="https://github.com/leonifrazao/brasfoot-save-editor/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=leonifrazao/brasfoot-save-editor" alt="contrib.rocks image" />
-</a>
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-<!-- LICENSE -->
-## License
-
-Distributed under the AGPL-3.0 License. See `LICENSE` for more information.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-<!-- CONTACT -->
-## Contact
-
-Leoni Frazão - [@leonifrazao](https://github.com/leonifrazao)
-
-Project Link: [https://github.com/leonifrazao/brasfoot-save-editor](https://github.com/leonifrazao/brasfoot-save-editor)
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-<!-- ACKNOWLEDGMENTS -->
-## Acknowledgments
-
-Resources and tools that made this project possible:
-
-* [Java](https://www.oracle.com/java/)
-* [Kryo](https://github.com/EsotericSoftware/kryo)
-* [Maven](https://maven.apache.org/)
-* [Brasfoot](http://www.brasfoot.com/)
-* [Choose an Open Source License](https://choosealicense.com)
-* [Img Shields](https://shields.io)
-* [GitHub Pages](https://pages.github.com)
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
----
-
-## Project Structure
-
+```bash
+curl -X PATCH "http://localhost:8080/api/v1/sessions/UUID_DA_SESSAO/teams/12" \
+  -H "Content-Type: application/json" \
+  -d '{"money":50000000,"reputation":5}'
 ```
+
+### 3. Download do save editado
+
+```bash
+curl -L "http://localhost:8080/api/v1/sessions/UUID_DA_SESSAO/download" -o save-editado.s22
+```
+
+### Exemplo de comando misto em lote
+
+```json
+[
+  {
+    "type": "team.update",
+    "teamId": 1,
+    "money": 70000000,
+    "reputation": 5
+  },
+  {
+    "type": "player.update",
+    "teamId": 1,
+    "playerId": 8,
+    "overall": 99
+  },
+  {
+    "type": "manager.update",
+    "managerId": 2,
+    "confidenceBoard": 100
+  }
+]
+```
+
+## Testes e qualidade
+
+Backend:
+
+```bash
+mvn test
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm run lint
+```
+
+## Estrutura do repositorio
+
+```text
 brasfoot-save-editor/
-├── lib/                    # Required JAR dependencies
-├── src/main/              # Main source code
-├── presets/               # Predefined configurations
-├── build.bat              # Compilation script (Windows)
-├── build.sh               # Compilation script (Linux/macOS)
-├── pom.xml                # Maven configuration
-├── config.properties      # Configuration file
-└── shell.nix             # Configuration for Nix environments
+├── frontend/                   # Aplicacao Next.js (UI)
+│   └── src/
+│       ├── app/                # Rotas e pages
+│       ├── components/         # Componentes de interface
+│       └── lib/                # Cliente API, tipos e rotas
+├── lib/                        # JARs locais usados no projeto
+├── src/main/java/              # Backend Spring Boot
+├── src/main/resources/         # Configuracoes backend
+├── src/test/java/              # Testes backend
+├── pom.xml                     # Build Maven
+└── README.md
 ```
 
----
+## Contribuicao
 
-<div align="center">
+Contribuicoes sao bem-vindas.
 
-### Made for the Brasfoot community
+1. Faca um fork
+2. Crie uma branch (`feature/minha-feature`)
+3. Commit suas alteracoes
+4. Abra um Pull Request
 
-*Edit your saves with precision and security*
+## Licenca
 
-**[Back to top](#readme-top)**
+Distribuido sob a licenca AGPL-3.0. Veja [LICENSE](LICENSE).
 
-</div>
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-<!-- MARKDOWN LINKS & IMAGES -->
 [contributors-shield]: https://img.shields.io/github/contributors/leonifrazao/brasfoot-save-editor.svg?style=for-the-badge
 [contributors-url]: https://github.com/leonifrazao/brasfoot-save-editor/graphs/contributors
 [forks-shield]: https://img.shields.io/github/forks/leonifrazao/brasfoot-save-editor.svg?style=for-the-badge
@@ -403,7 +334,3 @@ brasfoot-save-editor/
 [issues-url]: https://github.com/leonifrazao/brasfoot-save-editor/issues
 [license-shield]: https://img.shields.io/github/license/leonifrazao/brasfoot-save-editor.svg?style=for-the-badge
 [license-url]: https://github.com/leonifrazao/brasfoot-save-editor/blob/master/LICENSE
-[Java]: https://img.shields.io/badge/Java-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white
-[Java-url]: https://www.oracle.com/java/
-[Maven]: https://img.shields.io/badge/Maven-C71A36?style=for-the-badge&logo=apache-maven&logoColor=white
-[Maven-url]: https://maven.apache.org/
