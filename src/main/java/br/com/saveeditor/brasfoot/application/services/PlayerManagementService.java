@@ -22,23 +22,23 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
 
     private static final Logger log = LoggerFactory.getLogger(PlayerManagementService.class);
 
-    private final SessionStatePort sessionStatePort;
     private final GameDataPort gameDataPort;
+    private final SessionStatePort sessionStatePort;
+    private final SessionResolver sessionResolver;
 
-    public PlayerManagementService(SessionStatePort sessionStatePort, GameDataPort gameDataPort) {
+    public PlayerManagementService(SessionStatePort sessionStatePort, GameDataPort gameDataPort,
+                                   SessionResolver sessionResolver) {
         this.sessionStatePort = sessionStatePort;
         this.gameDataPort = gameDataPort;
+        this.sessionResolver = sessionResolver;
     }
 
     @Override
     public List<Player> getTeamPlayers(UUID sessionId, int teamId) {
         log.debug("Fetching players for team {} in session {}", teamId, sessionId);
-        Session session = sessionStatePort.load(sessionId);
-        if (session == null || !session.context().isLoaded()) {
-            throw new IllegalArgumentException("Session not found or not loaded.");
-        }
+        Session session = sessionResolver.loadRequired(sessionId);
 
-        Object root = session.context().getState().getObjetoRaiz();
+        Object root = session.getContext().getState().getObjetoRaiz();
         Object teamObj = gameDataPort.getTeamById(root, teamId);
         if (teamObj == null) {
             throw new IllegalArgumentException("Team not found with ID: " + teamId);
@@ -46,23 +46,20 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
 
         List<Object> playerObjects = gameDataPort.getPlayers(teamObj);
         List<Player> players = new ArrayList<>();
-        
+
         for (int i = 0; i < playerObjects.size(); i++) {
             players.add(mapToPlayerDomain(playerObjects.get(i), i));
         }
-        
+
         return players;
     }
 
     @Override
     public Player getPlayer(UUID sessionId, int teamId, int playerId) {
         log.debug("Fetching player {} from team {} in session {}", playerId, teamId, sessionId);
-        Session session = sessionStatePort.load(sessionId);
-        if (session == null || !session.context().isLoaded()) {
-            throw new IllegalArgumentException("Session not found or not loaded.");
-        }
+        Session session = sessionResolver.loadRequired(sessionId);
 
-        Object root = session.context().getState().getObjetoRaiz();
+        Object root = session.getContext().getState().getObjetoRaiz();
         Object teamObj = gameDataPort.getTeamById(root, teamId);
         if (teamObj == null) {
             throw new IllegalArgumentException("Team not found with ID: " + teamId);
@@ -80,13 +77,10 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
     public Player updatePlayer(UUID sessionId, int teamId, int playerId, Integer age, Integer overall, Integer position, Integer energy, Integer morale) {
         log.info("Updating player {} in team {} for session {}", playerId, teamId, sessionId);
         log.debug("Update details - age: {}, overall: {}, position: {}, energy: {}, morale: {}", age, overall, position, energy, morale);
-        
-        Session session = sessionStatePort.load(sessionId);
-        if (session == null || !session.context().isLoaded()) {
-            throw new IllegalArgumentException("Session not found or not loaded.");
-        }
 
-        Object root = session.context().getState().getObjetoRaiz();
+        Session session = sessionResolver.loadRequired(sessionId);
+
+        Object root = session.getContext().getState().getObjetoRaiz();
         Object teamObj = gameDataPort.getTeamById(root, teamId);
         if (teamObj == null) {
             throw new IllegalArgumentException("Team not found with ID: " + teamId);
@@ -104,55 +98,55 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
 
             if (age != null) {
                 Player.builder()
-                        .id(currentPlayer.id())
-                        .name(currentPlayer.name())
+                        .id(currentPlayer.getId())
+                        .name(currentPlayer.getName())
                         .age(age)
-                        .overall(currentPlayer.overall())
-                        .position(currentPlayer.position())
-                        .energy(currentPlayer.energy())
-                        .morale(currentPlayer.morale())
+                        .overall(currentPlayer.getOverall())
+                        .position(currentPlayer.getPosition())
+                        .energy(currentPlayer.getEnergy())
+                        .morale(currentPlayer.getMorale())
                         .build();
                 ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_AGE, age);
             }
             if (overall != null) {
                 Player.builder()
-                        .id(currentPlayer.id())
-                        .name(currentPlayer.name())
-                        .age(currentPlayer.age())
+                        .id(currentPlayer.getId())
+                        .name(currentPlayer.getName())
+                        .age(currentPlayer.getAge())
                         .overall(overall)
-                        .position(currentPlayer.position())
-                        .energy(currentPlayer.energy())
-                        .morale(currentPlayer.morale())
+                        .position(currentPlayer.getPosition())
+                        .energy(currentPlayer.getEnergy())
+                        .morale(currentPlayer.getMorale())
                         .build();
                 ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_OVERALL, overall);
             }
             if (position != null) {
                 Player.builder()
-                        .id(currentPlayer.id())
-                        .name(currentPlayer.name())
-                        .age(currentPlayer.age())
-                        .overall(currentPlayer.overall())
+                        .id(currentPlayer.getId())
+                        .name(currentPlayer.getName())
+                        .age(currentPlayer.getAge())
+                        .overall(currentPlayer.getOverall())
                         .position(position)
-                        .energy(currentPlayer.energy())
-                        .morale(currentPlayer.morale())
+                        .energy(currentPlayer.getEnergy())
+                        .morale(currentPlayer.getMorale())
                         .build();
                 ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_POSITION, position);
             }
             if (energy != null) {
                 Player.builder()
-                        .id(currentPlayer.id())
-                        .name(currentPlayer.name())
-                        .age(currentPlayer.age())
-                        .overall(currentPlayer.overall())
-                        .position(currentPlayer.position())
+                        .id(currentPlayer.getId())
+                        .name(currentPlayer.getName())
+                        .age(currentPlayer.getAge())
+                        .overall(currentPlayer.getOverall())
+                        .position(currentPlayer.getPosition())
                         .energy(energy)
-                        .morale(currentPlayer.morale())
+                        .morale(currentPlayer.getMorale())
                         .build();
                 ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_ENERGY, energy);
             }
-            // Morale isn't in Constants, skipping or maybe it's not present yet. 
+            // Morale isn't in Constants, skipping or maybe it's not present yet.
             // Wait, morale might be "eT" or similar. We'll ignore morale if we don't have constant.
-            
+
         } catch (IllegalArgumentException e) {
             log.warn("Validation error during player update: {}", e.getMessage());
             throw e;
@@ -168,13 +162,10 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
     @Override
     public List<Player> batchUpdatePlayers(UUID sessionId, int teamId, List<PlayerBatchUpdateCommand> commands) {
         log.info("Batch updating {} players in team {} for session {}", commands.size(), teamId, sessionId);
-        
-        Session session = sessionStatePort.load(sessionId);
-        if (session == null || !session.context().isLoaded()) {
-            throw new IllegalArgumentException("Session not found or not loaded.");
-        }
 
-        Object root = session.context().getState().getObjetoRaiz();
+        Session session = sessionResolver.loadRequired(sessionId);
+
+        Object root = session.getContext().getState().getObjetoRaiz();
         Object teamObj = gameDataPort.getTeamById(root, teamId);
         if (teamObj == null) {
             throw new IllegalArgumentException("Team not found with ID: " + teamId);
@@ -197,49 +188,49 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
 
                 if (command.age() != null) {
                     Player.builder()
-                            .id(currentPlayer.id())
-                            .name(currentPlayer.name())
+                            .id(currentPlayer.getId())
+                            .name(currentPlayer.getName())
                             .age(command.age())
-                            .overall(currentPlayer.overall())
-                            .position(currentPlayer.position())
-                            .energy(currentPlayer.energy())
-                            .morale(currentPlayer.morale())
+                            .overall(currentPlayer.getOverall())
+                            .position(currentPlayer.getPosition())
+                            .energy(currentPlayer.getEnergy())
+                            .morale(currentPlayer.getMorale())
                             .build();
                     ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_AGE, command.age());
                 }
                 if (command.overall() != null) {
                     Player.builder()
-                            .id(currentPlayer.id())
-                            .name(currentPlayer.name())
-                            .age(currentPlayer.age())
+                            .id(currentPlayer.getId())
+                            .name(currentPlayer.getName())
+                            .age(currentPlayer.getAge())
                             .overall(command.overall())
-                            .position(currentPlayer.position())
-                            .energy(currentPlayer.energy())
-                            .morale(currentPlayer.morale())
+                            .position(currentPlayer.getPosition())
+                            .energy(currentPlayer.getEnergy())
+                            .morale(currentPlayer.getMorale())
                             .build();
                     ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_OVERALL, command.overall());
                 }
                 if (command.position() != null) {
                     Player.builder()
-                            .id(currentPlayer.id())
-                            .name(currentPlayer.name())
-                            .age(currentPlayer.age())
-                            .overall(currentPlayer.overall())
+                            .id(currentPlayer.getId())
+                            .name(currentPlayer.getName())
+                            .age(currentPlayer.getAge())
+                            .overall(currentPlayer.getOverall())
                             .position(command.position())
-                            .energy(currentPlayer.energy())
-                            .morale(currentPlayer.morale())
+                            .energy(currentPlayer.getEnergy())
+                            .morale(currentPlayer.getMorale())
                             .build();
                     ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_POSITION, command.position());
                 }
                 if (command.energy() != null) {
                     Player.builder()
-                            .id(currentPlayer.id())
-                            .name(currentPlayer.name())
-                            .age(currentPlayer.age())
-                            .overall(currentPlayer.overall())
-                            .position(currentPlayer.position())
+                            .id(currentPlayer.getId())
+                            .name(currentPlayer.getName())
+                            .age(currentPlayer.getAge())
+                            .overall(currentPlayer.getOverall())
+                            .position(currentPlayer.getPosition())
                             .energy(command.energy())
-                            .morale(currentPlayer.morale())
+                            .morale(currentPlayer.getMorale())
                             .build();
                     ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_ENERGY, command.energy());
                 }
@@ -265,7 +256,7 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
             int overall = (int) ReflectionUtils.getFieldValue(playerObj, BrasfootConstants.PLAYER_OVERALL);
             int position = (int) ReflectionUtils.getFieldValue(playerObj, BrasfootConstants.PLAYER_POSITION);
             int energy = (int) ReflectionUtils.getFieldValue(playerObj, BrasfootConstants.PLAYER_ENERGY);
-            
+
             // Assume default 100 for morale for now
             int morale = 100;
 

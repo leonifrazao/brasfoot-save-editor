@@ -4,10 +4,6 @@ public record ManagerBatchUpdateCommand(
         int managerId,
         String name,
         Integer confidenceBoard,
-        Integer confidenceFans,
-        Integer age,
-        String nationality,
-        Integer reputation,
-        Integer trophies
+        Integer confidenceFans
 ) {
 }

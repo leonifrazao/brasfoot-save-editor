@@ -1,8 +1,0 @@
-Aposentado.json
-BillionaireClub.json
-DestruicaoTotal.json
-Falencia.json
-GodMode.json
-SuperZagueiro.json
-TimeTop.json
-Wonderkid.json

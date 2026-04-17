@@ -1,13 +1,13 @@
 package br.com.saveeditor.brasfoot.application.services;
 
-import br.com.saveeditor.brasfoot.adapters.in.web.record.out.BatchResponse;
-import br.com.saveeditor.brasfoot.adapters.in.web.record.out.BatchResult;
 import br.com.saveeditor.brasfoot.application.ports.in.GetManagerUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.BatchUpdateManagerUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.UpdateManagerUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.record.ManagerBatchUpdateCommand;
 import br.com.saveeditor.brasfoot.application.ports.out.GameDataPort;
 import br.com.saveeditor.brasfoot.application.ports.out.SessionStatePort;
+import br.com.saveeditor.brasfoot.application.shared.BatchResponse;
+import br.com.saveeditor.brasfoot.application.shared.BatchResult;
 import br.com.saveeditor.brasfoot.domain.Manager;
 import br.com.saveeditor.brasfoot.domain.Session;
 import br.com.saveeditor.brasfoot.util.BrasfootConstants;
@@ -26,25 +26,25 @@ public class ManagerManagementService implements GetManagerUseCase, UpdateManage
 
     private static final Logger log = LoggerFactory.getLogger(ManagerManagementService.class);
 
-    private final SessionStatePort sessionStatePort;
     private final GameDataPort gameDataPort;
+    private final SessionStatePort sessionStatePort;
+    private final SessionResolver sessionResolver;
 
-    public ManagerManagementService(SessionStatePort sessionStatePort, GameDataPort gameDataPort) {
+    public ManagerManagementService(SessionStatePort sessionStatePort, GameDataPort gameDataPort,
+                                    SessionResolver sessionResolver) {
         this.sessionStatePort = sessionStatePort;
         this.gameDataPort = gameDataPort;
+        this.sessionResolver = sessionResolver;
     }
 
     @Override
-    public List<Manager> getManagers(String sessionId) {
+    public List<Manager> getManagers(UUID sessionId) {
         log.debug("Fetching all managers for session {}", sessionId);
-        Session session = sessionStatePort.load(UUID.fromString(sessionId));
-        if (session == null) {
-            throw new IllegalArgumentException("Session not found");
-        }
-        
+        Session session = sessionResolver.loadRequired(sessionId);
+
         Object root = session.getContext().getState().getObjetoRaiz();
         List<Object> managerObjects = getManagerObjectsSafe(root);
-        
+
         List<Manager> managers = new ArrayList<>();
         for (int i = 0; i < managerObjects.size(); i++) {
             managers.add(mapToDomain(managerObjects.get(i), i));
@@ -53,16 +53,13 @@ public class ManagerManagementService implements GetManagerUseCase, UpdateManage
     }
 
     @Override
-    public Optional<Manager> getManager(String sessionId, int managerId) {
+    public Optional<Manager> getManager(UUID sessionId, int managerId) {
         log.debug("Fetching manager {} for session {}", managerId, sessionId);
-        Session session = sessionStatePort.load(UUID.fromString(sessionId));
-        if (session == null) {
-            throw new IllegalArgumentException("Session not found");
-        }
-        
+        Session session = sessionResolver.loadRequired(sessionId);
+
         Object root = session.getContext().getState().getObjetoRaiz();
         List<Object> managerObjects = getManagerObjectsSafe(root);
-        
+
         if (managerId >= 0 && managerId < managerObjects.size()) {
             return Optional.of(mapToDomain(managerObjects.get(managerId), managerId));
         }
@@ -70,22 +67,19 @@ public class ManagerManagementService implements GetManagerUseCase, UpdateManage
     }
 
     @Override
-    public Manager updateManager(String sessionId, int managerId, Manager updateData) {
+    public Manager updateManager(UUID sessionId, int managerId, Manager updateData) {
         log.debug("Updating manager {} for session {}", managerId, sessionId);
-        Session session = sessionStatePort.load(UUID.fromString(sessionId));
-        if (session == null) {
-            throw new IllegalArgumentException("Session not found");
-        }
-        
+        Session session = sessionResolver.loadRequired(sessionId);
+
         Object root = session.getContext().getState().getObjetoRaiz();
         List<Object> managerObjects = getManagerObjectsSafe(root);
-        
+
         if (managerId < 0 || managerId >= managerObjects.size()) {
             throw new IllegalArgumentException("Manager not found");
         }
-        
+
         Object managerObj = managerObjects.get(managerId);
-        
+
         try {
             if (updateData.getName() != null) {
                 ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_NAME, updateData.getName());
@@ -96,36 +90,21 @@ public class ManagerManagementService implements GetManagerUseCase, UpdateManage
             if (updateData.getConfidenceFans() != null) {
                 ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_CONFIDENCE_FANS, updateData.getConfidenceFans());
             }
-            if (updateData.getAge() != null) {
-                ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_AGE, updateData.getAge());
-            }
-            if (updateData.getNationality() != null) {
-                ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_NATIONALITY, updateData.getNationality());
-            }
-            if (updateData.getReputation() != null) {
-                ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_REPUTATION, updateData.getReputation());
-            }
-            if (updateData.getTrophies() != null) {
-                ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_TROPHIES, updateData.getTrophies());
-            }
         } catch (Exception e) {
             log.warn("Failed to set manager field", e);
         }
-        
+
         // Save the updated state
         sessionStatePort.save(session);
-        
+
         return mapToDomain(managerObj, managerId);
     }
 
     @Override
-    public BatchResponse<Manager> batchUpdateManagers(String sessionId, List<ManagerBatchUpdateCommand> commands) {
+    public BatchResponse<Manager> batchUpdateManagers(UUID sessionId, List<ManagerBatchUpdateCommand> commands) {
         log.info("Batch updating {} managers for session {}", commands.size(), sessionId);
 
-        Session session = sessionStatePort.load(UUID.fromString(sessionId));
-        if (session == null) {
-            throw new IllegalArgumentException("Session not found");
-        }
+        Session session = sessionResolver.loadRequired(sessionId);
 
         Object root = session.getContext().getState().getObjetoRaiz();
         List<Object> managerObjects = getManagerObjectsSafe(root);
@@ -134,7 +113,7 @@ public class ManagerManagementService implements GetManagerUseCase, UpdateManage
         for (int i = 0; i < commands.size(); i++) {
             ManagerBatchUpdateCommand command = commands.get(i);
             int managerId = command.managerId();
-            
+
             try {
                 if (managerId < 0 || managerId >= managerObjects.size()) {
                     results.add(BatchResult.failure(i, "Manager not found with ID: " + managerId));
@@ -142,40 +121,16 @@ public class ManagerManagementService implements GetManagerUseCase, UpdateManage
                 }
 
                 Object managerObj = managerObjects.get(managerId);
-                Manager candidate = Manager.of(
-                        managerId,
-                        command.getName(),
-                        null,
-                        null,
-                        command.confidenceBoard(),
-                        command.confidenceFans(),
-                        command.getAge(),
-                        command.nationality(),
-                        command.getReputation(),
-                        command.trophies()
-                );
 
                 try {
-                    if (command.getName() != null) {
-                        ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_NAME, command.getName());
+                    if (command.name() != null) {
+                        ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_NAME, command.name());
                     }
                     if (command.confidenceBoard() != null) {
                         ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_CONFIDENCE_BOARD, command.confidenceBoard());
                     }
                     if (command.confidenceFans() != null) {
                         ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_CONFIDENCE_FANS, command.confidenceFans());
-                    }
-                    if (command.getAge() != null) {
-                        ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_AGE, command.getAge());
-                    }
-                    if (command.nationality() != null) {
-                        ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_NATIONALITY, command.nationality());
-                    }
-                    if (command.getReputation() != null) {
-                        ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_REPUTATION, command.getReputation());
-                    }
-                    if (command.trophies() != null) {
-                        ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_TROPHIES, command.trophies());
                     }
                 } catch (Exception e) {
                     log.warn("Failed to set manager field during batch update", e);
@@ -193,8 +148,7 @@ public class ManagerManagementService implements GetManagerUseCase, UpdateManage
         sessionStatePort.save(session);
         return new BatchResponse<>(results);
     }
-    
-    @SuppressWarnings("unchecked")
+
     private List<Object> getManagerObjectsSafe(Object root) {
         return gameDataPort.getManagers(root);
     }
@@ -226,6 +180,6 @@ public class ManagerManagementService implements GetManagerUseCase, UpdateManage
             teamId = (Integer) ReflectionUtils.getFieldValue(managerObj, "nU"); // Used in getHumanTeam
         } catch (Exception e) { log.trace("Field not found", e); }
 
-        return Manager.of(id, name, isHuman, teamId, confidenceBoard, confidenceFans, null, null, null, null);
+        return Manager.of(id, name, isHuman, teamId, confidenceBoard, confidenceFans);
     }
 }

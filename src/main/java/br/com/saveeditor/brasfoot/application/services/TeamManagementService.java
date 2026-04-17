@@ -7,7 +7,7 @@ import br.com.saveeditor.brasfoot.application.ports.out.GameDataPort;
 import br.com.saveeditor.brasfoot.application.ports.out.SessionStatePort;
 import br.com.saveeditor.brasfoot.domain.Session;
 import br.com.saveeditor.brasfoot.domain.Team;
-import br.com.saveeditor.brasfoot.domain.TeamReputation;
+import br.com.saveeditor.brasfoot.domain.enums.TeamReputation;
 import br.com.saveeditor.brasfoot.util.BrasfootConstants;
 import br.com.saveeditor.brasfoot.util.ReflectionUtils;
 import org.slf4j.Logger;
@@ -23,21 +23,21 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
 
     private static final Logger log = LoggerFactory.getLogger(TeamManagementService.class);
 
-    private final SessionStatePort sessionStatePort;
     private final GameDataPort gameDataPort;
+    private final SessionStatePort sessionStatePort;
+    private final SessionResolver sessionResolver;
 
-    public TeamManagementService(SessionStatePort sessionStatePort, GameDataPort gameDataPort) {
+    public TeamManagementService(SessionStatePort sessionStatePort, GameDataPort gameDataPort,
+                                 SessionResolver sessionResolver) {
         this.sessionStatePort = sessionStatePort;
         this.gameDataPort = gameDataPort;
+        this.sessionResolver = sessionResolver;
     }
 
     @Override
     public List<Team> getAllTeams(UUID sessionId) {
         log.debug("Fetching all teams for session {}", sessionId);
-        Session session = sessionStatePort.load(sessionId);
-        if (session == null || !session.getContext().isLoaded()) {
-            throw new IllegalArgumentException("Session not found or not loaded.");
-        }
+        Session session = sessionResolver.loadRequired(sessionId);
 
         Object root = session.getContext().getState().getObjetoRaiz();
         List<Object> teamObjects = gameDataPort.getTeams(root);
@@ -50,10 +50,7 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
     @Override
     public Team getTeam(UUID sessionId, int teamId) {
         log.debug("Fetching team {} in session {}", teamId, sessionId);
-        Session session = sessionStatePort.load(sessionId);
-        if (session == null || !session.getContext().isLoaded()) {
-            throw new IllegalArgumentException("Session not found or not loaded.");
-        }
+        Session session = sessionResolver.loadRequired(sessionId);
 
         Object root = session.getContext().getState().getObjetoRaiz();
         Object teamObj = gameDataPort.getTeamById(root, teamId);
@@ -69,10 +66,7 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
         log.info("Updating team {} for session {}", teamId, sessionId);
         log.debug("Update details - money: {}, reputation: {}", money, reputation);
 
-        Session session = sessionStatePort.load(sessionId);
-        if (session == null || !session.getContext().isLoaded()) {
-            throw new IllegalArgumentException("Session not found or not loaded.");
-        }
+        Session session = sessionResolver.loadRequired(sessionId);
 
         Object root = session.getContext().getState().getObjetoRaiz();
         Object teamObj = gameDataPort.getTeamById(root, teamId);
@@ -115,10 +109,7 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
     public List<Team> batchUpdateTeams(UUID sessionId, List<TeamBatchUpdateCommand> commands) {
         log.info("Batch updating {} teams for session {}", commands.size(), sessionId);
 
-        Session session = sessionStatePort.load(sessionId);
-        if (session == null || !session.getContext().isLoaded()) {
-            throw new IllegalArgumentException("Session not found or not loaded.");
-        }
+        Session session = sessionResolver.loadRequired(sessionId);
 
         Object root = session.getContext().getState().getObjetoRaiz();
         List<Team> updatedTeams = new java.util.ArrayList<>();
