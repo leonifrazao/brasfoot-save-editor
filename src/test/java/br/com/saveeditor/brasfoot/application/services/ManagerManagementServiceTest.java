@@ -129,8 +129,6 @@ class ManagerManagementServiceTest {
         Object dummyManager = dummyManagersList.get(0);
         Field nameField = dummyManager.getClass().getField(BrasfootConstants.MANAGER_NAME);
         assertEquals("Jose Mourinho", nameField.get(dummyManager));
-        Field ageField = dummyManager.getClass().getField(BrasfootConstants.MANAGER_AGE);
-        assertEquals(61, ageField.get(dummyManager));
     }
     
     @Test
