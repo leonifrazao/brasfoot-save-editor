@@ -21,6 +21,7 @@
 
 - [Sobre o projeto](#sobre-o-projeto)
 - [Arquitetura](#arquitetura)
+- [Como o save foi mapeado](#como-o-save-foi-mapeado)
 - [Funcionalidades](#funcionalidades)
 - [Stack](#stack)
 - [Como executar localmente](#como-executar-localmente)
@@ -65,6 +66,12 @@ O **Brasfoot Save Editor** evoluiu para um produto web com duas partes:
 - Proxy interno em `/api/brasfoot/*` para o backend.
 - Edicao individual e em lote nas entidades suportadas.
 - Atalho de navegacao com command palette (`Ctrl/Cmd + K`).
+
+## Como o save foi mapeado
+
+O arquivo `.s22` do Brasfoot e um objeto Java serializado com **Kryo**, uma biblioteca de serializacao binaria de alta performance. O jogo aplica ofuscacao nos nomes dos campos — atributos que semanticamente sao `money`, `overall` ou `reputation` aparecem no binario como `nb`, `eq`, `nc` e similares, sem documentacao publica de nenhum tipo.
+
+O processo de mapeamento foi feito por engenharia reversa direta: inspecionar o objeto deserializado em runtime, correlacionar os valores dos campos ofuscados com o comportamento observado no jogo e validar cada campo manualmente contra saves reais. O resultado esta centralizado em `BrasfootConstants.java`, que mapeia cada chave ofuscada para uma constante legivel com tipo e descricao. Campos identificados mas ainda nao validados foram isolados em `BrasfootUnverifiedConstants.java` para evitar uso acidental em codigo de producao.
 
 ## Funcionalidades
 
