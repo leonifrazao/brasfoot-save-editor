@@ -233,6 +233,55 @@ Criado `Country.java` (224 paises) e `Continent.java` (6 continentes) em `src/ma
 
 Continentes: 0=EUROPE, 1=SOUTH_AMERICA, 2=AFRICA, 3=ASIA, 4=NORTH_AMERICA, 5=OCEANIA
 
+## Campos de pais/divisao/liga disponiveis para edicao
+
+Adicionados em `BrasfootConstants`.
+
+### Pais (`best.Z`, objetos nas listas `ao`/`ap`)
+
+| Campo | Constante | Tipo | Descricao |
+|-------|-----------|------|-----------|
+| `pais` | `TEAM_COUNTRY` (reuso) | int | ID do pais (0-223) - usar `Country.fromId()` |
+| `hB` | `COUNTRY_NAME` | String | Nome do pais (getter `jf()`) |
+| `hA` | `COUNTRY_LEVEL` | int | Nivel/forca do pais (getter `getNivel()`) |
+| `ds` | `COUNTRY_DIVISIONS` | List | Lista de divisoes (`f.B`) |
+
+### Divisao (`f.B`, dentro de `best.Z.ds`)
+
+| Campo | Constante | Tipo | Descricao |
+|-------|-----------|------|-----------|
+| `divisao` | `DIVISION_NUMBER` | int | Numero da divisao |
+| `nRebaixados` | `DIVISION_RELEGATION_SPOTS` | int | Vagas de rebaixamento |
+| `rebaixadosDireto` | `DIVISION_DIRECT_RELEGATIONS` | int | Rebaixamentos diretos |
+| `vagasSobemPeloMataMata` | `DIVISION_PROMOTION_PLAYOFF_SPOTS` | int | Vagas de acesso por playoff |
+| `YL` | `DIVISION_MAIN_LEAGUE` | `f.s` | Liga principal |
+| `ZU` | `DIVISION_SECONDARY_LEAGUE` | `f.s` | Liga secundaria/copa |
+
+### Liga (`f.s`, dentro de `f.B.YL`/`ZU`)
+
+| Campo | Constante | Tipo | Descricao |
+|-------|-----------|------|-----------|
+| `nomeLiga` | `LEAGUE_NAME` | String | Nome da liga |
+| `nomeDivisao` | `LEAGUE_DIVISION_NAME` | String | Nome da divisao |
+| `nome` | `LEAGUE_FALLBACK_NAME` | String | Nome alternativo |
+| `nTimes` | `LEAGUE_NUMBER_OF_TEAMS` | int | Numero de times |
+| `doisTurnos` | `LEAGUE_DOUBLE_ROUND` | boolean | Turno e returno |
+| `jogosDentroGrupo` | `LEAGUE_GAMES_WITHIN_GROUP` | boolean | Jogos dentro do grupo |
+| `numeroTurnos` | `LEAGUE_NUMBER_OF_ROUNDS` | int | Numero de turnos |
+| `desempateEstadual` | `LEAGUE_TIEBREAKER` | int | Criterio de desempate |
+| `melhoresTerceiros` | `LEAGUE_BEST_THIRDS` | boolean | Melhores terceiros |
+| `Zb` | `LEAGUE_TEAMS` | List | Times na liga |
+
+### Hierarquia no save
+
+```
+best.f (raiz)
+  .ao / .ap -> ArrayList<best.Z> (paises)
+    .ds -> ArrayList<f.B> (divisoes)
+      .YL / .ZU -> f.s (ligas)
+        .Zb -> ArrayList<best.ah> (times)
+```
+
 ## Campos mapeados ainda nao expostos para edicao
 
 ### Jogadores (`best.F`)

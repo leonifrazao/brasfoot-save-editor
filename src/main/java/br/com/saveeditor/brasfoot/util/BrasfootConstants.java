@@ -66,12 +66,28 @@ public class BrasfootConstants {
     public static final String ROOT_PRIMARY_COUNTRIES = "ao";
     public static final String ROOT_SECONDARY_COUNTRIES = "ap";
     public static final String COUNTRY_DIVISIONS = "ds";
+    public static final String COUNTRY_NAME = "hB"; // String; getter jf()
+    public static final String COUNTRY_LEVEL = "hA"; // int; getter getNivel()
+
+    // --- Division (f.B) ---
     public static final String DIVISION_MAIN_LEAGUE = "YL";
     public static final String DIVISION_SECONDARY_LEAGUE = "ZU";
+    public static final String DIVISION_NUMBER = "divisao"; // int
+    public static final String DIVISION_RELEGATION_SPOTS = "nRebaixados"; // int
+    public static final String DIVISION_DIRECT_RELEGATIONS = "rebaixadosDireto"; // int
+    public static final String DIVISION_PROMOTION_PLAYOFF_SPOTS = "vagasSobemPeloMataMata"; // int
+
+    // --- League (f.s) ---
     public static final String LEAGUE_TEAMS = "Zb";
     public static final String LEAGUE_NAME = "nomeLiga";
     public static final String LEAGUE_DIVISION_NAME = "nomeDivisao";
     public static final String LEAGUE_FALLBACK_NAME = "nome";
+    public static final String LEAGUE_NUMBER_OF_TEAMS = "nTimes"; // int
+    public static final String LEAGUE_DOUBLE_ROUND = "doisTurnos"; // boolean
+    public static final String LEAGUE_GAMES_WITHIN_GROUP = "jogosDentroGrupo"; // boolean
+    public static final String LEAGUE_NUMBER_OF_ROUNDS = "numeroTurnos"; // int
+    public static final String LEAGUE_TIEBREAKER = "desempateEstadual"; // int
+    public static final String LEAGUE_BEST_THIRDS = "melhoresTerceiros"; // boolean
 
     // --- League table stats (best.ak) ---
     public static final String LEAGUE_STATS_POINTS = "nT";
