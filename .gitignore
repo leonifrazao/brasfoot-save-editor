@@ -13,6 +13,7 @@ target/
 
 # Logs e Temporarios
 spring-shell.log
+logs/
 fatjar_temp/
 temp/
 build/
@@ -25,3 +26,15 @@ build/
 *.jar
 !lib/*.jar
 !editor-final.jar
+
+# IDE
+.factorypath
+
+# Gerenciamento de ambiente
+.flox/
+
+# Classes decompiladas do jogo
+brasfoot_files/
+
+# Notas pessoais
+todo.md

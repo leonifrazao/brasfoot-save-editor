@@ -8,7 +8,7 @@ import br.com.saveeditor.brasfoot.domain.SaveContext;
 import br.com.saveeditor.brasfoot.domain.Session;
 import br.com.saveeditor.brasfoot.domain.Team;
 import br.com.saveeditor.brasfoot.domain.enums.TeamReputation;
-import br.com.saveeditor.brasfoot.application.shared.NavegacaoState;
+import br.com.saveeditor.brasfoot.domain.NavegacaoState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -101,6 +101,31 @@ class TeamManagementServiceTest {
     }
 
     @Test
+    void updateTeam_withStadiumData_updatesStadiumAndSaves() {
+        // Arrange
+        when(navegacaoState.getObjetoRaiz()).thenReturn(root);
+        when(sessionResolver.loadRequired(sessionId)).thenReturn(session);
+        when(gameDataPort.getTeamById(root, 1)).thenReturn(team1);
+
+        // Act
+        Team updated = teamManagementService.updateTeam(
+                sessionId,
+                1,
+                null,
+                null,
+                "New Stadium",
+                List.of(1000, 2000, 3000, 4000)
+        );
+
+        // Assert
+        assertEquals("New Stadium", team1.dH.dm);
+        assertEquals(1000, team1.dH.dn[0]);
+        assertEquals(10_000, updated.getStadiumCapacity());
+        assertEquals(List.of(1000, 2000, 3000, 4000), updated.getStadiumSectors());
+        verify(sessionStatePort).save(session);
+    }
+
+    @Test
     void getAllTeams_withMissingSession_throws() {
         // Arrange
         UUID missingSessionId = UUID.randomUUID();
@@ -116,12 +141,25 @@ class TeamManagementServiceTest {
         public String dm;
         public long nb;
         public int nc;
+        public DummyStadium dH;
 
         DummyTeam(int id, String name, long money, int reputation) {
             this.na = id;
             this.dm = name;
             this.nb = money;
             this.nc = reputation;
+            this.dH = new DummyStadium("Old Stadium", new int[]{100, 200, 300, 400});
+        }
+    }
+
+    @SuppressWarnings("unused")
+    private static class DummyStadium {
+        public String dm;
+        public int[] dn;
+
+        DummyStadium(String name, int[] sectors) {
+            this.dm = name;
+            this.dn = sectors;
         }
     }
 }

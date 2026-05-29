@@ -1,6 +1,6 @@
 package br.com.saveeditor.brasfoot.service;
 
-import br.com.saveeditor.brasfoot.application.shared.NavegacaoState;
+import br.com.saveeditor.brasfoot.domain.NavegacaoState;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;

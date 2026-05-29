@@ -1,6 +1,5 @@
 package br.com.saveeditor.brasfoot.domain;
 
-import br.com.saveeditor.brasfoot.application.shared.NavegacaoState;
 import lombok.*;
 
 @Setter
@@ -23,6 +22,6 @@ public class SaveContext {
 
 
     public boolean isLoaded() {
-        return state == null;
+        return state != null;
     }
 }

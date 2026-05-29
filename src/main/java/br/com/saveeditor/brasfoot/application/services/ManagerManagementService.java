@@ -84,6 +84,12 @@ public class ManagerManagementService implements GetManagerUseCase, UpdateManage
             if (updateData.getName() != null) {
                 ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_NAME, updateData.getName());
             }
+            if (updateData.getIsHuman() != null) {
+                ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_IS_HUMAN, updateData.getIsHuman());
+            }
+            if (updateData.getTeamId() != null) {
+                ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_TEAM_ID, updateData.getTeamId());
+            }
             if (updateData.getConfidenceBoard() != null) {
                 ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_CONFIDENCE_BOARD, updateData.getConfidenceBoard());
             }
@@ -177,7 +183,7 @@ public class ManagerManagementService implements GetManagerUseCase, UpdateManage
         } catch (Exception e) { log.trace("Field not found", e); }
 
         try {
-            teamId = (Integer) ReflectionUtils.getFieldValue(managerObj, "nU"); // Used in getHumanTeam
+            teamId = (Integer) ReflectionUtils.getFieldValue(managerObj, BrasfootConstants.MANAGER_TEAM_ID);
         } catch (Exception e) { log.trace("Field not found", e); }
 
         return Manager.of(id, name, isHuman, teamId, confidenceBoard, confidenceFans);

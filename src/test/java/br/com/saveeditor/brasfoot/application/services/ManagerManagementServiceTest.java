@@ -5,7 +5,7 @@ import br.com.saveeditor.brasfoot.application.ports.out.GameDataPort;
 import br.com.saveeditor.brasfoot.domain.Manager;
 import br.com.saveeditor.brasfoot.domain.SaveContext;
 import br.com.saveeditor.brasfoot.domain.Session;
-import br.com.saveeditor.brasfoot.application.shared.NavegacaoState;
+import br.com.saveeditor.brasfoot.domain.NavegacaoState;
 import br.com.saveeditor.brasfoot.util.BrasfootConstants;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

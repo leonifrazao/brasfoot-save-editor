@@ -25,7 +25,7 @@ public class SessionResolver {
 
     public Session loadRequired(UUID sessionId) {
         Session session = sessionStatePort.load(sessionId);
-        if (session.getContext().isLoaded()) {
+        if (!session.getContext().isLoaded()) {
             throw new IllegalStateException("Session is not loaded");
         }
         return session;

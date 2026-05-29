@@ -19,6 +19,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
 @Service
 public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUseCase {
 
@@ -37,7 +39,7 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
 
     @Override
     public List<Player> getTeamPlayers(UUID sessionId, int teamId) {
-        log.debug("Fetching players for team {} in session {}", teamId, sessionId);
+        log.debug("player_list_requested {} {}", kv("session_id", sessionId), kv("team_id", teamId));
         Session session = sessionResolver.loadRequired(sessionId);
 
         Object root = session.getContext().getState().getObjetoRaiz();
@@ -47,10 +49,15 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
         }
 
         List<Object> playerObjects = gameDataPort.getPlayers(teamObj);
+        log.info("player_list_loaded {} {} {} {}",
+                kv("session_id", sessionId),
+                kv("team_id", teamId),
+                kv("player_count", playerObjects.size()),
+                kv("team_class", teamObj.getClass().getName()));
         List<Player> players = new ArrayList<>();
 
         for (int i = 0; i < playerObjects.size(); i++) {
-            players.add(mapToPlayerDomain(playerObjects.get(i), i));
+            players.add(mapToPlayerDomain(sessionId, teamId, playerObjects.get(i), i));
         }
 
         return players;
@@ -58,7 +65,7 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
 
     @Override
     public Player getPlayer(UUID sessionId, int teamId, int playerId) {
-        log.debug("Fetching player {} from team {} in session {}", playerId, teamId, sessionId);
+        log.debug("player_requested {} {} {}", kv("session_id", sessionId), kv("team_id", teamId), kv("player_id", playerId));
         Session session = sessionResolver.loadRequired(sessionId);
 
         Object root = session.getContext().getState().getObjetoRaiz();
@@ -72,13 +79,16 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
             throw new IllegalArgumentException("Player index out of bounds");
         }
 
-        return mapToPlayerDomain(playerObjects.get(playerId), playerId);
+        return mapToPlayerDomain(sessionId, teamId, playerObjects.get(playerId), playerId);
     }
 
     @Override
     public Player updatePlayer(UUID sessionId, int teamId, int playerId, Integer age, Integer overall, Integer position, Integer energy, Integer morale, Boolean starLocal, Boolean starGlobal) {
-        log.info("Updating player {} in team {} for session {}", playerId, teamId, sessionId);
-        log.debug("Update details - age: {}, overall: {}, position: {}, energy: {}, morale: {}, starLocal: {}, starGlobal: {}", age, overall, position, energy, morale, starLocal, starGlobal);
+        log.info("player_update_requested {} {} {}", kv("session_id", sessionId), kv("team_id", teamId), kv("player_id", playerId));
+        log.debug("player_update_payload {} {} {} {} {} {} {} {} {} {}",
+                kv("session_id", sessionId), kv("team_id", teamId), kv("player_id", playerId),
+                kv("age", age), kv("overall", overall), kv("position", position), kv("energy", energy),
+                kv("morale", morale), kv("star_local", starLocal), kv("star_global", starGlobal));
 
         Session session = sessionResolver.loadRequired(sessionId);
 
@@ -96,7 +106,7 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
         Object playerObj = playerObjects.get(playerId);
 
         try {
-            Player currentPlayer = mapToPlayerDomain(playerObj, playerId);
+            Player currentPlayer = mapToPlayerDomain(sessionId, teamId, playerObj, playerId);
 
             if (age != null) {
                 Player.builder()
@@ -162,20 +172,65 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
             }
 
         } catch (IllegalArgumentException e) {
-            log.warn("Validation error during player update: {}", e.getMessage());
+            log.warn("player_update_validation_failed {} {} {} {}", kv("session_id", sessionId), kv("team_id", teamId),
+                    kv("player_id", playerId), kv("error", e.getMessage()));
             throw e;
         } catch (Exception e) {
-            log.error("Failed to update player properties", e);
-            throw new RuntimeException("Failed to update player properties", e);
+            log.error("player_update_failed {} {} {} {}", kv("session_id", sessionId), kv("team_id", teamId),
+                    kv("player_id", playerId), kv("error", rootCauseMessage(e)), e);
+            throw new RuntimeException("Falha ao atualizar jogador " + playerId + " do time " + teamId + ": " + rootCauseMessage(e), e);
         }
 
         sessionStatePort.save(session);
-        return mapToPlayerDomain(playerObj, playerId);
+        return mapToPlayerDomain(sessionId, teamId, playerObj, playerId);
+    }
+
+    public Player updatePlayer(UUID sessionId, int teamId, int playerId, String name, Integer age, Integer overall,
+                               Integer position, Integer energy, Integer salary, Integer side, Long contractEnd,
+                               Integer characteristic1, Integer characteristic2, Integer skillGoalkeeping,
+                               Integer skillSpeed, Integer skillTechnique, Integer skillPassing, Integer skillTackling,
+                               Integer skillPlaymaking, Integer skillFinishing, Boolean starLocal, Boolean starGlobal) {
+        updatePlayer(sessionId, teamId, playerId, age, overall, position, energy, null, starLocal, starGlobal);
+        Session session = sessionResolver.loadRequired(sessionId);
+        Object root = session.getContext().getState().getObjetoRaiz();
+        Object teamObj = gameDataPort.getTeamById(root, teamId);
+        if (teamObj == null) {
+            throw new IllegalArgumentException("Team not found with ID: " + teamId);
+        }
+
+        List<Object> playerObjects = gameDataPort.getPlayers(teamObj);
+        if (playerId < 0 || playerId >= playerObjects.size()) {
+            throw new IllegalArgumentException("Player index out of bounds");
+        }
+
+        Object playerObj = playerObjects.get(playerId);
+        try {
+            setIfPresent(playerObj, BrasfootConstants.PLAYER_NAME, name);
+            setIfPresent(playerObj, BrasfootConstants.PLAYER_SALARY, salary);
+            setIfPresent(playerObj, BrasfootConstants.PLAYER_SIDE, side);
+            setIfPresent(playerObj, BrasfootConstants.PLAYER_CONTRACT_END, contractEnd);
+            setIfPresent(playerObj, BrasfootConstants.PLAYER_CHARACTERISTIC_1, characteristic1);
+            setIfPresent(playerObj, BrasfootConstants.PLAYER_CHARACTERISTIC_2, characteristic2);
+            setIfPresent(playerObj, BrasfootConstants.PLAYER_SKILL_GOALKEEPING, skillGoalkeeping);
+            setIfPresent(playerObj, BrasfootConstants.PLAYER_SKILL_SPEED, skillSpeed);
+            setIfPresent(playerObj, BrasfootConstants.PLAYER_SKILL_TECHNIQUE, skillTechnique);
+            setIfPresent(playerObj, BrasfootConstants.PLAYER_SKILL_PASSING, skillPassing);
+            setIfPresent(playerObj, BrasfootConstants.PLAYER_SKILL_TACKLING, skillTackling);
+            setIfPresent(playerObj, BrasfootConstants.PLAYER_SKILL_PLAYMAKING, skillPlaymaking);
+            setIfPresent(playerObj, BrasfootConstants.PLAYER_SKILL_FINISHING, skillFinishing);
+            sessionStatePort.save(session);
+            log.info("player_extended_update_applied {} {} {}", kv("session_id", sessionId), kv("team_id", teamId), kv("player_id", playerId));
+            return mapToPlayerDomain(sessionId, teamId, playerObj, playerId);
+        } catch (Exception e) {
+            log.error("player_extended_update_failed {} {} {} {}", kv("session_id", sessionId), kv("team_id", teamId),
+                    kv("player_id", playerId), kv("error", rootCauseMessage(e)), e);
+            throw new RuntimeException("Falha ao atualizar campos extras do jogador " + playerId + " do time " + teamId + ": " + rootCauseMessage(e), e);
+        }
     }
 
     @Override
     public BatchResponse<Player> batchUpdatePlayers(UUID sessionId, int teamId, List<PlayerBatchUpdateCommand> commands) {
-        log.info("Batch updating {} players in team {} for session {}", commands.size(), teamId, sessionId);
+        log.info("player_batch_update_requested {} {} {}", kv("session_id", sessionId), kv("team_id", teamId), kv("command_count", commands.size()));
 
         Session session = sessionResolver.loadRequired(sessionId);
 
@@ -200,7 +255,7 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
             Object playerObj = playerObjects.get(playerId);
 
             try {
-                Player currentPlayer = mapToPlayerDomain(playerObj, playerId);
+                Player currentPlayer = mapToPlayerDomain(sessionId, teamId, playerObj, playerId);
 
                 if (command.age() != null) {
                     Player.builder()
@@ -265,38 +320,153 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
                     ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_STAR_GLOBAL, command.starGlobal());
                 }
             } catch (IllegalArgumentException e) {
-                log.warn("Validation error during batch player update: {}", e.getMessage());
+                log.warn("player_batch_update_validation_failed {} {} {} {} {}", kv("session_id", sessionId), kv("team_id", teamId),
+                        kv("player_id", playerId), kv("batch_index", i), kv("error", e.getMessage()));
                 results.add(BatchResult.failure(i, e.getMessage()));
                 continue;
             } catch (Exception e) {
-                log.error("Failed to update player properties for player {}", playerId, e);
+                log.error("player_batch_update_failed {} {} {} {} {}", kv("session_id", sessionId), kv("team_id", teamId),
+                        kv("player_id", playerId), kv("batch_index", i), kv("error", rootCauseMessage(e)), e);
                 results.add(BatchResult.failure(i, "Failed to update player properties: " + e.getMessage()));
                 continue;
             }
 
-            results.add(BatchResult.success(i, mapToPlayerDomain(playerObj, playerId)));
+            results.add(BatchResult.success(i, mapToPlayerDomain(sessionId, teamId, playerObj, playerId)));
         }
 
         sessionStatePort.save(session);
         return new BatchResponse<>(results);
     }
 
-    private Player mapToPlayerDomain(Object playerObj, int index) {
+    private Player mapToPlayerDomain(UUID sessionId, int teamId, Object playerObj, int index) {
+        String playerClass = playerObj == null ? "null" : playerObj.getClass().getName();
         try {
-            String name = (String) ReflectionUtils.getFieldValue(playerObj, BrasfootConstants.PLAYER_NAME);
-            int age = (int) ReflectionUtils.getFieldValue(playerObj, BrasfootConstants.PLAYER_AGE);
-            int overall = (int) ReflectionUtils.getFieldValue(playerObj, BrasfootConstants.PLAYER_OVERALL);
-            int position = (int) ReflectionUtils.getFieldValue(playerObj, BrasfootConstants.PLAYER_POSITION);
-            int energy = (int) ReflectionUtils.getFieldValue(playerObj, BrasfootConstants.PLAYER_ENERGY);
-            boolean starLocal = (boolean) ReflectionUtils.getFieldValue(playerObj, BrasfootConstants.PLAYER_STAR_LOCAL);
-            boolean starGlobal = (boolean) ReflectionUtils.getFieldValue(playerObj, BrasfootConstants.PLAYER_STAR_GLOBAL);
+            String name = requiredStringField(sessionId, teamId, index, playerObj, BrasfootConstants.PLAYER_NAME, "name");
+            int age = requiredIntField(sessionId, teamId, index, playerObj, BrasfootConstants.PLAYER_AGE, "age");
+            int overall = requiredIntField(sessionId, teamId, index, playerObj, BrasfootConstants.PLAYER_OVERALL, "overall");
+            int position = requiredIntField(sessionId, teamId, index, playerObj, BrasfootConstants.PLAYER_POSITION, "position");
+            int energy = requiredIntField(sessionId, teamId, index, playerObj, BrasfootConstants.PLAYER_ENERGY, "energy");
+            boolean starLocal = requiredBooleanField(sessionId, teamId, index, playerObj, BrasfootConstants.PLAYER_STAR_LOCAL, "starLocal");
+            boolean starGlobal = requiredBooleanField(sessionId, teamId, index, playerObj, BrasfootConstants.PLAYER_STAR_GLOBAL, "starGlobal");
 
             // Assume default 100 for morale for now
             int morale = 100;
 
-            return new Player(index, name, age, overall, position, energy, morale, starLocal, starGlobal);
+            Player player = new Player(index, name, age, overall, position, energy, morale, starLocal, starGlobal);
+            player.setSalary(integerField(playerObj, BrasfootConstants.PLAYER_SALARY));
+            setOptionalPlayerField(sessionId, teamId, index, playerClass, BrasfootConstants.PLAYER_SIDE, "side", integerField(playerObj, BrasfootConstants.PLAYER_SIDE), player::setSide);
+            player.setContractEnd(longField(playerObj, BrasfootConstants.PLAYER_CONTRACT_END));
+            setOptionalPlayerField(sessionId, teamId, index, playerClass, BrasfootConstants.PLAYER_CHARACTERISTIC_1, "characteristic1", integerField(playerObj, BrasfootConstants.PLAYER_CHARACTERISTIC_1), player::setCharacteristic1);
+            setOptionalPlayerField(sessionId, teamId, index, playerClass, BrasfootConstants.PLAYER_CHARACTERISTIC_2, "characteristic2", integerField(playerObj, BrasfootConstants.PLAYER_CHARACTERISTIC_2), player::setCharacteristic2);
+            setOptionalPlayerField(sessionId, teamId, index, playerClass, BrasfootConstants.PLAYER_SKILL_GOALKEEPING, "skillGoalkeeping", integerField(playerObj, BrasfootConstants.PLAYER_SKILL_GOALKEEPING), player::setSkillGoalkeeping);
+            setOptionalPlayerField(sessionId, teamId, index, playerClass, BrasfootConstants.PLAYER_SKILL_SPEED, "skillSpeed", integerField(playerObj, BrasfootConstants.PLAYER_SKILL_SPEED), player::setSkillSpeed);
+            setOptionalPlayerField(sessionId, teamId, index, playerClass, BrasfootConstants.PLAYER_SKILL_TECHNIQUE, "skillTechnique", integerField(playerObj, BrasfootConstants.PLAYER_SKILL_TECHNIQUE), player::setSkillTechnique);
+            setOptionalPlayerField(sessionId, teamId, index, playerClass, BrasfootConstants.PLAYER_SKILL_PASSING, "skillPassing", integerField(playerObj, BrasfootConstants.PLAYER_SKILL_PASSING), player::setSkillPassing);
+            setOptionalPlayerField(sessionId, teamId, index, playerClass, BrasfootConstants.PLAYER_SKILL_TACKLING, "skillTackling", integerField(playerObj, BrasfootConstants.PLAYER_SKILL_TACKLING), player::setSkillTackling);
+            setOptionalPlayerField(sessionId, teamId, index, playerClass, BrasfootConstants.PLAYER_SKILL_PLAYMAKING, "skillPlaymaking", integerField(playerObj, BrasfootConstants.PLAYER_SKILL_PLAYMAKING), player::setSkillPlaymaking);
+            setOptionalPlayerField(sessionId, teamId, index, playerClass, BrasfootConstants.PLAYER_SKILL_FINISHING, "skillFinishing", integerField(playerObj, BrasfootConstants.PLAYER_SKILL_FINISHING), player::setSkillFinishing);
+
+            log.debug("player_mapped {} {} {} {} {} {}", kv("session_id", sessionId), kv("team_id", teamId),
+                    kv("player_id", index), kv("player_name", name), kv("player_class", playerClass), kv("field_count", 19));
+            return player;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to map player object to domain", e);
+            log.error("player_mapping_failed {} {} {} {} {}", kv("session_id", sessionId), kv("team_id", teamId),
+                    kv("player_id", index), kv("player_class", playerClass), kv("error", rootCauseMessage(e)), e);
+            throw new IllegalStateException("Falha ao mapear jogador #" + index + " do time " + teamId + ": " + rootCauseMessage(e), e);
         }
+    }
+
+    @FunctionalInterface
+    private interface IntegerSetter {
+        void set(Integer value);
+    }
+
+    private void setOptionalPlayerField(UUID sessionId, int teamId, int playerId, String playerClass, String obfuscatedField,
+                                        String logicalField, Integer value, IntegerSetter setter) {
+        try {
+            setter.set(value);
+        } catch (IllegalArgumentException e) {
+            log.warn("player_optional_field_ignored {} {} {} {} {} {} {} {}", kv("session_id", sessionId),
+                    kv("team_id", teamId), kv("player_id", playerId), kv("player_class", playerClass),
+                    kv("field", logicalField), kv("obfuscated_field", obfuscatedField), kv("value", value),
+                    kv("error", e.getMessage()));
+        }
+    }
+
+    private String requiredStringField(UUID sessionId, int teamId, int playerId, Object obj, String obfuscatedField, String logicalField) {
+        Object value = requiredField(sessionId, teamId, playerId, obj, obfuscatedField, logicalField);
+        if (value instanceof String text) {
+            return text;
+        }
+        throw invalidFieldType(obfuscatedField, logicalField, value, "String");
+    }
+
+    private int requiredIntField(UUID sessionId, int teamId, int playerId, Object obj, String obfuscatedField, String logicalField) {
+        Object value = requiredField(sessionId, teamId, playerId, obj, obfuscatedField, logicalField);
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        throw invalidFieldType(obfuscatedField, logicalField, value, "Number");
+    }
+
+    private boolean requiredBooleanField(UUID sessionId, int teamId, int playerId, Object obj, String obfuscatedField, String logicalField) {
+        Object value = requiredField(sessionId, teamId, playerId, obj, obfuscatedField, logicalField);
+        if (value instanceof Boolean bool) {
+            return bool;
+        }
+        throw invalidFieldType(obfuscatedField, logicalField, value, "Boolean");
+    }
+
+    private Object requiredField(UUID sessionId, int teamId, int playerId, Object obj, String obfuscatedField, String logicalField) {
+        try {
+            Object value = ReflectionUtils.getFieldValue(obj, obfuscatedField);
+            if (value == null) {
+                throw new IllegalStateException("Campo obrigatorio nulo: " + logicalField + " (" + obfuscatedField + ")");
+            }
+            return value;
+        } catch (ReflectiveOperationException e) {
+            log.error("player_required_field_read_failed {} {} {} {} {} {}", kv("session_id", sessionId),
+                    kv("team_id", teamId), kv("player_id", playerId), kv("field", logicalField),
+                    kv("obfuscated_field", obfuscatedField), kv("error", e.getMessage()), e);
+            throw new IllegalStateException("Campo obrigatorio ausente: " + logicalField + " (" + obfuscatedField + ")", e);
+        }
+    }
+
+    private IllegalStateException invalidFieldType(String obfuscatedField, String logicalField, Object value, String expectedType) {
+        String actualType = value == null ? "null" : value.getClass().getName();
+        return new IllegalStateException("Tipo invalido em " + logicalField + " (" + obfuscatedField + "): esperado "
+                + expectedType + ", recebido " + actualType + ", valor=" + value);
+    }
+
+    private void setIfPresent(Object target, String fieldName, Object value) throws ReflectiveOperationException {
+        if (value != null) {
+            ReflectionUtils.setFieldValue(target, fieldName, value);
+        }
+    }
+
+    private Integer integerField(Object obj, String fieldName) {
+        try {
+            Object value = ReflectionUtils.getFieldValue(obj, fieldName);
+            return value == null ? null : ((Number) value).intValue();
+        } catch (ReflectiveOperationException e) {
+            return null;
+        }
+    }
+
+    private Long longField(Object obj, String fieldName) {
+        try {
+            Object value = ReflectionUtils.getFieldValue(obj, fieldName);
+            return value == null ? null : ((Number) value).longValue();
+        } catch (ReflectiveOperationException e) {
+            return null;
+        }
+    }
+
+    private String rootCauseMessage(Throwable throwable) {
+        Throwable current = throwable;
+        while (current.getCause() != null) {
+            current = current.getCause();
+        }
+        return current.getMessage() != null ? current.getMessage() : current.getClass().getSimpleName();
     }
 }

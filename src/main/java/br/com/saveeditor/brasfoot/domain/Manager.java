@@ -14,6 +14,7 @@ public class Manager {
 
     @Setter
     private String name;
+    @Setter
     private Boolean isHuman;
 
     @Setter

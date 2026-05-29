@@ -7,7 +7,7 @@ import br.com.saveeditor.brasfoot.application.shared.BatchResponse;
 import br.com.saveeditor.brasfoot.domain.Player;
 import br.com.saveeditor.brasfoot.domain.SaveContext;
 import br.com.saveeditor.brasfoot.domain.Session;
-import br.com.saveeditor.brasfoot.application.shared.NavegacaoState;
+import br.com.saveeditor.brasfoot.domain.NavegacaoState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -99,7 +99,7 @@ class PlayerManagementServiceTest {
         assertEquals(true, updated.getResults().get(0).isSuccess());
         assertEquals(false, updated.getResults().get(1).isSuccess());
         assertEquals(25, player0.em);
-        assertEquals(true, player0.el);
+        assertEquals(true, player0.ek);
         verify(sessionStatePort).save(session);
     }
 
@@ -115,7 +115,7 @@ class PlayerManagementServiceTest {
         public int em;
         public int eq;
         public int en;
-        public int ep;
+        public int eK;
         public boolean el;
         public boolean ek;
 
@@ -124,9 +124,9 @@ class PlayerManagementServiceTest {
             this.em = age;
             this.eq = overall;
             this.en = position;
-            this.ep = energy;
-            this.el = starLocal;
-            this.ek = starGlobal;
+            this.eK = energy;
+            this.ek = starLocal;
+            this.el = starGlobal;
         }
     }
 }
