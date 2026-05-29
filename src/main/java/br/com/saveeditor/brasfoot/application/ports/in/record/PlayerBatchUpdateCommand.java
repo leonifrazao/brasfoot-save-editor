@@ -8,5 +8,11 @@ public record PlayerBatchUpdateCommand(
     Integer energy,
     Integer morale,
     Boolean starLocal,
-    Boolean starGlobal
-) {}
+    Boolean starGlobal,
+    Integer country
+) {
+    public PlayerBatchUpdateCommand(int playerId, Integer age, Integer overall, Integer position, Integer energy,
+                                    Integer morale, Boolean starLocal, Boolean starGlobal) {
+        this(playerId, age, overall, position, energy, morale, starLocal, starGlobal, null);
+    }
+}

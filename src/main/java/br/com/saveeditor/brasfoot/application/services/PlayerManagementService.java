@@ -186,10 +186,11 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
     }
 
     public Player updatePlayer(UUID sessionId, int teamId, int playerId, String name, Integer age, Integer overall,
-                               Integer position, Integer energy, Integer salary, Integer side, Long contractEnd,
-                               Integer characteristic1, Integer characteristic2, Integer skillGoalkeeping,
-                               Integer skillSpeed, Integer skillTechnique, Integer skillPassing, Integer skillTackling,
-                               Integer skillPlaymaking, Integer skillFinishing, Boolean starLocal, Boolean starGlobal) {
+                                Integer position, Integer energy, Integer salary, Integer side, Long contractEnd,
+                                Integer characteristic1, Integer characteristic2, Integer skillGoalkeeping,
+                                Integer skillSpeed, Integer skillTechnique, Integer skillPassing, Integer skillTackling,
+                                Integer skillPlaymaking, Integer skillFinishing, Integer country,
+                                Boolean starLocal, Boolean starGlobal) {
         updatePlayer(sessionId, teamId, playerId, age, overall, position, energy, null, starLocal, starGlobal);
         Session session = sessionResolver.loadRequired(sessionId);
         Object root = session.getContext().getState().getObjetoRaiz();
@@ -218,6 +219,7 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
             setIfPresent(playerObj, BrasfootConstants.PLAYER_SKILL_TACKLING, skillTackling);
             setIfPresent(playerObj, BrasfootConstants.PLAYER_SKILL_PLAYMAKING, skillPlaymaking);
             setIfPresent(playerObj, BrasfootConstants.PLAYER_SKILL_FINISHING, skillFinishing);
+            setIfPresent(playerObj, BrasfootConstants.PLAYER_PAIS, country);
             sessionStatePort.save(session);
             log.info("player_extended_update_applied {} {} {}", kv("session_id", sessionId), kv("team_id", teamId), kv("player_id", playerId));
             return mapToPlayerDomain(sessionId, teamId, playerObj, playerId);
@@ -319,6 +321,9 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
                 if (command.starGlobal() != null) {
                     ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_STAR_GLOBAL, command.starGlobal());
                 }
+                if (command.country() != null) {
+                    ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_PAIS, command.country());
+                }
             } catch (IllegalArgumentException e) {
                 log.warn("player_batch_update_validation_failed {} {} {} {} {}", kv("session_id", sessionId), kv("team_id", teamId),
                         kv("player_id", playerId), kv("batch_index", i), kv("error", e.getMessage()));
@@ -356,6 +361,7 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
             player.setSalary(integerField(playerObj, BrasfootConstants.PLAYER_SALARY));
             setOptionalPlayerField(sessionId, teamId, index, playerClass, BrasfootConstants.PLAYER_SIDE, "side", integerField(playerObj, BrasfootConstants.PLAYER_SIDE), player::setSide);
             player.setContractEnd(longField(playerObj, BrasfootConstants.PLAYER_CONTRACT_END));
+            setOptionalPlayerField(sessionId, teamId, index, playerClass, BrasfootConstants.PLAYER_PAIS, "country", integerField(playerObj, BrasfootConstants.PLAYER_PAIS), player::setCountry);
             setOptionalPlayerField(sessionId, teamId, index, playerClass, BrasfootConstants.PLAYER_CHARACTERISTIC_1, "characteristic1", integerField(playerObj, BrasfootConstants.PLAYER_CHARACTERISTIC_1), player::setCharacteristic1);
             setOptionalPlayerField(sessionId, teamId, index, playerClass, BrasfootConstants.PLAYER_CHARACTERISTIC_2, "characteristic2", integerField(playerObj, BrasfootConstants.PLAYER_CHARACTERISTIC_2), player::setCharacteristic2);
             setOptionalPlayerField(sessionId, teamId, index, playerClass, BrasfootConstants.PLAYER_SKILL_GOALKEEPING, "skillGoalkeeping", integerField(playerObj, BrasfootConstants.PLAYER_SKILL_GOALKEEPING), player::setSkillGoalkeeping);

@@ -1,5 +1,6 @@
 package br.com.saveeditor.brasfoot.infrastructure.adapters.in.qt;
 
+import br.com.saveeditor.brasfoot.domain.enums.Country;
 import br.com.saveeditor.brasfoot.domain.enums.PlayerCharacteristic;
 import br.com.saveeditor.brasfoot.domain.enums.PlayerPosition;
 import br.com.saveeditor.brasfoot.domain.enums.PlayerSide;
@@ -7,6 +8,7 @@ import br.com.saveeditor.brasfoot.domain.enums.TeamAttackFocus;
 import br.com.saveeditor.brasfoot.domain.enums.TeamMarking;
 import br.com.saveeditor.brasfoot.domain.enums.TeamPlayStyle;
 import br.com.saveeditor.brasfoot.domain.enums.TeamReputation;
+import br.com.saveeditor.brasfoot.presentation.model.CountryRow;
 import br.com.saveeditor.brasfoot.presentation.model.LeagueRow;
 import br.com.saveeditor.brasfoot.presentation.model.LeagueTableRow;
 import br.com.saveeditor.brasfoot.presentation.model.ManagerRow;
@@ -56,7 +58,7 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
     private final QTableWidget teamsTable = table("ID", "Time", "Apelido", "Pais", "Div", "Nivel", "Dinheiro", "Reputacao", "Estilo", "Marcacao", "Ataques", "Estadio", "Capacidade");
     private final QLineEdit teamNameEdit = new QLineEdit();
     private final QLineEdit teamAliasEdit = new QLineEdit();
-    private final QLineEdit teamCountryEdit = new QLineEdit();
+    private final QComboBox teamCountryCombo = new QComboBox();
     private final QLineEdit teamDivisionEdit = new QLineEdit();
     private final QLineEdit teamLevelEdit = new QLineEdit();
     private final QLineEdit teamMoneyEdit = new QLineEdit();
@@ -67,9 +69,21 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
     private final QComboBox teamMarkingCombo = new QComboBox();
     private final QComboBox teamAttackFocusCombo = new QComboBox();
 
+    private final QComboBox batchTeamCountryCombo = new QComboBox();
+    private final QLineEdit batchTeamMoneyEdit = new QLineEdit();
+    private final QPushButton batchTeamApplyButton = new QPushButton("Aplicar em lote para times do pais");
+
+    private final QComboBox batchPlayerCountryCombo = new QComboBox();
+    private final QSpinBox batchPlayerAgeSpin = spin(0, 99);
+    private final QSpinBox batchPlayerOverallSpin = spin(0, 100);
+    private final QSpinBox batchPlayerEnergySpin = spin(-1, 100);
+    private final QCheckBox batchPlayerStarLocalCheck = new QCheckBox("Estrela local");
+    private final QCheckBox batchPlayerStarGlobalCheck = new QCheckBox("Estrela mundial");
+    private final QPushButton batchPlayerApplyButton = new QPushButton("Aplicar em lote para todos jogadores do time");
+
     private final QLineEdit playerTeamFilterEdit = new QLineEdit();
     private final QComboBox playerTeamCombo = new QComboBox();
-    private final QTableWidget playersTable = table("ID", "Jogador", "Idade", "Forca", "Posicao", "Lado", "Energia", "Salario", "Cr1", "Cr2", "Estrelas");
+    private final QTableWidget playersTable = table("ID", "Jogador", "Idade", "Forca", "Posicao", "Lado", "Pais", "Energia", "Salario", "Cr1", "Cr2", "Estrelas");
     private final QLineEdit playerNameEdit = new QLineEdit();
     private final QSpinBox playerAgeSpin = spin(15, 50);
     private final QSpinBox playerOverallSpin = spin(1, 100);
@@ -78,6 +92,7 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
     private final QLineEdit playerSalaryEdit = new QLineEdit();
     private final QComboBox playerSideCombo = new QComboBox();
     private final QDateEdit playerContractEndDateEdit = new QDateEdit();
+    private final QComboBox playerCountryCombo = new QComboBox();
     private final QComboBox playerCharacteristic1Combo = new QComboBox();
     private final QComboBox playerCharacteristic2Combo = new QComboBox();
     private final QSpinBox playerSkillGoalkeepingSpin = spin(0, 100);
@@ -106,11 +121,16 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
     private final QSpinBox leagueGoalsForSpin = spin(0, 9999);
     private final QSpinBox leagueGoalsAgainstSpin = spin(0, 9999);
 
+    private final QLineEdit countriesFilterEdit = new QLineEdit();
+    private final QTableWidget countriesTable = table("ID", "Pais", "Grupo", "Nivel", "Divisoes");
+    private final QSpinBox countryLevelSpin = spin(0, 100);
+
     private final List<TeamRow> teams = new ArrayList<>();
     private final List<PlayerRow> players = new ArrayList<>();
     private final List<ManagerRow> managers = new ArrayList<>();
     private final List<LeagueRow> leagues = new ArrayList<>();
     private final List<LeagueTableRow> leagueEntries = new ArrayList<>();
+    private final List<CountryRow> countries = new ArrayList<>();
 
     private String currentLeagueId;
 
@@ -213,6 +233,20 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
     }
 
     @Override
+    public void showCountries(List<CountryRow> rows) {
+        updatingUi = true;
+        countries.clear();
+        countries.addAll(rows);
+        fillCountriesTable();
+        updatingUi = false;
+
+        if (!countries.isEmpty()) {
+            countriesTable.selectRow(0);
+            updateCountryEditor();
+        }
+    }
+
+    @Override
     public void showStatus(String message) {
         statusLabel.setText(message);
     }
@@ -233,6 +267,7 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
         tabs.addTab(buildPlayersTab(), "Jogadores");
         tabs.addTab(buildManagersTab(), "Tecnicos");
         tabs.addTab(buildLeaguesTab(), "Ligas");
+        tabs.addTab(buildCountriesTab(), "Paises");
         rootLayout.addWidget(tabs);
         rootLayout.addWidget(statusLabel);
 
@@ -269,7 +304,7 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
         QFormLayout form = new QFormLayout();
         form.addRow("Nome", teamNameEdit);
         form.addRow("Apelido", teamAliasEdit);
-        form.addRow("Pais", teamCountryEdit);
+        form.addRow("Pais", teamCountryCombo);
         form.addRow("Divisao", teamDivisionEdit);
         form.addRow("Nivel", teamLevelEdit);
         form.addRow("Dinheiro", teamMoneyEdit);
@@ -287,6 +322,8 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
         QGroupBox editor = new QGroupBox("Editor do time");
         editor.setLayout(form);
 
+        QGroupBox batchEditor = buildTeamBatchEditor();
+
         QVBoxLayout tableLayout = new QVBoxLayout();
         tableLayout.addWidget(teamsFilterEdit);
         tableLayout.addWidget(teamsTable);
@@ -294,6 +331,7 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
         QHBoxLayout layout = new QHBoxLayout();
         layout.addLayout(tableLayout, 3);
         layout.addWidget(editor, 1);
+        layout.addWidget(batchEditor, 1);
 
         QWidget tab = new QWidget();
         tab.setLayout(layout);
@@ -301,6 +339,17 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
     }
 
     private void configureTeamEnumControls() {
+        if (teamCountryCombo.count() == 0) {
+            teamCountryCombo.addItem("", -1);
+            for (Country country : Country.values()) {
+                teamCountryCombo.addItem(country.getName(), country.getId());
+            }
+        }
+        if (batchTeamCountryCombo.count() == 0) {
+            for (Country country : Country.values()) {
+                batchTeamCountryCombo.addItem(country.getName(), country.getId());
+            }
+        }
         if (teamPlayStyleCombo.count() == 0) {
             for (TeamPlayStyle style : TeamPlayStyle.values()) {
                 teamPlayStyleCombo.addItem(style.getDisplayName());
@@ -318,6 +367,45 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
         }
     }
 
+    private QGroupBox buildTeamBatchEditor() {
+        batchTeamApplyButton.clicked.connect(this::batchUpdateTeamsByCountry);
+
+        QFormLayout form = new QFormLayout();
+        form.addRow("Pais", batchTeamCountryCombo);
+        form.addRow("Novo dinheiro", batchTeamMoneyEdit);
+        form.addRow(batchTeamApplyButton);
+
+        QGroupBox box = new QGroupBox("Edicao em lote de times por pais");
+        box.setLayout(form);
+        return box;
+    }
+
+    private QGroupBox buildPlayerBatchEditor() {
+        batchPlayerApplyButton.clicked.connect(this::batchUpdatePlayers);
+
+        QFormLayout form = new QFormLayout();
+        form.addRow("Nova idade (0=ignorar)", batchPlayerAgeSpin);
+        form.addRow("Nova forca (0=ignorar)", batchPlayerOverallSpin);
+        form.addRow("Nova energia (-1=ignorar)", batchPlayerEnergySpin);
+        form.addRow("Pais", batchPlayerCountryCombo);
+        form.addRow(batchPlayerStarLocalCheck);
+        form.addRow(batchPlayerStarGlobalCheck);
+        form.addRow(batchPlayerApplyButton);
+
+        QGroupBox box = new QGroupBox("Edicao em lote de jogadores do time");
+        box.setLayout(form);
+        return box;
+    }
+
+    private void configureBatchPlayerEnumControls() {
+        if (batchPlayerCountryCombo.count() == 0) {
+            batchPlayerCountryCombo.addItem("", -1);
+            for (Country country : Country.values()) {
+                batchPlayerCountryCombo.addItem(country.getName(), country.getId());
+            }
+        }
+    }
+
     private QWidget buildPlayersTab() {
         QPushButton loadPlayersButton = new QPushButton("Carregar jogadores do time");
         loadPlayersButton.clicked.connect(this::loadPlayersForSelectedTeam);
@@ -325,6 +413,7 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
         playerTeamFilterEdit.setPlaceholderText("Pesquisar time por nome, ID, apelido, pais, divisao ou estadio");
         playerTeamFilterEdit.textChanged.connect(this::filterPlayerTeams);
         configurePlayerEnumControls();
+        configureBatchPlayerEnumControls();
 
         QPushButton savePlayerButton = new QPushButton("Salvar jogador");
         savePlayerButton.clicked.connect(this::saveSelectedPlayer);
@@ -340,6 +429,7 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
         form.addRow("Energia", playerEnergySpin);
         form.addRow("Salario", playerSalaryEdit);
         form.addRow("Lado", playerSideCombo);
+        form.addRow("Pais", playerCountryCombo);
         form.addRow("Fim contrato", playerContractEndDateEdit);
         form.addRow("Caracteristica 1", playerCharacteristic1Combo);
         form.addRow("Caracteristica 2", playerCharacteristic2Combo);
@@ -357,9 +447,12 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
         QGroupBox editor = new QGroupBox("Editor do jogador");
         editor.setLayout(form);
 
+        QGroupBox batchEditor = buildPlayerBatchEditor();
+
         QHBoxLayout layout = new QHBoxLayout();
         layout.addWidget(playersTable, 3);
         layout.addWidget(editor, 1);
+        layout.addWidget(batchEditor, 1);
 
         QWidget tab = new QWidget();
         tab.setLayout(layout);
@@ -375,6 +468,12 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
         if (playerSideCombo.count() == 0) {
             for (PlayerSide side : PlayerSide.values()) {
                 playerSideCombo.addItem(side.getDisplayName());
+            }
+        }
+        if (playerCountryCombo.count() == 0) {
+            playerCountryCombo.addItem("", -1);
+            for (Country country : Country.values()) {
+                playerCountryCombo.addItem(country.getName(), country.getId());
             }
         }
         if (playerCharacteristic1Combo.count() == 0) {
@@ -446,6 +545,34 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
         return tab;
     }
 
+    private QWidget buildCountriesTab() {
+        countriesTable.itemSelectionChanged.connect(this::updateCountryEditor);
+        countriesFilterEdit.setPlaceholderText("Pesquisar pais por nome, grupo ou ID");
+        countriesFilterEdit.textChanged.connect(this::filterCountries);
+
+        QPushButton saveCountryButton = new QPushButton("Salvar pais");
+        saveCountryButton.clicked.connect(this::saveSelectedCountry);
+
+        QFormLayout form = new QFormLayout();
+        form.addRow("Nivel", countryLevelSpin);
+        form.addRow(saveCountryButton);
+
+        QGroupBox editor = new QGroupBox("Editor do pais");
+        editor.setLayout(form);
+
+        QVBoxLayout tableLayout = new QVBoxLayout();
+        tableLayout.addWidget(countriesFilterEdit);
+        tableLayout.addWidget(countriesTable);
+
+        QHBoxLayout layout = new QHBoxLayout();
+        layout.addLayout(tableLayout, 3);
+        layout.addWidget(editor, 1);
+
+        QWidget tab = new QWidget();
+        tab.setLayout(layout);
+        return tab;
+    }
+
     private void openSave() {
         String path = QFileDialog.getOpenFileName(this, "Abrir save Brasfoot", "", "Brasfoot save (*.s22)").result;
         if (path == null || path.isBlank()) {
@@ -463,7 +590,7 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
 
         presenter.updateTeam(team.id(), teamNameEdit.text(), teamAliasEdit.text(), teamMoneyEdit.text(),
                 teamReputationCombo.currentText(), stadiumNameEdit.text(),
-                stadiumSectorEdits.stream().map(QLineEdit::text).toList(), teamCountryEdit.text(),
+                stadiumSectorEdits.stream().map(QLineEdit::text).toList(), selectedTeamCountryCode(),
                 teamDivisionEdit.text(), teamLevelEdit.text(), selectedPlayStyleCode(),
                 selectedMarkingCode(), selectedAttackFocusCode());
     }
@@ -491,7 +618,7 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
                 selectedCharacteristicCode(playerCharacteristic1Combo), selectedCharacteristicCode(playerCharacteristic2Combo), playerSkillGoalkeepingSpin.value(),
                 playerSkillSpeedSpin.value(), playerSkillTechniqueSpin.value(), playerSkillPassingSpin.value(),
                 playerSkillTacklingSpin.value(), playerSkillPlaymakingSpin.value(), playerSkillFinishingSpin.value(),
-                playerStarLocalCheck.isChecked(), playerStarGlobalCheck.isChecked());
+                selectedPlayerCountryCode(), playerStarLocalCheck.isChecked(), playerStarGlobalCheck.isChecked());
     }
 
     private void saveSelectedManager() {
@@ -525,6 +652,15 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
                 leagueGoalsAgainstSpin.value());
     }
 
+    private void saveSelectedCountry() {
+        CountryRow country = selectedCountry();
+        if (country == null) {
+            showError("Pais nao selecionado", "Selecione um pais antes de salvar.");
+            return;
+        }
+        presenter.updateCountryLevel(country.id(), countryLevelSpin.value());
+    }
+
     private void updateTeamEditor() {
         if (updatingUi) {
             return;
@@ -536,7 +672,7 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
 
         teamNameEdit.setText(value(team.name()));
         teamAliasEdit.setText(value(team.alias()));
-        teamCountryEdit.setText(value(team.country()));
+        selectComboByData(teamCountryCombo, team.country());
         teamDivisionEdit.setText(value(team.division()));
         teamLevelEdit.setText(value(team.level()));
         teamMoneyEdit.setText(String.valueOf(team.money()));
@@ -569,6 +705,7 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
         playerEnergySpin.setValue(player.energy());
         playerSalaryEdit.setText(value(player.salary()));
         playerSideCombo.setCurrentIndex(PlayerSide.fromCode(player.side()).getCode());
+        selectComboByData(playerCountryCombo, player.country());
         playerContractEndDateEdit.setDate(dateFromTimestamp(player.contractEnd()));
         playerCharacteristic1Combo.setCurrentIndex(PlayerCharacteristic.fromCode(player.characteristic1()).getCode());
         playerCharacteristic2Combo.setCurrentIndex(PlayerCharacteristic.fromCode(player.characteristic2()).getCode());
@@ -615,6 +752,17 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
         leagueGoalsAgainstSpin.setValue(entry.goalsAgainst());
     }
 
+    private void updateCountryEditor() {
+        if (updatingUi) {
+            return;
+        }
+        CountryRow country = selectedCountry();
+        if (country == null) {
+            return;
+        }
+        countryLevelSpin.setValue(country.level());
+    }
+
     private void filterTeams(String ignored) {
         fillTeamsTable();
         if (teamsTable.rowCount() > 0) {
@@ -630,12 +778,20 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
         }
     }
 
+    private void filterCountries(String ignored) {
+        fillCountriesTable();
+        if (countriesTable.rowCount() > 0) {
+            countriesTable.selectRow(0);
+            updateCountryEditor();
+        }
+    }
+
     private void fillTeamsTable() {
         List<TeamRow> filteredTeams = filteredTeams(teamsFilterEdit.text());
         teamsTable.setRowCount(filteredTeams.size());
         for (int row = 0; row < filteredTeams.size(); row++) {
             TeamRow team = filteredTeams.get(row);
-            setRow(teamsTable, row, String.valueOf(team.id()), team.name(), value(team.alias()), value(team.country()),
+            setRow(teamsTable, row, String.valueOf(team.id()), team.name(), value(team.alias()), countryLabel(team.country()),
                     value(team.division()), value(team.level()), String.valueOf(team.money()), team.reputation(),
                     playStyleLabel(team.tacticStyle()), markingLabel(team.tacticMarking()), attackFocusLabel(team.tacticFocus()),
                     value(team.stadiumName()), value(team.stadiumCapacity()));
@@ -647,7 +803,8 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
         for (int row = 0; row < players.size(); row++) {
             PlayerRow player = players.get(row);
             setRow(playersTable, row, String.valueOf(player.id()), player.name(), String.valueOf(player.age()),
-                    String.valueOf(player.overall()), positionLabel(player.position()), sideLabel(player.side()), String.valueOf(player.energy()),
+                    String.valueOf(player.overall()), positionLabel(player.position()), sideLabel(player.side()),
+                    countryLabel(player.country()), String.valueOf(player.energy()),
                     value(player.salary()), characteristicLabel(player.characteristic1()), characteristicLabel(player.characteristic2()), stars(player));
         }
     }
@@ -673,6 +830,16 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
         }
     }
 
+    private void fillCountriesTable() {
+        List<CountryRow> filteredCountries = filteredCountries(countriesFilterEdit.text());
+        countriesTable.setRowCount(filteredCountries.size());
+        for (int row = 0; row < filteredCountries.size(); row++) {
+            CountryRow country = filteredCountries.get(row);
+            setRow(countriesTable, row, country.id(), country.name(), country.group(),
+                    String.valueOf(country.level()), String.valueOf(country.divisionCount()));
+        }
+    }
+
     private void fillPlayerTeamCombo() {
         playerTeamCombo.clear();
         for (TeamRow team : filteredTeams(playerTeamFilterEdit.text())) {
@@ -690,6 +857,16 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
                 .toList();
     }
 
+    private List<CountryRow> filteredCountries(String filterText) {
+        String filter = normalize(filterText);
+        if (filter.isBlank()) {
+            return countries;
+        }
+        return countries.stream()
+                .filter(country -> normalize(searchText(country)).contains(filter))
+                .toList();
+    }
+
     private String searchText(TeamRow team) {
         return String.join(" ",
                 String.valueOf(team.id()),
@@ -700,6 +877,10 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
                 value(team.level()),
                 value(team.reputation()),
                 value(team.stadiumName()));
+    }
+
+    private String searchText(CountryRow country) {
+        return String.join(" ", country.id(), value(country.name()), value(country.group()), value(country.level()));
     }
 
     private String normalize(String text) {
@@ -739,6 +920,15 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
             return null;
         }
         return leagueEntries.stream().filter(entry -> entry.teamId() == teamId).findFirst().orElse(null);
+    }
+
+    private CountryRow selectedCountry() {
+        int row = countriesTable.currentRow();
+        if (row < 0 || countriesTable.item(row, 0) == null) {
+            return null;
+        }
+        String id = countriesTable.item(row, 0).text();
+        return countries.stream().filter(country -> country.id().equals(id)).findFirst().orElse(null);
     }
 
     private Integer selectedTableId(QTableWidget table) {
@@ -807,6 +997,91 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
     private int selectedPlayStyleCode() {
         int index = teamPlayStyleCombo.currentIndex();
         return index < 0 ? TeamPlayStyle.BALANCED.getCode() : index;
+    }
+
+    private String selectedTeamCountryCode() {
+        int index = teamCountryCombo.currentIndex();
+        if (index <= 0) return "";
+        Object data = teamCountryCombo.itemData(index);
+        return data == null ? "" : String.valueOf(data);
+    }
+
+    private String selectedPlayerCountryCode() {
+        int index = playerCountryCombo.currentIndex();
+        if (index <= 0) return "";
+        Object data = playerCountryCombo.itemData(index);
+        return data == null ? "" : String.valueOf(data);
+    }
+
+    private void selectComboByData(QComboBox combo, Object value) {
+        if (value == null) {
+            combo.setCurrentIndex(0);
+            return;
+        }
+        for (int i = 0; i < combo.count(); i++) {
+            if (value.equals(combo.itemData(i))) {
+                combo.setCurrentIndex(i);
+                return;
+            }
+        }
+        combo.setCurrentIndex(0);
+    }
+
+    private String countryLabel(Integer countryId) {
+        if (countryId == null) return "";
+        Country c = Country.fromId(countryId);
+        return c == null ? String.valueOf(countryId) : c.getName();
+    }
+
+    private void batchUpdateTeamsByCountry() {
+        int idx = batchTeamCountryCombo.currentIndex();
+        if (idx < 0) {
+            showError("Pais nao selecionado", "Selecione um pais para o batch.");
+            return;
+        }
+        Object data = batchTeamCountryCombo.itemData(idx);
+        if (!(data instanceof Integer countryId)) {
+            showError("Pais nao selecionado", "Selecione um pais valido para o batch.");
+            return;
+        }
+        presenter.batchUpdateTeamsByCountry(countryId, parseOptionalLong(batchTeamMoneyEdit.text(), "dinheiro"));
+    }
+
+    private Long parseOptionalLong(String text, String fieldName) {
+        String normalized = normalizeOptionalText(text);
+        if (normalized == null) return null;
+        try {
+            return Long.parseLong(normalized);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Valor invalido para " + fieldName + ".", e);
+        }
+    }
+
+    private String normalizeOptionalText(String text) {
+        if (text == null || text.isBlank()) return null;
+        return text.trim();
+    }
+
+    private void batchUpdatePlayers() {
+        Integer teamId = selectedPlayerTeamId();
+        if (teamId == null) {
+            showError("Time nao selecionado", "Selecione um time antes do batch.");
+            return;
+        }
+
+        Integer age = batchPlayerAgeSpin.value() > 0 ? batchPlayerAgeSpin.value() : null;
+        Integer overall = batchPlayerOverallSpin.value() > 0 ? batchPlayerOverallSpin.value() : null;
+        Integer energy = batchPlayerEnergySpin.value() >= 0 ? batchPlayerEnergySpin.value() : null;
+        Integer country = null;
+        int countryIdx = batchPlayerCountryCombo.currentIndex();
+        if (countryIdx > 0) {
+            Object data = batchPlayerCountryCombo.itemData(countryIdx);
+            if (data instanceof Integer c) country = c;
+        }
+        Boolean starLocal = batchPlayerStarLocalCheck.isChecked() ? Boolean.TRUE : null;
+        Boolean starGlobal = batchPlayerStarGlobalCheck.isChecked() ? Boolean.TRUE : null;
+
+        presenter.batchUpdatePlayers(teamId, age, overall, null, energy, country, starLocal, starGlobal);
     }
 
     private int selectedMarkingCode() {

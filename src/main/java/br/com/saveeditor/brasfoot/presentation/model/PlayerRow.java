@@ -10,6 +10,7 @@ public record PlayerRow(
         Integer salary,
         Integer side,
         Long contractEnd,
+        Integer country,
         Integer characteristic1,
         Integer characteristic2,
         Integer skillGoalkeeping,

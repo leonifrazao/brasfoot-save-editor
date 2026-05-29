@@ -52,6 +52,8 @@ public class BrasfootConstants {
     public static final String PLAYER_SKILL_PASSING = "eD"; // int (0-100); getter best.F.gM()
     public static final String PLAYER_SKILL_TACKLING = "eE"; // int (0-100); getter best.F.gN(), shown as Desarme/Des
     public static final String PLAYER_SKILL_PLAYMAKING = "eF"; // int (0-100); getter best.F.gO(), shown as Armacao/Arm
+    public static final String PLAYER_PAIS = "pais"; // int (ID do pais, ver Country enum)
+
     public static final String PLAYER_SKILL_FINISHING = "eG"; // int (0-100); getter best.F.gP()
 
 

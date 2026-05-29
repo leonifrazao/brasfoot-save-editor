@@ -26,6 +26,7 @@ public class Player {
     private Integer salary;
     private Integer side;
     private Long contractEnd;
+    private Integer country;
     private Integer characteristic1;
     private Integer characteristic2;
     private Integer skillGoalkeeping;
@@ -72,8 +73,8 @@ public class Player {
     public Player(int id, String name, int age, int overall, int position, int energy, int morale, Integer salary,
                   Integer side, Long contractEnd, Integer characteristic1, Integer characteristic2,
                   Integer skillGoalkeeping, Integer skillSpeed, Integer skillTechnique, Integer skillPassing,
-                  Integer skillTackling, Integer skillPlaymaking, Integer skillFinishing, boolean starLocal,
-                  boolean starGlobal) {
+                  Integer skillTackling, Integer skillPlaymaking, Integer skillFinishing, Integer country,
+                  boolean starLocal, boolean starGlobal) {
         this(id, name, age, overall, position, energy, morale, starLocal, starGlobal);
         setSalary(salary);
         setSide(side);
@@ -87,6 +88,7 @@ public class Player {
         setSkillTackling(skillTackling);
         setSkillPlaymaking(skillPlaymaking);
         setSkillFinishing(skillFinishing);
+        setCountry(country);
     }
 
 
@@ -141,6 +143,10 @@ public class Player {
             throw new IllegalArgumentException("Invalid side: must be 0 or 1");
         }
         this.side = side;
+    }
+
+    public void setCountry(Integer country) {
+        this.country = country;
     }
 
     public void setContractEnd(Long contractEnd) {

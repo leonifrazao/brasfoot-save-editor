@@ -1,16 +1,21 @@
 package br.com.saveeditor.brasfoot.presentation.presenter;
 
+import br.com.saveeditor.brasfoot.application.ports.in.record.PlayerBatchUpdateCommand;
+import br.com.saveeditor.brasfoot.application.ports.in.record.TeamBatchUpdateCommand;
+import br.com.saveeditor.brasfoot.application.services.CountryManagementService;
 import br.com.saveeditor.brasfoot.application.services.LeagueManagementService;
 import br.com.saveeditor.brasfoot.application.services.ManagerManagementService;
 import br.com.saveeditor.brasfoot.application.services.PlayerManagementService;
 import br.com.saveeditor.brasfoot.application.services.SessionService;
 import br.com.saveeditor.brasfoot.application.services.TeamManagementService;
+import br.com.saveeditor.brasfoot.domain.CountryState;
 import br.com.saveeditor.brasfoot.domain.League;
 import br.com.saveeditor.brasfoot.domain.LeagueTableEntry;
 import br.com.saveeditor.brasfoot.domain.Manager;
 import br.com.saveeditor.brasfoot.domain.Player;
 import br.com.saveeditor.brasfoot.domain.Team;
 import br.com.saveeditor.brasfoot.domain.enums.TeamReputation;
+import br.com.saveeditor.brasfoot.presentation.model.CountryRow;
 import br.com.saveeditor.brasfoot.presentation.model.LeagueRow;
 import br.com.saveeditor.brasfoot.presentation.model.LeagueTableRow;
 import br.com.saveeditor.brasfoot.presentation.model.ManagerRow;
@@ -37,20 +42,23 @@ public class BrasfootPresenter {
     private final PlayerManagementService playerManagementService;
     private final ManagerManagementService managerManagementService;
     private final LeagueManagementService leagueManagementService;
+    private final CountryManagementService countryManagementService;
 
     private BrasfootDesktopView view;
     private UUID currentSessionId;
 
     public BrasfootPresenter(SessionService sessionService,
-                              TeamManagementService teamManagementService,
-                              PlayerManagementService playerManagementService,
-                              ManagerManagementService managerManagementService,
-                              LeagueManagementService leagueManagementService) {
+                               TeamManagementService teamManagementService,
+                               PlayerManagementService playerManagementService,
+                               ManagerManagementService managerManagementService,
+                               LeagueManagementService leagueManagementService,
+                               CountryManagementService countryManagementService) {
         this.sessionService = sessionService;
         this.teamManagementService = teamManagementService;
         this.playerManagementService = playerManagementService;
         this.managerManagementService = managerManagementService;
         this.leagueManagementService = leagueManagementService;
+        this.countryManagementService = countryManagementService;
     }
 
     public void attach(BrasfootDesktopView view) {
@@ -65,6 +73,7 @@ public class BrasfootPresenter {
             refreshTeams();
             refreshManagers();
             refreshLeagues();
+            refreshCountries();
         } catch (RuntimeException e) {
             showError("Falha ao abrir save", e);
         }
@@ -122,6 +131,17 @@ public class BrasfootPresenter {
             view.showLeagues(leagues);
         } catch (RuntimeException e) {
             showError("Falha ao carregar ligas", e);
+        }
+    }
+
+    public void refreshCountries() {
+        try {
+            List<CountryRow> countries = countryManagementService.getCountries(requireSession()).stream()
+                    .map(this::toCountryRow)
+                    .toList();
+            view.showCountries(countries);
+        } catch (RuntimeException e) {
+            showError("Falha ao carregar paises", e);
         }
     }
 
@@ -187,13 +207,14 @@ public class BrasfootPresenter {
                              String salaryText, String sideText, String contractEndText, int characteristic1,
                              int characteristic2, int skillGoalkeeping, int skillSpeed, int skillTechnique,
                              int skillPassing, int skillTackling, int skillPlaymaking, int skillFinishing,
-                             boolean starLocal, boolean starGlobal) {
+                             String countryText, boolean starLocal, boolean starGlobal) {
         try {
             playerManagementService.updatePlayer(requireSession(), teamId, playerId, normalizeOptionalText(name), age,
                     overall, position, energy, parseOptionalInteger(salaryText, "salario"),
                     parseOptionalInteger(sideText, "lado"), parseOptionalLong(contractEndText, "fim de contrato"),
                     characteristic1, characteristic2, skillGoalkeeping, skillSpeed, skillTechnique, skillPassing,
-                    skillTackling, skillPlaymaking, skillFinishing, starLocal, starGlobal);
+                    skillTackling, skillPlaymaking, skillFinishing, parseOptionalInteger(countryText, "pais"),
+                    starLocal, starGlobal);
             loadPlayers(teamId);
             view.showStatus("Jogador atualizado.");
         } catch (RuntimeException e) {
@@ -235,8 +256,49 @@ public class BrasfootPresenter {
         }
     }
 
+    public void batchUpdatePlayers(int teamId, Integer age, Integer overall, Integer position, Integer energy,
+                                   Integer country, Boolean starLocal, Boolean starGlobal) {
+        try {
+            UUID sessionId = requireSession();
+            List<PlayerRow> currentPlayers = playerManagementService.getTeamPlayers(sessionId, teamId).stream()
+                    .map(this::toPlayerRow)
+                    .toList();
+            List<PlayerBatchUpdateCommand> commands = currentPlayers.stream()
+                    .map(p -> new PlayerBatchUpdateCommand(p.id(), age, overall, position, energy, null,
+                            starLocal, starGlobal, country))
+                    .toList();
+            var response = playerManagementService.batchUpdatePlayers(sessionId, teamId, commands);
+            long succeeded = response.getResults().stream().filter(r -> r.isSuccess()).count();
+            loadPlayers(teamId);
+            view.showStatus(succeeded + "/" + commands.size() + " jogadores atualizados em lote.");
+        } catch (RuntimeException e) {
+            showError("Falha ao atualizar jogadores em lote", e);
+        }
+    }
+
+    public void batchUpdateTeamsByCountry(int countryId, Long money) {
+        try {
+            UUID sessionId = requireSession();
+            List<Team> allTeams = teamManagementService.getAllTeams(sessionId);
+            List<TeamBatchUpdateCommand> commands = allTeams.stream()
+                    .filter(t -> t.getCountry() != null && t.getCountry() == countryId)
+                    .map(t -> new TeamBatchUpdateCommand(t.getId(), money, null))
+                    .toList();
+            if (commands.isEmpty()) {
+                view.showStatus("Nenhum time encontrado para este pais.");
+                return;
+            }
+            var response = teamManagementService.batchUpdateTeams(sessionId, commands);
+            long succeeded = response.getResults().stream().filter(r -> r.isSuccess()).count();
+            refreshTeams();
+            view.showStatus(succeeded + "/" + commands.size() + " times atualizados em lote.");
+        } catch (RuntimeException e) {
+            showError("Falha ao atualizar times em lote", e);
+        }
+    }
+
     public void updateLeagueTableEntry(String leagueId, int teamId, int points, int wins, int draws, int losses,
-                                       int goalsFor, int goalsAgainst) {
+                                        int goalsFor, int goalsAgainst) {
         try {
             leagueManagementService.updateTableEntry(requireSession(), leagueId, teamId, points, wins, draws, losses,
                     goalsFor, goalsAgainst);
@@ -244,6 +306,17 @@ public class BrasfootPresenter {
             view.showStatus("Tabela atualizada. Jogos = V + E + D para preservar empates.");
         } catch (RuntimeException e) {
             showError("Falha ao atualizar tabela", e);
+        }
+    }
+
+    public void updateCountryLevel(String countryId, int level) {
+        try {
+            countryManagementService.updateCountryLevel(requireSession(), countryId, level);
+            refreshCountries();
+            refreshLeagues();
+            view.showStatus("Pais atualizado.");
+        } catch (RuntimeException e) {
+            showError("Falha ao atualizar pais", e);
         }
     }
 
@@ -263,6 +336,7 @@ public class BrasfootPresenter {
     private PlayerRow toPlayerRow(Player player) {
         return new PlayerRow(player.getId(), player.getName(), player.getAge(), player.getOverall(),
                 player.getPosition(), player.getEnergy(), player.getSalary(), player.getSide(), player.getContractEnd(),
+                player.getCountry(),
                 player.getCharacteristic1(), player.getCharacteristic2(), player.getSkillGoalkeeping(),
                 player.getSkillSpeed(), player.getSkillTechnique(), player.getSkillPassing(), player.getSkillTackling(),
                 player.getSkillPlaymaking(), player.getSkillFinishing(), player.isStarLocal(), player.isStarGlobal());
@@ -281,6 +355,10 @@ public class BrasfootPresenter {
         return new LeagueTableRow(entry.position(), entry.teamId(), entry.teamName(), entry.points(), entry.played(),
                 entry.wins(), entry.draws(), entry.losses(), entry.goalsFor(), entry.goalsAgainst(),
                 entry.goalDifference());
+    }
+
+    private CountryRow toCountryRow(CountryState country) {
+        return new CountryRow(country.id(), country.name(), country.group(), country.level(), country.divisionCount());
     }
 
     private Long parseLong(String text, String fieldName) {
