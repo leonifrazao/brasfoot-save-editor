@@ -2,6 +2,20 @@
 
 Editor desktop para saves `.s22` do Brasfoot.
 
+## Capturas De Tela
+
+### Tela Principal
+
+![Tela principal do editor](docs/tela_principal.jpg)
+
+### Dados Carregados
+
+![Save carregado no editor](docs/dados_carregados.jpg)
+
+### Jogadores
+
+![Tela de jogadores](docs/jogadores.jpg)
+
 ## Arquitetura
 
 - `domain`: modelos e estado do save.
