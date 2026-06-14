@@ -126,6 +126,29 @@ class TeamManagementServiceTest {
     }
 
     @Test
+    void batchUpdateTeams_withLevelAndMinimumStadium_updatesTeam() {
+        // Arrange
+        when(navegacaoState.getObjetoRaiz()).thenReturn(root);
+        when(sessionResolver.loadRequired(sessionId)).thenReturn(session);
+        when(gameDataPort.getTeamById(root, 1)).thenReturn(team1);
+
+        List<TeamBatchUpdateCommand> commands = List.of(
+                new TeamBatchUpdateCommand(1, 0L, TeamReputation.MUNICIPAL, null, List.of(1, 0, 0, 0), 0)
+        );
+
+        // Act
+        BatchResponse<Team> updated = teamManagementService.batchUpdateTeams(sessionId, commands);
+
+        // Assert
+        assertEquals(true, updated.getResults().get(0).isSuccess());
+        assertEquals(0L, team1.nb);
+        assertEquals(TeamReputation.MUNICIPAL.getValue(), team1.nc);
+        assertEquals(0, team1.hA);
+        assertEquals(List.of(1, 0, 0, 0), updated.getResults().get(0).getData().getStadiumSectors());
+        verify(sessionStatePort).save(session);
+    }
+
+    @Test
     void getAllTeams_withMissingSession_throws() {
         // Arrange
         UUID missingSessionId = UUID.randomUUID();
@@ -141,6 +164,7 @@ class TeamManagementServiceTest {
         public String dm;
         public long nb;
         public int nc;
+        public int hA = 5;
         public DummyStadium dH;
 
         DummyTeam(int id, String name, long money, int reputation) {

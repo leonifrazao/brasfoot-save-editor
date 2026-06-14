@@ -25,7 +25,7 @@ public class KryoSaveAdapter implements LoadSavePort, WriteSavePort {
             return context;
         } catch (Exception e) {
             if (isMissingBrasfootClass(e)) {
-                throw new IllegalStateException("Brasfoot game classes were not loaded. Check whether lib/brasfoot.jar is on the runtime classpath.", e);
+                throw new IllegalStateException("Brasfoot game classes were not loaded. Check whether lib/brasfoot-game.jar is on the runtime classpath.", e);
             }
 
             throw new IllegalArgumentException("Invalid save file payload: " + getRootCauseMessage(e), e);

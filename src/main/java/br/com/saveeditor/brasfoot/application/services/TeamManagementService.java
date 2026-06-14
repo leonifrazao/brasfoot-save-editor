@@ -177,6 +177,7 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
                     ReflectionUtils.setFieldValue(teamObj, BrasfootConstants.TEAM_REPUTATION, command.reputation().getValue());
                 }
                 updateStadium(teamObj, command.stadiumName(), command.stadiumSectors());
+                setIfPresent(teamObj, BrasfootConstants.TEAM_LEVEL, command.level());
 
                 results.add(BatchResult.success(i, mapToTeamDomain(teamObj)));
             } catch (IllegalArgumentException e) {

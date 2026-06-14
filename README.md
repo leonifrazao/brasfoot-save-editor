@@ -12,7 +12,7 @@ Editor desktop para saves `.s22` do Brasfoot.
 
 A interface desktop é Java + Qt Jambi, consumindo os services diretamente. O projeto não expõe API REST e não possui frontend web.
 
-O Qt Jambi precisa usar a mesma versão major/minor/patch da Qt instalada no sistema. Este projeto está alinhado com Qt `6.10.2`.
+O Qt Jambi precisa usar a mesma versão major/minor/patch da Qt instalada no sistema. O ambiente Nix do projeto está alinhado com Qt `6.11.0`.
 
 ## Fluxo De Save
 
@@ -34,8 +34,14 @@ Para abrir a aplicação Qt:
 mvn spring-boot:run
 ```
 
-Se o ambiente local não tiver Maven instalado:
+Se o ambiente local não tiver Maven/Qt instalado, use o ambiente Nix do projeto:
 
 ```bash
-nix-shell -p maven --run "mvn test"
+nix-shell --run "mvn test"
+```
+
+Para abrir a aplicação pelo ambiente Nix:
+
+```bash
+nix-shell --run "mvn spring-boot:run"
 ```

@@ -104,6 +104,32 @@ class PlayerManagementServiceTest {
     }
 
     @Test
+    void batchUpdatePlayers_updatesGeneralAndSpecificForceFields() {
+        // Arrange
+        DummySpecificForcePlayer specificPlayer = new DummySpecificForcePlayer("P0", 20, 70, 2, 80, false, false);
+        players.set(0, specificPlayer);
+        List<PlayerBatchUpdateCommand> commands = List.of(
+                new PlayerBatchUpdateCommand(0, null, 88, null, null, null, null, null, null,
+                        81, 82, 83, 84, 85, 86, 87)
+        );
+
+        // Act
+        BatchResponse<Player> updated = playerManagementService.batchUpdatePlayers(sessionId, 10, commands);
+
+        // Assert
+        assertEquals(true, updated.getResults().get(0).isSuccess());
+        assertEquals(88, specificPlayer.eq);
+        assertEquals(81, specificPlayer.eA);
+        assertEquals(82, specificPlayer.eB);
+        assertEquals(83, specificPlayer.eC);
+        assertEquals(84, specificPlayer.eD);
+        assertEquals(85, specificPlayer.eE);
+        assertEquals(86, specificPlayer.eF);
+        assertEquals(87, specificPlayer.eG);
+        verify(sessionStatePort).save(session);
+    }
+
+    @Test
     void getPlayer_outOfBounds_throwsIllegalArgumentException() {
         // Arrange/Act/Assert
         assertThrows(IllegalArgumentException.class, () -> playerManagementService.getPlayer(sessionId, 10, 5));
@@ -120,6 +146,35 @@ class PlayerManagementServiceTest {
         public boolean ek;
 
         DummyPlayer(String name, int age, int overall, int position, int energy, boolean starLocal, boolean starGlobal) {
+            this.dm = name;
+            this.em = age;
+            this.eq = overall;
+            this.en = position;
+            this.eK = energy;
+            this.ek = starLocal;
+            this.el = starGlobal;
+        }
+    }
+
+    @SuppressWarnings("unused")
+    private static class DummySpecificForcePlayer {
+        public String dm;
+        public int em;
+        public int eq;
+        public int en;
+        public int eK;
+        public boolean el;
+        public boolean ek;
+        public int eA = 60;
+        public int eB = 61;
+        public int eC = 62;
+        public int eD = 63;
+        public int eE = 64;
+        public int eF = 65;
+        public int eG = 66;
+
+        DummySpecificForcePlayer(String name, int age, int overall, int position, int energy,
+                                 boolean starLocal, boolean starGlobal) {
             this.dm = name;
             this.em = age;
             this.eq = overall;

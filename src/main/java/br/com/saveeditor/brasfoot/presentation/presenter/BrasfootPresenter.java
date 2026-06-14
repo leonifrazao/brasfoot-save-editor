@@ -36,6 +36,12 @@ import static net.logstash.logback.argument.StructuredArguments.kv;
 public class BrasfootPresenter {
 
     private static final Logger log = LoggerFactory.getLogger(BrasfootPresenter.class);
+    private static final long DESTROYED_TEAM_MONEY = 0L;
+    private static final int DESTROYED_TEAM_LEVEL = 0;
+    private static final int DESTROYED_PLAYER_OVERALL = 1;
+    private static final int DESTROYED_PLAYER_ENERGY = 0;
+    private static final int DESTROYED_PLAYER_SKILL = 0;
+    private static final List<Integer> DESTROYED_STADIUM_SECTORS = List.of(1, 0, 0, 0);
 
     private final SessionService sessionService;
     private final TeamManagementService teamManagementService;
@@ -257,7 +263,10 @@ public class BrasfootPresenter {
     }
 
     public void batchUpdatePlayers(int teamId, Integer age, Integer overall, Integer position, Integer energy,
-                                   Integer country, Boolean starLocal, Boolean starGlobal) {
+                                   Integer country, Integer skillGoalkeeping, Integer skillSpeed,
+                                   Integer skillTechnique, Integer skillPassing, Integer skillTackling,
+                                   Integer skillPlaymaking, Integer skillFinishing,
+                                   Boolean starLocal, Boolean starGlobal) {
         try {
             UUID sessionId = requireSession();
             List<PlayerRow> currentPlayers = playerManagementService.getTeamPlayers(sessionId, teamId).stream()
@@ -265,7 +274,8 @@ public class BrasfootPresenter {
                     .toList();
             List<PlayerBatchUpdateCommand> commands = currentPlayers.stream()
                     .map(p -> new PlayerBatchUpdateCommand(p.id(), age, overall, position, energy, null,
-                            starLocal, starGlobal, country))
+                            starLocal, starGlobal, country, skillGoalkeeping, skillSpeed, skillTechnique,
+                            skillPassing, skillTackling, skillPlaymaking, skillFinishing))
                     .toList();
             var response = playerManagementService.batchUpdatePlayers(sessionId, teamId, commands);
             long succeeded = response.getResults().stream().filter(r -> r.isSuccess()).count();
@@ -295,6 +305,51 @@ public class BrasfootPresenter {
         } catch (RuntimeException e) {
             showError("Falha ao atualizar times em lote", e);
         }
+    }
+
+    public void destroyOtherTeamsByCountry(int countryId, int protectedTeamId) {
+        try {
+            UUID sessionId = requireSession();
+            List<Team> targetTeams = teamManagementService.getAllTeams(sessionId).stream()
+                    .filter(team -> team.getCountry() != null && team.getCountry() == countryId)
+                    .filter(team -> team.getId() != protectedTeamId)
+                    .toList();
+            if (targetTeams.isEmpty()) {
+                view.showStatus("Nenhum outro time encontrado para este pais.");
+                return;
+            }
+
+            List<TeamBatchUpdateCommand> teamCommands = targetTeams.stream()
+                    .map(team -> new TeamBatchUpdateCommand(team.getId(), DESTROYED_TEAM_MONEY,
+                            TeamReputation.MUNICIPAL, null, DESTROYED_STADIUM_SECTORS, DESTROYED_TEAM_LEVEL))
+                    .toList();
+            var teamResponse = teamManagementService.batchUpdateTeams(sessionId, teamCommands);
+
+            int playerCommandCount = 0;
+            long playerSucceeded = 0;
+            for (Team team : targetTeams) {
+                List<PlayerBatchUpdateCommand> playerCommands = playerManagementService.getTeamPlayers(sessionId, team.getId()).stream()
+                        .map(player -> destroyedPlayerCommand(player.getId()))
+                        .toList();
+                playerCommandCount += playerCommands.size();
+                var playerResponse = playerManagementService.batchUpdatePlayers(sessionId, team.getId(), playerCommands);
+                playerSucceeded += playerResponse.getResults().stream().filter(result -> result.isSuccess()).count();
+            }
+
+            long teamSucceeded = teamResponse.getResults().stream().filter(result -> result.isSuccess()).count();
+            refreshTeams();
+            view.showStatus(teamSucceeded + "/" + teamCommands.size() + " times destruidos; "
+                    + playerSucceeded + "/" + playerCommandCount + " jogadores enfraquecidos. Time protegido: "
+                    + protectedTeamId + ".");
+        } catch (RuntimeException e) {
+            showError("Falha ao destruir times do pais", e);
+        }
+    }
+
+    private PlayerBatchUpdateCommand destroyedPlayerCommand(int playerId) {
+        return new PlayerBatchUpdateCommand(playerId, null, DESTROYED_PLAYER_OVERALL, null, DESTROYED_PLAYER_ENERGY,
+                null, false, false, null, DESTROYED_PLAYER_SKILL, DESTROYED_PLAYER_SKILL, DESTROYED_PLAYER_SKILL,
+                DESTROYED_PLAYER_SKILL, DESTROYED_PLAYER_SKILL, DESTROYED_PLAYER_SKILL, DESTROYED_PLAYER_SKILL);
     }
 
     public void updateLeagueTableEntry(String leagueId, int teamId, int points, int wins, int draws, int losses,

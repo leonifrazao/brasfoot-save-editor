@@ -25,7 +25,6 @@ import static net.logstash.logback.argument.StructuredArguments.kv;
 public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(PlayerManagementService.class);
-
     private final GameDataPort gameDataPort;
     private final SessionStatePort sessionStatePort;
     private final SessionResolver sessionResolver;
@@ -287,6 +286,13 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
                             .build();
                     ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_OVERALL, command.overall());
                 }
+                setIfPresent(playerObj, BrasfootConstants.PLAYER_SKILL_GOALKEEPING, command.skillGoalkeeping());
+                setIfPresent(playerObj, BrasfootConstants.PLAYER_SKILL_SPEED, command.skillSpeed());
+                setIfPresent(playerObj, BrasfootConstants.PLAYER_SKILL_TECHNIQUE, command.skillTechnique());
+                setIfPresent(playerObj, BrasfootConstants.PLAYER_SKILL_PASSING, command.skillPassing());
+                setIfPresent(playerObj, BrasfootConstants.PLAYER_SKILL_TACKLING, command.skillTackling());
+                setIfPresent(playerObj, BrasfootConstants.PLAYER_SKILL_PLAYMAKING, command.skillPlaymaking());
+                setIfPresent(playerObj, BrasfootConstants.PLAYER_SKILL_FINISHING, command.skillFinishing());
                 if (command.position() != null) {
                     Player.builder()
                             .id(currentPlayer.getId())
