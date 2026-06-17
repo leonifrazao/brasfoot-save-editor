@@ -2,6 +2,8 @@ package br.com.saveeditor.brasfoot.domain;
 
 import lombok.*;
 
+import java.util.List;
+
 @Getter
 @ToString
 @EqualsAndHashCode
@@ -21,8 +23,22 @@ public class Manager {
     private Integer teamId;
     private Integer confidenceBoard;
     private Integer confidenceFans;
+    @Setter
+    private List<ManagerTrophy> trophies;
+    @Setter
+    private List<ManagerTrophyCompetition> trophyCompetitions;
 
     public Manager(Integer id, String name, Boolean isHuman, Integer teamId, Integer confidenceBoard, Integer confidenceFans) {
+        this(id, name, isHuman, teamId, confidenceBoard, confidenceFans, null);
+    }
+
+    public Manager(Integer id, String name, Boolean isHuman, Integer teamId, Integer confidenceBoard, Integer confidenceFans,
+                   List<ManagerTrophy> trophies) {
+        this(id, name, isHuman, teamId, confidenceBoard, confidenceFans, trophies, null);
+    }
+
+    public Manager(Integer id, String name, Boolean isHuman, Integer teamId, Integer confidenceBoard, Integer confidenceFans,
+                   List<ManagerTrophy> trophies, List<ManagerTrophyCompetition> trophyCompetitions) {
         validateConfidence("confidenceBoard", confidenceBoard);
         validateConfidence("confidenceFans", confidenceFans);
         this.id = id;
@@ -31,6 +47,8 @@ public class Manager {
         this.teamId = teamId;
         this.confidenceBoard = confidenceBoard;
         this.confidenceFans = confidenceFans;
+        this.trophies = trophies;
+        this.trophyCompetitions = trophyCompetitions;
     }
 
     private void validateConfidence(String fieldName, Integer value) {
@@ -68,12 +86,36 @@ public class Manager {
                              Integer teamId,
                              Integer confidenceBoard,
                              Integer confidenceFans) {
+        return of(id, name, isHuman, teamId, confidenceBoard, confidenceFans, null);
+    }
+
+    public static Manager of(Integer id,
+                             String name,
+                             Boolean isHuman,
+                              Integer teamId,
+                              Integer confidenceBoard,
+                              Integer confidenceFans,
+                              List<ManagerTrophy> trophies) {
+        return of(id, name, isHuman, teamId, confidenceBoard, confidenceFans, trophies, null);
+    }
+
+    public static Manager of(Integer id,
+                             String name,
+                             Boolean isHuman,
+                             Integer teamId,
+                             Integer confidenceBoard,
+                             Integer confidenceFans,
+                             List<ManagerTrophy> trophies,
+                             List<ManagerTrophyCompetition> trophyCompetitions) {
         return Manager.builder()
                 .id(id)
                 .name(name)
                 .isHuman(isHuman)
                 .teamId(teamId)
                 .confidenceBoard(confidenceBoard)
-                .confidenceFans(confidenceFans).build();
+                .confidenceFans(confidenceFans)
+                .trophies(trophies)
+                .trophyCompetitions(trophyCompetitions)
+                .build();
     }
 }

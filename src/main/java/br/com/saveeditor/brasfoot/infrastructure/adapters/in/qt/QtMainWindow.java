@@ -7,6 +7,8 @@ import br.com.saveeditor.brasfoot.domain.enums.PlayerSide;
 import br.com.saveeditor.brasfoot.domain.enums.TeamAttackFocus;
 import br.com.saveeditor.brasfoot.domain.enums.TeamMarking;
 import br.com.saveeditor.brasfoot.domain.enums.TeamPlayStyle;
+import br.com.saveeditor.brasfoot.domain.ManagerTrophy;
+import br.com.saveeditor.brasfoot.domain.ManagerTrophyCompetition;
 import br.com.saveeditor.brasfoot.domain.enums.TeamReputation;
 import br.com.saveeditor.brasfoot.presentation.model.CountryRow;
 import br.com.saveeditor.brasfoot.presentation.model.LeagueRow;
@@ -113,12 +115,22 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
     private final QCheckBox playerStarLocalCheck = new QCheckBox("Estrela local");
     private final QCheckBox playerStarGlobalCheck = new QCheckBox("Estrela mundial");
 
-    private final QTableWidget managersTable = table("ID", "Tecnico", "Time", "Humano", "Diretoria", "Torcida");
+    private final QTableWidget managersTable = table("ID", "Tecnico", "Time", "Humano", "Diretoria", "Torcida", "Trofeus");
+    private final QTableWidget managerTrophiesTable = table("Idx", "Temporada", "Tipo", "Variante", "Time", "Competicao");
+    private final QLineEdit managerFilterEdit = new QLineEdit();
+    private final QCheckBox managerHumansOnlyCheck = new QCheckBox("Somente humanos");
+    private final QSpinBox managerMaxTeamIdFilterSpin = spin(-1, 999999, 999999);
     private final QLineEdit managerNameEdit = new QLineEdit();
-    private final QLineEdit managerTeamIdEdit = new QLineEdit();
+    private final QLineEdit managerTeamFilterEdit = new QLineEdit();
+    private final QComboBox managerTeamCombo = new QComboBox();
     private final QCheckBox managerHumanCheck = new QCheckBox("Tecnico humano");
     private final QSpinBox managerBoardSpin = spin(0, 100);
     private final QSpinBox managerFansSpin = spin(0, 100);
+    private final QSpinBox managerTrophyYearSpin = spin(0, 9999);
+    private final QComboBox managerTrophyCompetitionCombo = new QComboBox();
+    private final QSpinBox managerTrophyTypeSpin = spin(0, 99);
+    private final QSpinBox managerTrophyVariantSpin = spin(0, 9999);
+    private final QSpinBox managerTrophyTeamSpin = spin(-1, 999999);
 
     private final QComboBox leagueCombo = new QComboBox();
     private final QTableWidget leagueTable = table("Pos", "Team ID", "Time", "Pts", "J", "V", "E", "D", "GP", "GC", "SG");
@@ -171,6 +183,7 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
         teams.addAll(rows);
         fillTeamsTable();
         fillPlayerTeamCombo();
+        fillManagerTeamCombo();
         updatingUi = false;
 
         if (!teams.isEmpty()) {
@@ -201,6 +214,7 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
         updatingUi = true;
         managers.clear();
         managers.addAll(rows);
+        fillManagerTrophyCompetitionCombo();
         fillManagersTable();
         updatingUi = false;
 
@@ -508,13 +522,28 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
 
     private QWidget buildManagersTab() {
         managersTable.itemSelectionChanged.connect(this::updateManagerEditor);
+        managerTrophiesTable.itemSelectionChanged.connect(this::updateTrophyEditor);
+        managerTrophyCompetitionCombo.currentIndexChanged.connect(ignored -> updateTrophyCompetitionFields());
+        managerFilterEdit.setPlaceholderText("Pesquisar tecnico por nome, ID, time ou humano");
+        managerFilterEdit.textChanged.connect(ignored -> filterManagers());
+        managerHumansOnlyCheck.toggled.connect(ignored -> filterManagers());
+        managerMaxTeamIdFilterSpin.valueChanged.connect(ignored -> filterManagers());
+        managerTeamFilterEdit.setPlaceholderText("Pesquisar time por nome, ID, apelido, pais, divisao ou estadio");
+        managerTeamFilterEdit.textChanged.connect(ignored -> filterManagerTeams());
 
         QPushButton saveManagerButton = new QPushButton("Salvar tecnico");
         saveManagerButton.clicked.connect(this::saveSelectedManager);
+        QPushButton applyTrophyButton = new QPushButton("Aplicar linha do trofeu");
+        applyTrophyButton.clicked.connect(() -> applySelectedTrophyFieldsToTable());
+        QPushButton addTrophyButton = new QPushButton("Adicionar trofeu");
+        addTrophyButton.clicked.connect(this::addTrophyRow);
+        QPushButton removeTrophyButton = new QPushButton("Remover trofeu");
+        removeTrophyButton.clicked.connect(this::removeSelectedTrophyRow);
 
         QFormLayout form = new QFormLayout();
         form.addRow("Nome", managerNameEdit);
-        form.addRow("Time", managerTeamIdEdit);
+        form.addRow("Pesquisar time", managerTeamFilterEdit);
+        form.addRow("Time", managerTeamCombo);
         form.addRow(managerHumanCheck);
         form.addRow("Confianca diretoria", managerBoardSpin);
         form.addRow("Confianca torcida", managerFansSpin);
@@ -523,9 +552,36 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
         QGroupBox editor = new QGroupBox("Editor do tecnico");
         editor.setLayout(form);
 
+        QFormLayout trophyForm = new QFormLayout();
+        trophyForm.addRow("Temporada", managerTrophyYearSpin);
+        trophyForm.addRow("Competicao", managerTrophyCompetitionCombo);
+        trophyForm.addRow("Tipo", managerTrophyTypeSpin);
+        trophyForm.addRow("Variante", managerTrophyVariantSpin);
+        trophyForm.addRow("Time ID", managerTrophyTeamSpin);
+        trophyForm.addRow(applyTrophyButton);
+        trophyForm.addRow(addTrophyButton);
+        trophyForm.addRow(removeTrophyButton);
+
+        QGroupBox trophyEditor = new QGroupBox("Trofeus do tecnico");
+        trophyEditor.setLayout(trophyForm);
+
+        QVBoxLayout trophyLayout = new QVBoxLayout();
+        trophyLayout.addWidget(managerTrophiesTable, 2);
+        trophyLayout.addWidget(trophyEditor, 1);
+
+        QFormLayout filtersLayout = new QFormLayout();
+        filtersLayout.addRow("Pesquisar", managerFilterEdit);
+        filtersLayout.addRow(managerHumansOnlyCheck);
+        filtersLayout.addRow("ID max. do time", managerMaxTeamIdFilterSpin);
+
+        QVBoxLayout tableLayout = new QVBoxLayout();
+        tableLayout.addLayout(filtersLayout);
+        tableLayout.addWidget(managersTable);
+
         QHBoxLayout layout = new QHBoxLayout();
-        layout.addWidget(managersTable, 3);
+        layout.addLayout(tableLayout, 3);
         layout.addWidget(editor, 1);
+        layout.addLayout(trophyLayout, 2);
 
         QWidget tab = new QWidget();
         tab.setLayout(layout);
@@ -646,8 +702,9 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
             return;
         }
 
-        presenter.updateManager(manager.id(), managerNameEdit.text(), managerHumanCheck.isChecked(), managerTeamIdEdit.text(),
-                managerBoardSpin.value(), managerFansSpin.value());
+        applySelectedTrophyFieldsToTable(false);
+        presenter.updateManager(manager.id(), managerNameEdit.text(), managerHumanCheck.isChecked(), selectedManagerTeamIdText(),
+                managerBoardSpin.value(), managerFansSpin.value(), managerTrophiesFromTable());
     }
 
     private void loadSelectedLeagueTable() {
@@ -749,10 +806,40 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
         }
 
         managerNameEdit.setText(manager.name() == null ? "" : manager.name());
-        managerTeamIdEdit.setText(value(manager.teamId()));
+        selectManagerTeam(manager.teamId());
         managerHumanCheck.setChecked(Boolean.TRUE.equals(manager.human()));
         managerBoardSpin.setValue(manager.confidenceBoard() == null ? 0 : manager.confidenceBoard());
         managerFansSpin.setValue(manager.confidenceFans() == null ? 0 : manager.confidenceFans());
+        fillManagerTrophiesTable(manager);
+    }
+
+    private void updateTrophyEditor() {
+        if (updatingUi) {
+            return;
+        }
+        int row = managerTrophiesTable.currentRow();
+        if (row < 0 || managerTrophiesTable.item(row, 0) == null) {
+            return;
+        }
+
+        managerTrophyYearSpin.setValue(parseTableInteger(managerTrophiesTable, row, 1, 0));
+        managerTrophyTypeSpin.setValue(parseTableInteger(managerTrophiesTable, row, 2, 0));
+        managerTrophyVariantSpin.setValue(parseTableInteger(managerTrophiesTable, row, 3, 0));
+        managerTrophyTeamSpin.setValue(parseTableInteger(managerTrophiesTable, row, 4, -1));
+        selectTrophyCompetition(managerTrophyTypeSpin.value(), managerTrophyVariantSpin.value(), tableText(managerTrophiesTable, row, 5));
+    }
+
+    private void updateTrophyCompetitionFields() {
+        if (updatingUi) {
+            return;
+        }
+        TrophyCompetitionOption competition = selectedTrophyCompetitionOption();
+        if (competition == null) {
+            return;
+        }
+
+        managerTrophyTypeSpin.setValue(competition.type());
+        managerTrophyVariantSpin.setValue(competition.variant());
     }
 
     private void updateLeagueEditor() {
@@ -805,6 +892,18 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
         }
     }
 
+    private void filterManagers() {
+        fillManagersTable();
+        if (managersTable.rowCount() > 0) {
+            managersTable.selectRow(0);
+            updateManagerEditor();
+        }
+    }
+
+    private void filterManagerTeams() {
+        fillManagerTeamCombo();
+    }
+
     private void fillTeamsTable() {
         List<TeamRow> filteredTeams = filteredTeams(teamsFilterEdit.text());
         teamsTable.setRowCount(filteredTeams.size());
@@ -840,13 +939,68 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
     }
 
     private void fillManagersTable() {
-        managersTable.setRowCount(managers.size());
-        for (int row = 0; row < managers.size(); row++) {
-            ManagerRow manager = managers.get(row);
-            setRow(managersTable, row, String.valueOf(manager.id()), value(manager.name()), value(manager.teamId()),
+        List<ManagerRow> filteredManagers = filteredManagers();
+        managersTable.setRowCount(filteredManagers.size());
+        for (int row = 0; row < filteredManagers.size(); row++) {
+            ManagerRow manager = filteredManagers.get(row);
+            setRow(managersTable, row, String.valueOf(manager.id()), value(manager.name()), managerTeamLabel(manager.teamId()),
                     Boolean.TRUE.equals(manager.human()) ? "Sim" : "Nao", value(manager.confidenceBoard()),
-                    value(manager.confidenceFans()));
+                    value(manager.confidenceFans()), String.valueOf(manager.trophies() == null ? 0 : manager.trophies().size()));
         }
+    }
+
+    private void fillManagerTrophiesTable(ManagerRow manager) {
+        List<ManagerTrophy> trophies = manager.trophies() == null ? List.of() : manager.trophies();
+        managerTrophiesTable.setRowCount(trophies.size());
+        for (int row = 0; row < trophies.size(); row++) {
+            ManagerTrophy trophy = trophies.get(row);
+            setRow(managerTrophiesTable, row, value(trophy.index()), value(trophy.year()),
+                    value(trophy.competitionType()), value(trophy.variant()), value(trophy.teamId()),
+                    value(trophy.competitionName()));
+        }
+        if (!trophies.isEmpty()) {
+            managerTrophiesTable.selectRow(0);
+            updateTrophyEditor();
+        }
+    }
+
+    private void fillManagerTrophyCompetitionCombo() {
+        Object selectedData = currentComboData(managerTrophyCompetitionCombo);
+        managerTrophyCompetitionCombo.clear();
+        managerTrophyCompetitionCombo.addItem("Selecione uma competicao", "");
+        for (TrophyCompetitionOption competition : managerTrophyCompetitionOptions()) {
+            managerTrophyCompetitionCombo.addItem(trophyCompetitionLabel(competition), trophyCompetitionKey(competition));
+        }
+        selectComboByData(managerTrophyCompetitionCombo, selectedData);
+    }
+
+    private List<TrophyCompetitionOption> managerTrophyCompetitionOptions() {
+        List<TrophyCompetitionOption> options = new ArrayList<>();
+        List<String> keys = new ArrayList<>();
+        for (ManagerRow manager : managers) {
+            List<ManagerTrophyCompetition> competitions = manager.trophyCompetitions() == null ? List.of() : manager.trophyCompetitions();
+            for (ManagerTrophyCompetition competition : competitions) {
+                addTrophyCompetitionOption(options, keys, competition.competitionType(), competition.variant(), competition.name());
+            }
+            List<ManagerTrophy> trophies = manager.trophies() == null ? List.of() : manager.trophies();
+            for (ManagerTrophy trophy : trophies) {
+                addTrophyCompetitionOption(options, keys, trophy.competitionType(), trophy.variant(), trophy.competitionName());
+            }
+        }
+        return options;
+    }
+
+    private void addTrophyCompetitionOption(List<TrophyCompetitionOption> options, List<String> keys,
+                                            Integer type, Integer variant, String name) {
+        if (type == null || variant == null || name == null || name.isBlank()) {
+            return;
+        }
+        String key = trophyCompetitionKey(type, variant, name);
+        if (keys.contains(key)) {
+            return;
+        }
+        keys.add(key);
+        options.add(new TrophyCompetitionOption(type, variant, name));
     }
 
     private void fillCountriesTable() {
@@ -864,6 +1018,16 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
         for (TeamRow team : filteredTeams(playerTeamFilterEdit.text())) {
             playerTeamCombo.addItem(team.id() + " - " + team.name());
         }
+    }
+
+    private void fillManagerTeamCombo() {
+        Integer selectedTeamId = selectedManagerTeamId();
+        managerTeamCombo.clear();
+        managerTeamCombo.addItem("Desempregado", -1);
+        for (TeamRow team : filteredTeams(managerTeamFilterEdit.text())) {
+            managerTeamCombo.addItem(team.id() + " - " + team.name(), team.id());
+        }
+        selectManagerTeam(selectedTeamId);
     }
 
     private List<TeamRow> filteredTeams(String filterText) {
@@ -886,6 +1050,16 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
                 .toList();
     }
 
+    private List<ManagerRow> filteredManagers() {
+        String filter = normalize(managerFilterEdit.text());
+        int maxTeamId = managerMaxTeamIdFilterSpin.value();
+        return managers.stream()
+                .filter(manager -> !managerHumansOnlyCheck.isChecked() || Boolean.TRUE.equals(manager.human()))
+                .filter(manager -> normalizedManagerTeamId(manager.teamId()) <= maxTeamId)
+                .filter(manager -> filter.isBlank() || normalize(searchText(manager)).contains(filter))
+                .toList();
+    }
+
     private String searchText(TeamRow team) {
         return String.join(" ",
                 String.valueOf(team.id()),
@@ -900,6 +1074,15 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
 
     private String searchText(CountryRow country) {
         return String.join(" ", country.id(), value(country.name()), value(country.group()), value(country.level()));
+    }
+
+    private String searchText(ManagerRow manager) {
+        return String.join(" ",
+                String.valueOf(manager.id()),
+                value(manager.name()),
+                String.valueOf(normalizedManagerTeamId(manager.teamId())),
+                managerTeamLabel(manager.teamId()),
+                Boolean.TRUE.equals(manager.human()) ? "sim humano" : "nao bot maquina");
     }
 
     private String normalize(String text) {
@@ -981,6 +1164,204 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
         return Integer.parseInt(idText);
     }
 
+    private String selectedManagerTeamIdText() {
+        Integer teamId = selectedManagerTeamId();
+        return teamId == null ? null : String.valueOf(teamId);
+    }
+
+    private Integer selectedManagerTeamId() {
+        int index = managerTeamCombo.currentIndex();
+        if (index < 0) {
+            return null;
+        }
+        Object data = managerTeamCombo.itemData(index);
+        if (data instanceof Integer teamId) {
+            return teamId;
+        }
+        String text = managerTeamCombo.currentText();
+        if (text == null || text.isBlank()) {
+            return null;
+        }
+        int separator = text.indexOf(" - ");
+        String idText = separator >= 0 ? text.substring(0, separator) : text;
+        return Integer.parseInt(idText);
+    }
+
+    private void selectManagerTeam(Integer teamId) {
+        if (teamId == null) {
+            managerTeamCombo.setCurrentIndex(-1);
+            return;
+        }
+        for (int i = 0; i < managerTeamCombo.count(); i++) {
+            if (teamId.equals(managerTeamCombo.itemData(i))) {
+                managerTeamCombo.setCurrentIndex(i);
+                return;
+            }
+        }
+        managerTeamCombo.setCurrentIndex(-1);
+    }
+
+    private void applySelectedTrophyFieldsToTable() {
+        applySelectedTrophyFieldsToTable(true);
+    }
+
+    private void applySelectedTrophyFieldsToTable(boolean showMissingSelection) {
+        int row = managerTrophiesTable.currentRow();
+        if (row < 0 || managerTrophiesTable.item(row, 0) == null) {
+            if (showMissingSelection) {
+                showError("Trofeu nao selecionado", "Selecione um trofeu antes de aplicar a linha.");
+            }
+            return;
+        }
+
+        setRow(managerTrophiesTable, row, managerTrophiesTable.item(row, 0).text(),
+                String.valueOf(managerTrophyYearSpin.value()), String.valueOf(managerTrophyTypeSpin.value()),
+                String.valueOf(managerTrophyVariantSpin.value()), String.valueOf(managerTrophyTeamSpin.value()),
+                trophyCompetitionNameForCurrentFields(row));
+    }
+
+    private void addTrophyRow() {
+        int row = managerTrophiesTable.rowCount();
+        managerTrophiesTable.setRowCount(row + 1);
+        setRow(managerTrophiesTable, row, "-1", String.valueOf(managerTrophyYearSpin.value()),
+                String.valueOf(managerTrophyTypeSpin.value()), String.valueOf(managerTrophyVariantSpin.value()),
+                String.valueOf(managerTrophyTeamSpin.value()), trophyCompetitionNameForCurrentFields(row));
+        managerTrophiesTable.selectRow(row);
+    }
+
+    private String trophyCompetitionNameForCurrentFields(int row) {
+        TrophyCompetitionOption selected = selectedTrophyCompetitionOption();
+        if (selected != null && selected.type() == managerTrophyTypeSpin.value() && selected.variant() == managerTrophyVariantSpin.value()) {
+            return selected.name();
+        }
+
+        String currentName = row < managerTrophiesTable.rowCount() ? tableText(managerTrophiesTable, row, 5) : "";
+        TrophyCompetitionOption competition = trophyCompetitionOption(managerTrophyTypeSpin.value(), managerTrophyVariantSpin.value(), currentName);
+        if (competition != null) {
+            return competition.name();
+        }
+        competition = uniqueTrophyCompetitionOption(managerTrophyTypeSpin.value(), managerTrophyVariantSpin.value());
+        return competition == null ? currentName : competition.name();
+    }
+
+    private TrophyCompetitionOption selectedTrophyCompetitionOption() {
+        Object data = currentComboData(managerTrophyCompetitionCombo);
+        if (!(data instanceof String key) || key.isBlank()) {
+            return null;
+        }
+        return trophyCompetitionOption(key);
+    }
+
+    private TrophyCompetitionOption trophyCompetitionOption(String key) {
+        for (TrophyCompetitionOption competition : managerTrophyCompetitionOptions()) {
+            if (key.equals(trophyCompetitionKey(competition))) {
+                return competition;
+            }
+        }
+        return null;
+    }
+
+    private TrophyCompetitionOption trophyCompetitionOption(int type, int variant, String name) {
+        if (name == null || name.isBlank()) {
+            return null;
+        }
+        String key = trophyCompetitionKey(type, variant, name);
+        for (TrophyCompetitionOption competition : managerTrophyCompetitionOptions()) {
+            if (key.equals(trophyCompetitionKey(competition))) {
+                return competition;
+            }
+        }
+        return null;
+    }
+
+    private TrophyCompetitionOption uniqueTrophyCompetitionOption(int type, int variant) {
+        TrophyCompetitionOption match = null;
+        for (TrophyCompetitionOption competition : managerTrophyCompetitionOptions()) {
+            if (competition.type() != type || competition.variant() != variant) {
+                continue;
+            }
+            if (match != null) {
+                return null;
+            }
+            match = competition;
+        }
+        return match;
+    }
+
+    private void selectTrophyCompetition(int type, int variant, String name) {
+        String exactKey = trophyCompetitionKey(type, variant, name);
+        for (int i = 0; i < managerTrophyCompetitionCombo.count(); i++) {
+            if (exactKey.equals(managerTrophyCompetitionCombo.itemData(i))) {
+                managerTrophyCompetitionCombo.setCurrentIndex(i);
+                return;
+            }
+        }
+        TrophyCompetitionOption unique = uniqueTrophyCompetitionOption(type, variant);
+        if (unique == null) {
+            managerTrophyCompetitionCombo.setCurrentIndex(0);
+            return;
+        }
+        selectComboByData(managerTrophyCompetitionCombo, trophyCompetitionKey(unique));
+    }
+
+    private Object currentComboData(QComboBox comboBox) {
+        int index = comboBox.currentIndex();
+        return index < 0 ? null : comboBox.itemData(index);
+    }
+
+    private String trophyCompetitionLabel(TrophyCompetitionOption competition) {
+        return competition.name() + " (tipo " + competition.type() + ", variante " + competition.variant() + ")";
+    }
+
+    private String trophyCompetitionKey(TrophyCompetitionOption competition) {
+        return trophyCompetitionKey(competition.type(), competition.variant(), competition.name());
+    }
+
+    private String trophyCompetitionKey(int type, int variant, String name) {
+        return type + ":" + variant + ":" + normalize(name);
+    }
+
+    private void removeSelectedTrophyRow() {
+        int row = managerTrophiesTable.currentRow();
+        if (row < 0) {
+            showError("Trofeu nao selecionado", "Selecione um trofeu antes de remover.");
+            return;
+        }
+        managerTrophiesTable.removeRow(row);
+    }
+
+    private List<ManagerTrophy> managerTrophiesFromTable() {
+        List<ManagerTrophy> trophies = new ArrayList<>();
+        for (int row = 0; row < managerTrophiesTable.rowCount(); row++) {
+            trophies.add(new ManagerTrophy(
+                    parseTableInteger(managerTrophiesTable, row, 0, -1),
+                    parseTableInteger(managerTrophiesTable, row, 1, 0),
+                    parseTableInteger(managerTrophiesTable, row, 2, 0),
+                    parseTableInteger(managerTrophiesTable, row, 3, 0),
+                    parseTableInteger(managerTrophiesTable, row, 4, -1),
+                    tableText(managerTrophiesTable, row, 5)
+            ));
+        }
+        return trophies;
+    }
+
+    private int parseTableInteger(QTableWidget table, int row, int column, int fallback) {
+        String text = tableText(table, row, column);
+        if (text == null || text.isBlank()) {
+            return fallback;
+        }
+        try {
+            return Integer.parseInt(text);
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
+    }
+
+    private String tableText(QTableWidget table, int row, int column) {
+        QTableWidgetItem item = table.item(row, column);
+        return item == null ? "" : item.text();
+    }
+
     private QTableWidget table(String... headers) {
         QTableWidget table = new QTableWidget();
         table.setColumnCount(headers.length);
@@ -1056,6 +1437,22 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
         if (countryId == null) return "";
         Country c = Country.fromId(countryId);
         return c == null ? String.valueOf(countryId) : c.getName();
+    }
+
+    private String managerTeamLabel(Integer teamId) {
+        int normalizedTeamId = normalizedManagerTeamId(teamId);
+        if (normalizedTeamId < 0) {
+            return "Desempregado";
+        }
+        TeamRow team = teams.stream()
+                .filter(value -> value.id() == normalizedTeamId)
+                .findFirst()
+                .orElse(null);
+        return team == null ? String.valueOf(normalizedTeamId) : normalizedTeamId + " - " + team.name();
+    }
+
+    private int normalizedManagerTeamId(Integer teamId) {
+        return teamId == null ? -1 : teamId;
     }
 
     private void batchUpdateTeamsByCountry() {
@@ -1216,5 +1613,8 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
             values.add("Mundial");
         }
         return values.isEmpty() ? "" : String.join(" / ", values);
+    }
+
+    private record TrophyCompetitionOption(int type, int variant, String name) {
     }
 }

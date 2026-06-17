@@ -60,11 +60,11 @@ class GameDataServiceTest {
 
     @SuppressWarnings("unused")
     private static class DummyTeam {
-        public int na;
+        public int mU;
         public String dm;
 
         DummyTeam(int id, String name) {
-            this.na = id;
+            this.mU = id;
             this.dm = name;
         }
     }

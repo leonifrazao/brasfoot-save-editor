@@ -12,6 +12,7 @@ import br.com.saveeditor.brasfoot.domain.CountryState;
 import br.com.saveeditor.brasfoot.domain.League;
 import br.com.saveeditor.brasfoot.domain.LeagueTableEntry;
 import br.com.saveeditor.brasfoot.domain.Manager;
+import br.com.saveeditor.brasfoot.domain.ManagerTrophy;
 import br.com.saveeditor.brasfoot.domain.Player;
 import br.com.saveeditor.brasfoot.domain.Team;
 import br.com.saveeditor.brasfoot.domain.enums.TeamReputation;
@@ -245,7 +246,12 @@ public class BrasfootPresenter {
     }
 
     public void updateManager(int managerId, String name, Boolean human, String teamIdText, int confidenceBoard,
-                              int confidenceFans) {
+                               int confidenceFans) {
+        updateManager(managerId, name, human, teamIdText, confidenceBoard, confidenceFans, null);
+    }
+
+    public void updateManager(int managerId, String name, Boolean human, String teamIdText, int confidenceBoard,
+                               int confidenceFans, List<ManagerTrophy> trophies) {
         try {
             Manager updateData = Manager.builder()
                     .name(normalizeRequiredText(name, "nome"))
@@ -253,6 +259,7 @@ public class BrasfootPresenter {
                     .teamId(parseOptionalInteger(teamIdText, "time"))
                     .confidenceBoard(confidenceBoard)
                     .confidenceFans(confidenceFans)
+                    .trophies(trophies)
                     .build();
             managerManagementService.updateManager(requireSession(), managerId, updateData);
             refreshManagers();
@@ -399,7 +406,7 @@ public class BrasfootPresenter {
 
     private ManagerRow toManagerRow(Manager manager) {
         return new ManagerRow(manager.getId(), manager.getName(), manager.getIsHuman(), manager.getTeamId(),
-                manager.getConfidenceBoard(), manager.getConfidenceFans());
+                manager.getConfidenceBoard(), manager.getConfidenceFans(), manager.getTrophies(), manager.getTrophyCompetitions());
     }
 
     private LeagueRow toLeagueRow(League league) {

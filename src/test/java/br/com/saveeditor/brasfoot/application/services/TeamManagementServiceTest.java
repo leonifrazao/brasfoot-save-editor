@@ -160,7 +160,8 @@ class TeamManagementServiceTest {
 
     @SuppressWarnings("unused")
     private static class DummyTeam {
-        public int na;
+        public int mU;
+        public int na = -1;
         public String dm;
         public long nb;
         public int nc;
@@ -168,7 +169,7 @@ class TeamManagementServiceTest {
         public DummyStadium dH;
 
         DummyTeam(int id, String name, long money, int reputation) {
-            this.na = id;
+            this.mU = id;
             this.dm = name;
             this.nb = money;
             this.nc = reputation;

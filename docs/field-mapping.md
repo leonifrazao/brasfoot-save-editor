@@ -159,3 +159,55 @@ Jerónimo Alba | et=84000 fj()=84000 | eu=7977600 fk()=7977600 | ev=701607 fl()=
 ```
 
 `et` fica na escala de salário; `eu` fica na escala de valor de mercado. `ev` permanece sem utilidade confirmada.
+
+## Team (`best.ah`) / Manager (`best.al`)
+
+### Vínculo técnico-time e time humano
+
+Campos confirmados:
+
+| Classe | Campo | Uso confirmado | Constante |
+| --- | --- | --- | --- |
+| `best.ah` | `mU` | ID interno do time retornado por `lk()` | `TEAM_ID` |
+| `best.ah` | `mW` | flag de time controlado por humano | `TEAM_IS_HUMAN` |
+| `best.ah` | `na` | ID do técnico associado ao time | `TEAM_MANAGER_ID` |
+| `best.ah` | `mZ` | referência transient para o técnico associado | `TEAM_MANAGER_REFERENCE` |
+| `best.al` | `nU` | ID interno do técnico retornado por `lT()` | `MANAGER_ID` |
+| `best.al` | `nV` | referência transient para o time atual | `MANAGER_CURRENT_TEAM` |
+| `best.al` | `bW` | cache serializado do ID do time atual | `MANAGER_CURRENT_TEAM_ID` |
+| `best.f` | `ak` | lista de times controlados por humano retornada por `aN()` | `HUMAN_TEAMS_LIST` |
+
+Evidências:
+
+- Em `best.ah`, `lk()` retorna diretamente `mU`, e `bX(int)` grava em `mU`.
+- Em `best.f.x(int)`, o jogo procura times comparando o parâmetro com `best.ah.lk()`, confirmando que referências para time usam `mU`, não `na`.
+- Em `best.ah`, `jZ()` retorna `mW`, e `k(Boolean)` grava em `mW`.
+- Em `best.ah.ka()`, quando `mZ` está nulo, o jogo resolve o técnico por `best.f.y(na)`, então `na` é o ID do técnico associado ao time.
+- Em `best.ah.h(best.al)`, o jogo grava `mZ` e sincroniza `na` com `best.al.lT()`; quando o técnico é nulo, grava `na=-1`.
+- Em `best.al`, `lT()` retorna `nU`.
+- Em `best.al.fg()`, quando `nV` está nulo e `bW >= 0`, o jogo resolve o time por `best.f.x(bW)`; portanto `bW` é o ID serializado do time atual.
+- Em `best.al.n(best.ah)`, o jogo grava `nV` e sincroniza `bW` com `best.ah.lk()`; quando o time é nulo, grava `bW=-1`.
+- Em `best.f.aN()`, o jogo retorna a lista `ak`, e métodos de contratação/demissão adicionam/removem times dessa lista ao alternar controle humano.
+
+Conclusão: transferir técnico humano de time exige atualizar o técnico (`mW`, `nV`, `bW`), o time antigo/novo (`mW`, `na`, `mZ`) e a lista raiz `ak`. Alterar apenas `best.al.nU` corrompe o vínculo porque `nU` identifica o técnico, não o time atual.
+
+### Troféus / histórico do técnico
+
+Campos confirmados:
+
+| Classe | Campo | Uso confirmado | Constante |
+| --- | --- | --- | --- |
+| `best.al` | `cA` | lista de itens `best.ao` retornada por `cT()` | `MANAGER_TROPHIES` |
+| `best.ao` | `ae` | temporada/ano do item | `MANAGER_TROPHY_YEAR` |
+| `best.ao` | `w` | tipo de competição, copiado de `best.at.b()` | `MANAGER_TROPHY_COMPETITION_TYPE` |
+| `best.ao` | `dz` | país/divisão/variante conforme o tipo | `MANAGER_TROPHY_VARIANT` |
+| `best.ao` | `bW` | ID do time associado ao título | `MANAGER_TROPHY_TEAM_ID` |
+| `best.ao` | `Y` | referência opcional para a competição `best.at` | `MANAGER_TROPHY_COMPETITION_REFERENCE` |
+
+Evidências:
+
+- Em `best.al.q(best.at)`, o jogo cria `new best.ao()`, grava `ae` com o ano atual (`best.f.H()`), `bW` com o time, `w` com `best.at.b()`, `Y` com a competição e `dz` com país/divisão/variante conforme a competição; depois adiciona o item em `cA`.
+- Em `best.al.cT()`, o getter retorna diretamente `cA`.
+- No save real `REAL BRASFOOT 2026/sav/eae.s22`, `root.al[0]` é o técnico `ruan` e tem `cA` com 42 itens `best.ao`, compatível com os títulos visíveis no jogo.
+
+Conclusão: mudar/remover troféus existentes do técnico deve editar/remover itens de `best.al.cA`. Ao editar um item existente, preservar `Y` evita perder a referência de competição. Itens novos podem ser criados com os campos numéricos; se `Y` ficar nulo, o save mantém os dados essenciais, mas o nome textual da competição pode depender do jogo reconstruir ou tolerar essa referência ausente.

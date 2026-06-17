@@ -14,7 +14,10 @@ public class BrasfootConstants {
     // --- Team (best.ah) ---
     public static final String TEAM_NAME = "dm"; // String
     public static final String TEAM_ALIAS = "mV"; // String; getter jY()
-    public static final String TEAM_ID = "na"; // int
+    public static final String TEAM_ID = "mU"; // int; internal team id used by best.ah.lk()
+    public static final String TEAM_MANAGER_ID = "na"; // int; current manager id stored on team
+    public static final String TEAM_IS_HUMAN = "mW"; // Boolean; team controlled by human
+    public static final String TEAM_MANAGER_REFERENCE = "mZ"; // transient best.al; current manager reference
     public static final String TEAM_PLAYERS = "nd"; // List<Player>
     public static final String TEAM_MONEY = "nb"; // long
     public static final String TEAM_REPUTATION = "nc"; // int
@@ -62,7 +65,27 @@ public class BrasfootConstants {
     public static final String MANAGER_IS_HUMAN = "mW"; // boolean
     public static final String MANAGER_CONFIDENCE_BOARD = "of"; // int
     public static final String MANAGER_CONFIDENCE_FANS = "og"; // int
-    public static final String MANAGER_TEAM_ID = "nU"; // int
+    public static final String MANAGER_ID = "nU"; // int; manager id used by best.al.lT()
+    public static final String MANAGER_CURRENT_TEAM = "nV"; // transient best.ah; current team reference
+    public static final String MANAGER_CURRENT_TEAM_ID = "bW"; // int; current team id cache used by best.al.fg()
+    public static final String MANAGER_PREVIOUS_TEAM = "nW"; // transient best.ah; previous team reference
+    public static final String MANAGER_PREVIOUS_TEAM_ID = "nX"; // int; previous team id cache
+    public static final String MANAGER_TROPHIES = "cA"; // ArrayList<best.ao>; manager title history returned by best.al.cT()
+
+    // --- Manager trophy/history item (best.ao) ---
+    public static final String MANAGER_TROPHY_YEAR = "ae"; // int; season/year index
+    public static final String MANAGER_TROPHY_COMPETITION_TYPE = "w"; // int; best.at.b()
+    public static final String MANAGER_TROPHY_VARIANT = "dz"; // int; country/division/variant depending on competition type
+    public static final String MANAGER_TROPHY_TEAM_ID = "bW"; // int; winning/current team id
+    public static final String MANAGER_TROPHY_COMPETITION_REFERENCE = "Y"; // best.at; optional competition reference
+    public static final String ROOT_SCHEDULES = "as"; // ArrayList<best.a>; returned by best.f.R()
+    public static final String SCHEDULE_COMPETITIONS = "u"; // ArrayList<best.at>; returned by best.a.t()
+    public static final String COMPETITION_NAME = "dm"; // String; best.at.getNome()
+    public static final String COMPETITION_TYPE = "tR"; // int; best.at.b()
+    public static final String COMPETITION_VARIANT = "dz"; // int; best.at.gg()/el()
+
+    // --- Human-controlled teams ---
+    public static final String HUMAN_TEAMS_LIST = "ak"; // List<Team>; returned by best.f.aN()
 
     // --- Country/Division/League ---
     public static final String ROOT_PRIMARY_COUNTRIES = "ao";
