@@ -4,6 +4,7 @@ import br.com.saveeditor.brasfoot.application.ports.in.GetManagerUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.BatchUpdateManagerUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.UpdateManagerUseCase;
 import br.com.saveeditor.brasfoot.application.ports.in.record.ManagerBatchUpdateCommand;
+import br.com.saveeditor.brasfoot.application.ports.out.BrasfootGameLibraryPort;
 import br.com.saveeditor.brasfoot.application.ports.out.GameDataPort;
 import br.com.saveeditor.brasfoot.application.ports.out.SessionStatePort;
 import br.com.saveeditor.brasfoot.application.shared.BatchResponse;
@@ -33,12 +34,14 @@ public class ManagerManagementService implements GetManagerUseCase, UpdateManage
     private final GameDataPort gameDataPort;
     private final SessionStatePort sessionStatePort;
     private final SessionResolver sessionResolver;
+    private final BrasfootGameLibraryPort gameLibraryPort;
 
     public ManagerManagementService(SessionStatePort sessionStatePort, GameDataPort gameDataPort,
-                                    SessionResolver sessionResolver) {
+                                    SessionResolver sessionResolver, BrasfootGameLibraryPort gameLibraryPort) {
         this.sessionStatePort = sessionStatePort;
         this.gameDataPort = gameDataPort;
         this.sessionResolver = sessionResolver;
+        this.gameLibraryPort = gameLibraryPort;
     }
 
     @Override
@@ -272,7 +275,7 @@ public class ManagerManagementService implements GetManagerUseCase, UpdateManage
     private Object newTrophyObject(List<Object> currentTrophies) throws ReflectiveOperationException {
         try {
             Class<?> trophyClass = currentTrophies.isEmpty()
-                    ? Class.forName("best.ao", true, Thread.currentThread().getContextClassLoader())
+                    ? Class.forName("best.ao", true, gameLibraryPort.getClassLoader())
                     : currentTrophies.get(0).getClass();
             return trophyClass.getDeclaredConstructor().newInstance();
         } catch (ClassNotFoundException e) {

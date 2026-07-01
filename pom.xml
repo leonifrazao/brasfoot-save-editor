@@ -49,6 +49,12 @@
             <version>${qtjambi.version}</version>
             <scope>runtime</scope>
         </dependency>
+        <dependency>
+            <groupId>io.qtjambi</groupId>
+            <artifactId>qtjambi-native-windows-x64</artifactId>
+            <version>${qtjambi.version}</version>
+            <scope>runtime</scope>
+        </dependency>
 
         <!-- Testing & Architecture Validation -->
         <dependency>
@@ -77,16 +83,7 @@
             <version>4.0.2</version>
         </dependency>
 
-        <!-- Brasfoot Proprietary Jar -->
-        <dependency>
-            <groupId>com.brasfoot</groupId>
-            <artifactId>brasfoot-game</artifactId>
-            <version>1.0</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/lib/brasfoot-game.jar</systemPath>
-        </dependency>
-        
-        <!-- Other local libs if needed, but brasfoot.jar is the main one -->
+        <!-- Other local libs used by the Brasfoot save format -->
         <dependency>
             <groupId>org.ow2.asm</groupId>
             <artifactId>asm</artifactId>
@@ -123,6 +120,7 @@
     </dependencies>
 
     <build>
+        <finalName>brasfoot-save-editor</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -150,6 +148,42 @@
                         </exclude>
                     </excludes>
                 </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>com.akathist.maven.plugins.launch4j</groupId>
+                <artifactId>launch4j-maven-plugin</artifactId>
+                <version>2.5.3</version>
+                <executions>
+                    <execution>
+                        <id>windows-exe</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>launch4j</goal>
+                        </goals>
+                        <configuration>
+                            <headerType>gui</headerType>
+                            <outfile>${project.build.directory}/${project.build.finalName}.exe</outfile>
+                            <jar>${project.build.directory}/${project.build.finalName}.jar</jar>
+                            <errTitle>${project.name}</errTitle>
+                            <jre>
+                                <path>runtime</path>
+                                <minVersion>${java.version}</minVersion>
+                            </jre>
+                            <versionInfo>
+                                <fileVersion>2.0.0.0</fileVersion>
+                                <txtFileVersion>${project.version}</txtFileVersion>
+                                <fileDescription>${project.name}</fileDescription>
+                                <copyright>${project.name}</copyright>
+                                <productVersion>2.0.0.0</productVersion>
+                                <txtProductVersion>${project.version}</txtProductVersion>
+                                <productName>${project.name}</productName>
+                                <internalName>${project.artifactId}</internalName>
+                                <originalFilename>${project.build.finalName}.exe</originalFilename>
+                            </versionInfo>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

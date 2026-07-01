@@ -2,6 +2,7 @@ package br.com.saveeditor.brasfoot.presentation.presenter;
 
 import br.com.saveeditor.brasfoot.application.ports.in.record.PlayerBatchUpdateCommand;
 import br.com.saveeditor.brasfoot.application.ports.in.record.TeamBatchUpdateCommand;
+import br.com.saveeditor.brasfoot.application.ports.out.BrasfootGameLibraryPort;
 import br.com.saveeditor.brasfoot.application.services.CountryManagementService;
 import br.com.saveeditor.brasfoot.application.services.LeagueManagementService;
 import br.com.saveeditor.brasfoot.application.services.ManagerManagementService;
@@ -50,26 +51,38 @@ public class BrasfootPresenter {
     private final ManagerManagementService managerManagementService;
     private final LeagueManagementService leagueManagementService;
     private final CountryManagementService countryManagementService;
+    private final BrasfootGameLibraryPort gameLibraryPort;
 
     private BrasfootDesktopView view;
     private UUID currentSessionId;
 
     public BrasfootPresenter(SessionService sessionService,
                                TeamManagementService teamManagementService,
-                               PlayerManagementService playerManagementService,
-                               ManagerManagementService managerManagementService,
-                               LeagueManagementService leagueManagementService,
-                               CountryManagementService countryManagementService) {
+                                PlayerManagementService playerManagementService,
+                                ManagerManagementService managerManagementService,
+                                LeagueManagementService leagueManagementService,
+                                CountryManagementService countryManagementService,
+                                BrasfootGameLibraryPort gameLibraryPort) {
         this.sessionService = sessionService;
         this.teamManagementService = teamManagementService;
         this.playerManagementService = playerManagementService;
         this.managerManagementService = managerManagementService;
         this.leagueManagementService = leagueManagementService;
         this.countryManagementService = countryManagementService;
+        this.gameLibraryPort = gameLibraryPort;
     }
 
     public void attach(BrasfootDesktopView view) {
         this.view = view;
+    }
+
+    public void selectBrasfootLibrary(Path libraryPath) {
+        try {
+            Path loadedPath = gameLibraryPort.load(libraryPath);
+            view.showStatus("Biblioteca do Brasfoot carregada: " + loadedPath);
+        } catch (RuntimeException e) {
+            showError("Falha ao carregar Brasfoot", e);
+        }
     }
 
     public void openSave(Path savePath) {

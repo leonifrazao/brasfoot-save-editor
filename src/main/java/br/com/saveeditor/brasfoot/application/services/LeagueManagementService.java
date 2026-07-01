@@ -1,6 +1,7 @@
 package br.com.saveeditor.brasfoot.application.services;
 
 import br.com.saveeditor.brasfoot.application.ports.out.SessionStatePort;
+import br.com.saveeditor.brasfoot.application.ports.out.BrasfootGameLibraryPort;
 import br.com.saveeditor.brasfoot.domain.League;
 import br.com.saveeditor.brasfoot.domain.LeagueTableEntry;
 import br.com.saveeditor.brasfoot.domain.Session;
@@ -25,10 +26,13 @@ public class LeagueManagementService {
 
     private final SessionStatePort sessionStatePort;
     private final SessionResolver sessionResolver;
+    private final BrasfootGameLibraryPort gameLibraryPort;
 
-    public LeagueManagementService(SessionStatePort sessionStatePort, SessionResolver sessionResolver) {
+    public LeagueManagementService(SessionStatePort sessionStatePort, SessionResolver sessionResolver,
+                                   BrasfootGameLibraryPort gameLibraryPort) {
         this.sessionStatePort = sessionStatePort;
         this.sessionResolver = sessionResolver;
+        this.gameLibraryPort = gameLibraryPort;
     }
 
     public List<League> getLeagues(UUID sessionId) {
@@ -242,7 +246,7 @@ public class LeagueManagementService {
     }
 
     private Object createStats(Object team, Object league) throws ReflectiveOperationException {
-        Class<?> akClass = Class.forName("best.ak");
+        Class<?> akClass = Class.forName("best.ak", true, gameLibraryPort.getClassLoader());
         Constructor<?> ctor = akClass.getDeclaredConstructor(team.getClass(), league.getClass());
         ctor.setAccessible(true);
         Object stats = ctor.newInstance(team, league);

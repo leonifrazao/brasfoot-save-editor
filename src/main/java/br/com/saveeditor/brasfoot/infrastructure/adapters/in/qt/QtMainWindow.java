@@ -297,12 +297,15 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
     }
 
     private QHBoxLayout buildToolbar() {
+        QPushButton brasfootButton = new QPushButton("Selecionar Brasfoot");
         QPushButton openButton = new QPushButton("Abrir save");
         QPushButton saveButton = new QPushButton("Salvar copia");
+        brasfootButton.clicked.connect(this::selectBrasfootLibrary);
         openButton.clicked.connect(this::openSave);
         saveButton.clicked.connect(presenter::saveCopy);
 
         QHBoxLayout toolbar = new QHBoxLayout();
+        toolbar.addWidget(brasfootButton);
         toolbar.addWidget(openButton);
         toolbar.addWidget(saveButton);
         toolbar.addWidget(sessionLabel);
@@ -653,6 +656,15 @@ public class QtMainWindow extends QMainWindow implements BrasfootDesktopView {
             return;
         }
         presenter.openSave(Path.of(path));
+    }
+
+    private void selectBrasfootLibrary() {
+        String path = QFileDialog.getOpenFileName(this, "Selecionar Brasfoot", "",
+                "Brasfoot (*.exe *.jar);;Executavel (*.exe);;Jar (*.jar)").result;
+        if (path == null || path.isBlank()) {
+            return;
+        }
+        presenter.selectBrasfootLibrary(Path.of(path));
     }
 
     private void saveSelectedTeam() {

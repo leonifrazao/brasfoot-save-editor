@@ -1,5 +1,6 @@
 package br.com.saveeditor.brasfoot.service;
 
+import br.com.saveeditor.brasfoot.application.ports.out.BrasfootGameLibraryPort;
 import br.com.saveeditor.brasfoot.domain.NavegacaoState;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
@@ -15,18 +16,22 @@ import org.springframework.stereotype.Service;
 @Service
 @SuppressWarnings({ "rawtypes" })
 public class SaveFileService {
-    private final Kryo kryoReader; // Apenas para leitura
+    private final BrasfootGameLibraryPort gameLibraryPort;
 
-    public SaveFileService() {
-        this.kryoReader = new Kryo();
-        configurarKryoParaLeitura(this.kryoReader);
+    public SaveFileService(BrasfootGameLibraryPort gameLibraryPort) {
+        this.gameLibraryPort = gameLibraryPort;
+    }
+
+    private Kryo criarKryoParaLeitura() {
+        Kryo kryoReader = new Kryo();
+        configurarKryoParaLeitura(kryoReader);
+        return kryoReader;
     }
 
     private void configurarKryoParaLeitura(Kryo kryo) {
         kryo.setInstantiatorStrategy(new StdInstantiatorStrategy());
         kryo.setRegistrationRequired(false);
-        // Use ContextClassLoader to find classes in Fat JAR
-        kryo.setClassLoader(Thread.currentThread().getContextClassLoader());
+        kryo.setClassLoader(gameLibraryPort.getClassLoader());
 
         // Serializer especial para ArrayList (apenas para leitura)
         CollectionSerializer arrayListSerializer = new CollectionSerializer() {
@@ -45,7 +50,7 @@ public class SaveFileService {
     private Kryo criarKryoParaEscrita() {
         Kryo kryoWriter = new Kryo();
         kryoWriter.setRegistrationRequired(false);
-        kryoWriter.setClassLoader(Thread.currentThread().getContextClassLoader());
+        kryoWriter.setClassLoader(gameLibraryPort.getClassLoader());
         // NÃO configura InstantiatorStrategy nem CollectionSerializer customizado
         return kryoWriter;
     }
@@ -70,6 +75,7 @@ public class SaveFileService {
      * Deserializes a byte array back into a NavegacaoState.
      */
     public NavegacaoState restoreFromSnapshot(byte[] snapshot, String originalPath) {
+        Kryo kryoReader = criarKryoParaLeitura();
         try (Input input = new Input(new java.io.ByteArrayInputStream(snapshot))) {
             Object objetoRaiz = kryoReader.readClassAndObject(input);
             Object dataAfQ = kryoReader.readClassAndObject(input);
