@@ -4,16 +4,26 @@ Editor desktop para saves `.s22` do Brasfoot, construido em Java 17, Spring Boot
 
 ## Visao Geral
 
-O Brasfoot Save Editor nasceu para facilitar ajustes em saves do Brasfoot 2022/2023 sem depender da interface original do jogo. A aplicacao trabalha diretamente com os objetos serializados do Brasfoot por meio de Kryo e classes do jar original do jogo, expondo uma UI desktop simples para navegar e alterar times, jogadores, tecnicos, ligas e paises.
+O Brasfoot Save Editor nasceu para facilitar ajustes em saves do Brasfoot 2022/2023 sem depender da interface original do jogo. A aplicacao trabalha diretamente com os objetos serializados do Brasfoot por meio de Kryo e das classes carregadas do `.exe` ou `.jar` selecionado pelo usuario, expondo uma UI desktop simples para navegar e alterar times, jogadores, tecnicos, ligas e paises.
 
 Principais objetivos do projeto:
 
 - abrir saves `.s22` locais;
+- carregar o `.exe` ou `.jar` do Brasfoot escolhido pelo usuario, sem distribuir arquivos proprietarios do jogo;
 - visualizar os dados carregados em tabelas organizadas;
 - editar campos ja mapeados e validados no save;
 - aplicar alteracoes em lote para cenarios de teste ou customizacao;
 - preservar o arquivo original ao salvar sempre uma nova copia;
 - manter a regra de negocio isolada da interface por uma arquitetura em camadas/hexagonal.
+
+## Downloads Oficiais
+
+A release atual esta disponivel em [v1.0.0](https://github.com/leonifrazao/brasfoot-save-editor/releases/tag/v1.0.0).
+
+- [brasfoot-save-editor-windows.zip](https://github.com/leonifrazao/brasfoot-save-editor/releases/download/v1.0.0/brasfoot-save-editor-windows.zip): recomendado para Windows. Ja inclui runtime Java; basta extrair o ZIP e executar `brasfoot-save-editor.exe`.
+- [brasfoot-save-editor.jar](https://github.com/leonifrazao/brasfoot-save-editor/releases/download/v1.0.0/brasfoot-save-editor.jar): alternativa multiplataforma. Requer Java 17 instalado e pode ser executado com `java -jar brasfoot-save-editor.jar`.
+
+O editor nao inclui arquivos do Brasfoot. Ao abrir o programa, clique em `Selecionar Brasfoot` e escolha o `.exe` ou `.jar` da sua propria instalacao do Brasfoot antes de abrir o save `.s22`.
 
 ## Capturas De Tela
 
@@ -47,12 +57,14 @@ Principais objetivos do projeto:
 
 ## Como Funciona O Fluxo De Save
 
-1. O usuario escolhe um arquivo `.s22` na interface.
-2. O `SessionService` le o arquivo e cria uma sessao com UUID.
-3. O adapter `KryoSaveAdapter` desserializa o payload usando `SaveFileService` e Kryo.
-4. O estado do save fica em memoria por meio de `CurrentSessionAdapter` e `SaveContext`.
-5. Os services de aplicacao alteram apenas os campos mapeados no dominio.
-6. Ao salvar, o projeto serializa novamente o estado atual e grava uma copia nova no diretorio do save original.
+1. O usuario escolhe o `.exe` ou `.jar` do Brasfoot na interface.
+2. O editor carrega as classes `best.*` do arquivo selecionado em runtime.
+3. O usuario escolhe um arquivo `.s22` na interface.
+4. O `SessionService` le o arquivo e cria uma sessao com UUID.
+5. O adapter `KryoSaveAdapter` desserializa o payload usando `SaveFileService` e Kryo.
+6. O estado do save fica em memoria por meio de `CurrentSessionAdapter` e `SaveContext`.
+7. Os services de aplicacao alteram apenas os campos mapeados no dominio.
+8. Ao salvar, o projeto serializa novamente o estado atual e grava uma copia nova no diretorio do save original.
 
 O arquivo original nao e sobrescrito. A copia gerada segue o padrao `brasfoot-save-<uuid>.s22` ou mantem a extensao original quando ela existir.
 
@@ -102,22 +114,37 @@ A interface desktop e Java + Qt Jambi. O Spring Boot e usado como container de i
 
 ## Requisitos
 
-- Java 17.
-- Maven.
-- Qt compativel com a versao do Qt Jambi configurada no `pom.xml`.
-- Linux x64 para o runtime nativo atual `qtjambi-native-linux-x64`.
-- Jars locais do Brasfoot e bibliotecas auxiliares em `lib/`.
+- Para usar o ZIP Windows: nenhum requisito adicional; o runtime Java ja vai embutido.
+- Para usar o JAR multiplataforma: Java 17.
+- Para desenvolvimento: Java 17, Maven e Qt compativel com a versao do Qt Jambi configurada no `pom.xml`.
+- Para desenvolvimento local: bibliotecas auxiliares em `lib/` (`asm`, `reflectasm`, `minlog` e `objenesis`).
+- Um `.exe` ou `.jar` do Brasfoot instalado pelo usuario, selecionado pela interface ao iniciar o fluxo de uso.
 
 O Qt Jambi precisa usar a mesma versao major/minor/patch da Qt instalada no sistema. O projeto esta configurado para Qt Jambi `6.11.0`, e o ambiente Nix tambem prepara Qt `6.11.0`.
 
-Arquivos locais esperados pelo `pom.xml`:
+Arquivos auxiliares locais esperados pelo `pom.xml` para desenvolvimento:
 
-- `lib/brasfoot-game.jar`
 - `lib/asm-5.1-es.jar`
 - `lib/reflectasm-1.11.5.jar`
 - `lib/minlog-1.3.0.jar`
 
 ## Como Executar
+
+### Usando Release Windows
+
+1. Baixe [`brasfoot-save-editor-windows.zip`](https://github.com/leonifrazao/brasfoot-save-editor/releases/download/v1.0.0/brasfoot-save-editor-windows.zip).
+2. Extraia o ZIP.
+3. Execute `brasfoot-save-editor.exe`.
+4. Clique em `Selecionar Brasfoot` e escolha o `.exe` ou `.jar` da sua instalacao do Brasfoot.
+5. Clique em `Abrir save` e escolha o save `.s22`.
+
+### Usando JAR Multiplataforma
+
+Baixe [`brasfoot-save-editor.jar`](https://github.com/leonifrazao/brasfoot-save-editor/releases/download/v1.0.0/brasfoot-save-editor.jar) e execute:
+
+```bash
+java -jar brasfoot-save-editor.jar
+```
 
 ### Usando Ambiente Local
 
@@ -167,15 +194,17 @@ nix-shell --run "mvn spring-boot:run"
 
 ## Guia Rapido De Uso
 
-1. Inicie a aplicacao com `mvn spring-boot:run`.
-2. Clique em `Abrir save`.
-3. Selecione um arquivo `.s22` do Brasfoot.
-4. Aguarde o carregamento das abas de times, tecnicos, ligas e paises.
-5. Selecione um registro em uma tabela para preencher o editor lateral.
-6. Altere os campos desejados e clique no botao de salvar daquela area.
-7. Para jogadores, escolha o time e clique em `Carregar jogadores do time`.
-8. Quando terminar, clique em `Salvar copia` para gerar um novo arquivo `.s22`.
-9. Teste a copia no Brasfoot antes de substituir qualquer arquivo manualmente.
+1. Inicie a aplicacao.
+2. Clique em `Selecionar Brasfoot`.
+3. Selecione o `.exe` ou `.jar` da sua instalacao do Brasfoot.
+4. Clique em `Abrir save`.
+5. Selecione um arquivo `.s22` do Brasfoot.
+6. Aguarde o carregamento das abas de times, tecnicos, ligas e paises.
+7. Selecione um registro em uma tabela para preencher o editor lateral.
+8. Altere os campos desejados e clique no botao de salvar daquela area.
+9. Para jogadores, escolha o time e clique em `Carregar jogadores do time`.
+10. Quando terminar, clique em `Salvar copia` para gerar um novo arquivo `.s22`.
+11. Teste a copia no Brasfoot antes de substituir qualquer arquivo manualmente.
 
 ## Abas Da Interface
 
@@ -206,8 +235,8 @@ Mostra os paises mapeados no save, com filtro por nome, grupo ou ID. Atualmente 
 ## Documentacao Tecnica
 
 - `docs/field-mapping.md`: registro dos campos confirmados por save real, bytecode e reflexao.
-- `todo.md`: historico de mapeamentos e campos ainda em investigacao.
 - `scripts/save-debugger.sh`: script auxiliar para depuracao local de saves.
+- `scripts/build-windows-bundle.sh`: gera o bundle Windows com runtime Java embutido.
 
 O mapeamento de campos e uma parte sensivel do projeto porque o Brasfoot usa classes e atributos obfuscados. Por isso, novos campos devem ser confirmados com evidencia antes de serem expostos na UI.
 
@@ -243,8 +272,8 @@ A suite cobre:
 - Sempre mantenha backup dos saves importantes antes de testar uma copia modificada.
 - O projeto salva uma copia automaticamente, mas nao valida todos os comportamentos internos do jogo apos a edicao.
 - Apenas campos ja mapeados devem ser alterados; campos obfuscados sem confirmacao podem corromper o save.
-- O runtime nativo configurado no Maven e Linux x64.
-- A aplicacao depende dos jars locais do Brasfoot em `lib/`; sem eles a desserializacao pode falhar com erro de classe `best.*` nao encontrada.
+- O editor precisa carregar o `.exe` ou `.jar` do Brasfoot do usuario antes de abrir um save; sem isso a desserializacao pode falhar com erro de classe `best.*` nao encontrada.
+- Este projeto nao distribui arquivos proprietarios do Brasfoot.
 - Este projeto nao implementa servidor web, API REST ou frontend browser.
 
 ## Troubleshooting
@@ -253,9 +282,9 @@ A suite cobre:
 
 Use o ambiente Nix ou confira se a Qt instalada tem a mesma versao do Qt Jambi. Em ambiente Nix, as variaveis `LD_LIBRARY_PATH`, `QT_PLUGIN_PATH` e `QT_QPA_PLATFORM_PLUGIN_PATH` ja sao configuradas pelo `shell.nix`.
 
-### Erro `Brasfoot game classes were not loaded`
+### Erro Sobre Classes Do Brasfoot
 
-Verifique se `lib/brasfoot-game.jar` existe e esta acessivel. Esse jar e necessario para carregar classes obfuscadas do Brasfoot usadas dentro do save.
+Clique em `Selecionar Brasfoot` e escolha o `.exe` ou `.jar` da sua instalacao do Brasfoot. Esse arquivo e necessario para carregar classes obfuscadas do jogo usadas dentro do save.
 
 ### Save Nao Abre Ou Falha Ao Desserializar
 
@@ -270,7 +299,7 @@ Veja os logs em `logs/brasfoot-save-editor.jsonl` e confira a mensagem exibida n
 ```text
 .
 |-- docs/                 # imagens e documentacao de mapeamento
-|-- lib/                  # jars locais do Brasfoot e dependencias de runtime
+|-- lib/                  # dependencias auxiliares de runtime usadas no desenvolvimento
 |-- logs/                 # logs estruturados gerados pela aplicacao
 |-- scripts/              # scripts auxiliares de debug
 |-- src/main/java/        # codigo principal
