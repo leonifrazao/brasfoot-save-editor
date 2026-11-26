@@ -105,62 +105,17 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
         Object playerObj = playerObjects.get(playerId);
 
         try {
-            Player currentPlayer = mapToPlayerDomain(sessionId, teamId, playerObj, playerId);
-
+            mapToPlayerDomain(sessionId, teamId, playerObj, playerId);
             if (age != null) {
-                Player.builder()
-                        .id(currentPlayer.getId())
-                        .name(currentPlayer.getName())
-                        .age(age)
-                        .overall(currentPlayer.getOverall())
-                        .position(currentPlayer.getPosition())
-                        .energy(currentPlayer.getEnergy())
-                        .morale(currentPlayer.getMorale())
-                        .starLocal(currentPlayer.isStarLocal())
-                        .starGlobal(currentPlayer.isStarGlobal())
-                        .build();
                 ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_AGE, age);
             }
             if (overall != null) {
-                Player.builder()
-                        .id(currentPlayer.getId())
-                        .name(currentPlayer.getName())
-                        .age(currentPlayer.getAge())
-                        .overall(overall)
-                        .position(currentPlayer.getPosition())
-                        .energy(currentPlayer.getEnergy())
-                        .morale(currentPlayer.getMorale())
-                        .starLocal(currentPlayer.isStarLocal())
-                        .starGlobal(currentPlayer.isStarGlobal())
-                        .build();
                 ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_OVERALL, overall);
             }
             if (position != null) {
-                Player.builder()
-                        .id(currentPlayer.getId())
-                        .name(currentPlayer.getName())
-                        .age(currentPlayer.getAge())
-                        .overall(currentPlayer.getOverall())
-                        .position(position)
-                        .energy(currentPlayer.getEnergy())
-                        .morale(currentPlayer.getMorale())
-                        .starLocal(currentPlayer.isStarLocal())
-                        .starGlobal(currentPlayer.isStarGlobal())
-                        .build();
                 ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_POSITION, position);
             }
             if (energy != null) {
-                Player.builder()
-                        .id(currentPlayer.getId())
-                        .name(currentPlayer.getName())
-                        .age(currentPlayer.getAge())
-                        .overall(currentPlayer.getOverall())
-                        .position(currentPlayer.getPosition())
-                        .energy(energy)
-                        .morale(currentPlayer.getMorale())
-                        .starLocal(currentPlayer.isStarLocal())
-                        .starGlobal(currentPlayer.isStarGlobal())
-                        .build();
                 ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_ENERGY, energy);
             }
             if (starLocal != null) {
@@ -256,34 +211,11 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
             Object playerObj = playerObjects.get(playerId);
 
             try {
-                Player currentPlayer = mapToPlayerDomain(sessionId, teamId, playerObj, playerId);
-
+                mapToPlayerDomain(sessionId, teamId, playerObj, playerId);
                 if (command.age() != null) {
-                    Player.builder()
-                            .id(currentPlayer.getId())
-                            .name(currentPlayer.getName())
-                            .age(command.age())
-                            .overall(currentPlayer.getOverall())
-                            .position(currentPlayer.getPosition())
-                            .energy(currentPlayer.getEnergy())
-                            .morale(currentPlayer.getMorale())
-                            .starLocal(currentPlayer.isStarLocal())
-                            .starGlobal(currentPlayer.isStarGlobal())
-                            .build();
                     ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_AGE, command.age());
                 }
                 if (command.overall() != null) {
-                    Player.builder()
-                            .id(currentPlayer.getId())
-                            .name(currentPlayer.getName())
-                            .age(currentPlayer.getAge())
-                            .overall(command.overall())
-                            .position(currentPlayer.getPosition())
-                            .energy(currentPlayer.getEnergy())
-                            .morale(currentPlayer.getMorale())
-                            .starLocal(currentPlayer.isStarLocal())
-                            .starGlobal(currentPlayer.isStarGlobal())
-                            .build();
                     ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_OVERALL, command.overall());
                 }
                 setIfPresent(playerObj, BrasfootConstants.PLAYER_SKILL_GOALKEEPING, command.skillGoalkeeping());
@@ -294,31 +226,9 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
                 setIfPresent(playerObj, BrasfootConstants.PLAYER_SKILL_PLAYMAKING, command.skillPlaymaking());
                 setIfPresent(playerObj, BrasfootConstants.PLAYER_SKILL_FINISHING, command.skillFinishing());
                 if (command.position() != null) {
-                    Player.builder()
-                            .id(currentPlayer.getId())
-                            .name(currentPlayer.getName())
-                            .age(currentPlayer.getAge())
-                            .overall(currentPlayer.getOverall())
-                            .position(command.position())
-                            .energy(currentPlayer.getEnergy())
-                            .morale(currentPlayer.getMorale())
-                            .starLocal(currentPlayer.isStarLocal())
-                            .starGlobal(currentPlayer.isStarGlobal())
-                            .build();
                     ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_POSITION, command.position());
                 }
                 if (command.energy() != null) {
-                    Player.builder()
-                            .id(currentPlayer.getId())
-                            .name(currentPlayer.getName())
-                            .age(currentPlayer.getAge())
-                            .overall(currentPlayer.getOverall())
-                            .position(currentPlayer.getPosition())
-                            .energy(command.energy())
-                            .morale(currentPlayer.getMorale())
-                            .starLocal(currentPlayer.isStarLocal())
-                            .starGlobal(currentPlayer.isStarGlobal())
-                            .build();
                     ReflectionUtils.setFieldValue(playerObj, BrasfootConstants.PLAYER_ENERGY, command.energy());
                 }
                 if (command.starLocal() != null) {

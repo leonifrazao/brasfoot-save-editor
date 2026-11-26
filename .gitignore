@@ -36,4 +36,12 @@ build/
 # Classes decompiladas do jogo
 brasfoot_files/
 
+# Saves, extracted game installations and local analysis material
+/brasfoot-files/
+/game/
+*.info
 
+# Build outputs and packaged runtimes
+/target/
+/dist/
+*.tmp

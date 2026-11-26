@@ -10,6 +10,7 @@ import org.objenesis.strategy.StdInstantiatorStrategy;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 
 import org.springframework.stereotype.Service;
 
@@ -17,9 +18,11 @@ import org.springframework.stereotype.Service;
 @SuppressWarnings({ "rawtypes" })
 public class SaveFileService {
     private final BrasfootGameLibraryPort gameLibraryPort;
+    private final BrasfootSaveCompatibility saveCompatibility;
 
-    public SaveFileService(BrasfootGameLibraryPort gameLibraryPort) {
+    public SaveFileService(BrasfootGameLibraryPort gameLibraryPort, BrasfootSaveCompatibility saveCompatibility) {
         this.gameLibraryPort = gameLibraryPort;
+        this.saveCompatibility = saveCompatibility;
     }
 
     private Kryo criarKryoParaLeitura() {
@@ -41,6 +44,16 @@ public class SaveFileService {
             }
         };
         kryo.register(ArrayList.class, arrayListSerializer);
+
+        // HashSet inicializa um HashMap interno no construtor. A estrategia
+        // Objenesis usada para as classes do Brasfoot pula esse construtor.
+        CollectionSerializer hashSetSerializer = new CollectionSerializer() {
+            @Override
+            protected Collection create(Kryo kryo, Input input, Class<Collection> type) {
+                return new HashSet();
+            }
+        };
+        kryo.register(HashSet.class, hashSetSerializer);
     }
 
     /**
@@ -65,7 +78,7 @@ public class SaveFileService {
             kryoWriter.writeClassAndObject(output, state.getObjetoRaiz());
             kryoWriter.writeClassAndObject(output, state.getDataAfQ());
             output.flush();
-            return baos.toByteArray();
+            return saveCompatibility.encode(baos.toByteArray(), state.isCompressedSave());
         } catch (Exception e) {
             throw new RuntimeException("Failed to create snapshot", e);
         }
@@ -76,10 +89,11 @@ public class SaveFileService {
      */
     public NavegacaoState restoreFromSnapshot(byte[] snapshot, String originalPath) {
         Kryo kryoReader = criarKryoParaLeitura();
-        try (Input input = new Input(new java.io.ByteArrayInputStream(snapshot))) {
+        BrasfootSaveCompatibility.DecodedSave decoded = saveCompatibility.decode(snapshot);
+        try (Input input = new Input(new java.io.ByteArrayInputStream(decoded.payload()))) {
             Object objetoRaiz = kryoReader.readClassAndObject(input);
             Object dataAfQ = kryoReader.readClassAndObject(input);
-            return new NavegacaoState(objetoRaiz, dataAfQ, originalPath);
+            return new NavegacaoState(objetoRaiz, dataAfQ, originalPath, decoded.gzip());
         } catch (Exception e) {
             throw new RuntimeException("Failed to restore snapshot", e);
         }

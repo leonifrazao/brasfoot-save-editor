@@ -2,6 +2,7 @@ package br.com.saveeditor.brasfoot.debug;
 
 import br.com.saveeditor.brasfoot.domain.NavegacaoState;
 import br.com.saveeditor.brasfoot.service.BrasfootGameLibraryService;
+import br.com.saveeditor.brasfoot.service.BrasfootSaveCompatibility;
 import br.com.saveeditor.brasfoot.service.SaveFileService;
 
 import java.io.IOException;
@@ -71,7 +72,7 @@ public final class SaveDebugger {
         Path refs = args.length >= 2 ? expandPath(args[1]) : DEFAULT_BRASFOOT_FILES;
 
         byte[] payload = Files.readAllBytes(save);
-        SaveFileService service = new SaveFileService(new BrasfootGameLibraryService());
+        SaveFileService service = new SaveFileService(new BrasfootGameLibraryService(), new BrasfootSaveCompatibility());
         NavegacaoState state = service.restoreFromSnapshot(payload, save.toString());
         ReferenceIndex index = ReferenceIndex.load(refs);
 

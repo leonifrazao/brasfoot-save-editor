@@ -16,8 +16,12 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class LeagueManagementService {
@@ -38,9 +42,10 @@ public class LeagueManagementService {
     public List<League> getLeagues(UUID sessionId) {
         Object root = sessionResolver.loadRequired(sessionId).getContext().getState().getObjetoRaiz();
         List<League> leagues = new ArrayList<>();
+        Set<String> seenLeagues = new HashSet<>();
 
-        collectLeagues(root, leagues, BrasfootConstants.ROOT_PRIMARY_COUNTRIES);
-        collectLeagues(root, leagues, BrasfootConstants.ROOT_SECONDARY_COUNTRIES);
+        collectLeagues(root, leagues, seenLeagues, BrasfootConstants.ROOT_PRIMARY_COUNTRIES);
+        collectLeagues(root, leagues, seenLeagues, BrasfootConstants.ROOT_SECONDARY_COUNTRIES);
 
         return leagues;
     }
@@ -85,7 +90,8 @@ public class LeagueManagementService {
         }
     }
 
-    private void collectLeagues(Object root, List<League> leagues, String countryListField) {
+    private void collectLeagues(Object root, List<League> leagues, Set<String> seenLeagues,
+                                String countryListField) {
         Object countriesValue;
         try {
             countriesValue = ReflectionUtils.getFieldValue(root, countryListField);
@@ -110,19 +116,30 @@ public class LeagueManagementService {
             }
             for (int divisionIndex = 0; divisionIndex < divisions.size(); divisionIndex++) {
                 Object division = divisions.get(divisionIndex);
-                addLeague(leagues, division, path(countryListField, countryIndex, divisionIndex, BrasfootConstants.DIVISION_MAIN_LEAGUE), BrasfootConstants.DIVISION_MAIN_LEAGUE);
-                addLeague(leagues, division, path(countryListField, countryIndex, divisionIndex, BrasfootConstants.DIVISION_SECONDARY_LEAGUE), BrasfootConstants.DIVISION_SECONDARY_LEAGUE);
+                addLeague(leagues, seenLeagues, division,
+                        path(countryListField, countryIndex, divisionIndex, BrasfootConstants.DIVISION_MAIN_LEAGUE),
+                        BrasfootConstants.DIVISION_MAIN_LEAGUE);
+                addLeague(leagues, seenLeagues, division,
+                        path(countryListField, countryIndex, divisionIndex, BrasfootConstants.DIVISION_SECONDARY_LEAGUE),
+                        BrasfootConstants.DIVISION_SECONDARY_LEAGUE);
             }
         }
     }
 
-    private void addLeague(List<League> leagues, Object division, String path, String leagueField) {
+    private void addLeague(List<League> leagues, Set<String> seenLeagues, Object division,
+                           String path, String leagueField) {
         try {
             Object league = ReflectionUtils.getFieldValue(division, leagueField);
             if (league == null || !league.getClass().getName().equals("f.s")) {
                 return;
             }
-            leagues.add(new League(path, leagueLabel(league), path, leagueTeams(league).size()));
+            List<Object> teams = leagueTeams(league);
+            String identity = leagueLabel(league).toLowerCase(Locale.ROOT) + "|"
+                    + teams.stream().map(this::teamId).sorted().map(String::valueOf)
+                    .collect(Collectors.joining(","));
+            if (teams.isEmpty()) identity += "|" + System.identityHashCode(league);
+            if (!seenLeagues.add(identity)) return;
+            leagues.add(new League(path, leagueLabel(league), path, teams.size()));
         } catch (ReflectiveOperationException ignored) {
             // Division has no league at this slot.
         }
@@ -139,8 +156,9 @@ public class LeagueManagementService {
 
     private List<League> getLeaguesFromRoot(Object root) {
         List<League> leagues = new ArrayList<>();
-        collectLeagues(root, leagues, BrasfootConstants.ROOT_PRIMARY_COUNTRIES);
-        collectLeagues(root, leagues, BrasfootConstants.ROOT_SECONDARY_COUNTRIES);
+        Set<String> seenLeagues = new HashSet<>();
+        collectLeagues(root, leagues, seenLeagues, BrasfootConstants.ROOT_PRIMARY_COUNTRIES);
+        collectLeagues(root, leagues, seenLeagues, BrasfootConstants.ROOT_SECONDARY_COUNTRIES);
         return leagues;
     }
 

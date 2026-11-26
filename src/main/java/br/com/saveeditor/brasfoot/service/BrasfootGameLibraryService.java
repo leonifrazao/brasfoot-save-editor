@@ -42,6 +42,13 @@ public class BrasfootGameLibraryService implements BrasfootGameLibraryPort {
         return classLoader;
     }
 
+    @Override
+    public boolean supportsRealBrasfootTactics() {
+        // OfficialRegistration exists in the Real Brasfoot builds inspected and is absent
+        // from the original Brasfoot library. Unknown builds stay on the conservative list.
+        return classLoader.getResource("best/OfficialRegistration.class") != null;
+    }
+
     private void validateSource(Path source) {
         if (!Files.isRegularFile(source)) {
             throw new IllegalArgumentException("Arquivo do Brasfoot nao encontrado: " + source);

@@ -3,7 +3,7 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    
+
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
@@ -20,7 +20,8 @@
     <properties>
         <java.version>17</java.version>
         <lombok.version>1.18.32</lombok.version>
-        <qtjambi.version>6.11.0</qtjambi.version>
+        <flatlaf.version>3.8</flatlaf.version>
+        <launch4j.skip>false</launch4j.skip>
     </properties>
 
 
@@ -37,23 +38,11 @@
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
 
-        <!-- Desktop UI -->
+        <!-- Swing is included in Java; FlatLaf provides a consistent cross-platform look. -->
         <dependency>
-            <groupId>io.qtjambi</groupId>
-            <artifactId>qtjambi</artifactId>
-            <version>${qtjambi.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.qtjambi</groupId>
-            <artifactId>qtjambi-native-linux-x64</artifactId>
-            <version>${qtjambi.version}</version>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.qtjambi</groupId>
-            <artifactId>qtjambi-native-windows-x64</artifactId>
-            <version>${qtjambi.version}</version>
-            <scope>runtime</scope>
+            <groupId>com.formdev</groupId>
+            <artifactId>flatlaf</artifactId>
+            <version>${flatlaf.version}</version>
         </dependency>
 
         <!-- Testing & Architecture Validation -->
@@ -67,13 +56,6 @@
             <artifactId>archunit-junit5</artifactId>
             <version>1.2.1</version>
             <scope>test</scope>
-        </dependency>
-
-        <!-- JSON Processing -->
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <version>2.8.9</version>
         </dependency>
 
         <!-- Serialization -->
@@ -162,6 +144,7 @@
                             <goal>launch4j</goal>
                         </goals>
                         <configuration>
+                            <skip>${launch4j.skip}</skip>
                             <headerType>gui</headerType>
                             <outfile>${project.build.directory}/${project.build.finalName}.exe</outfile>
                             <jar>${project.build.directory}/${project.build.finalName}.jar</jar>
@@ -169,6 +152,9 @@
                             <jre>
                                 <path>runtime</path>
                                 <minVersion>${java.version}</minVersion>
+                                <opts>
+                                    <opt>-Djava.awt.headless=false</opt>
+                                </opts>
                             </jre>
                             <versionInfo>
                                 <fileVersion>2.0.0.0</fileVersion>

@@ -10,14 +10,22 @@ public record TeamBatchUpdateCommand(
     TeamReputation reputation,
     String stadiumName,
     List<Integer> stadiumSectors,
-    Integer level
+    Integer level,
+    Integer tacticStyle,
+    Integer tacticMarking,
+    Integer tacticFocus
 ) {
     public TeamBatchUpdateCommand(int teamId, Long money, TeamReputation reputation) {
-        this(teamId, money, reputation, null, null, null);
+        this(teamId, money, reputation, null, null, null, null, null, null);
     }
 
     public TeamBatchUpdateCommand(int teamId, Long money, TeamReputation reputation, String stadiumName,
                                   List<Integer> stadiumSectors) {
-        this(teamId, money, reputation, stadiumName, stadiumSectors, null);
+        this(teamId, money, reputation, stadiumName, stadiumSectors, null, null, null, null);
+    }
+
+    public TeamBatchUpdateCommand(int teamId, Long money, TeamReputation reputation, String stadiumName,
+                                  List<Integer> stadiumSectors, Integer level) {
+        this(teamId, money, reputation, stadiumName, stadiumSectors, level, null, null, null);
     }
 }

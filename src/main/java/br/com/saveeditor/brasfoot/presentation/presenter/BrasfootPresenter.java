@@ -4,6 +4,7 @@ import br.com.saveeditor.brasfoot.application.ports.in.record.PlayerBatchUpdateC
 import br.com.saveeditor.brasfoot.application.ports.in.record.TeamBatchUpdateCommand;
 import br.com.saveeditor.brasfoot.application.ports.out.BrasfootGameLibraryPort;
 import br.com.saveeditor.brasfoot.application.services.CountryManagementService;
+import br.com.saveeditor.brasfoot.application.services.CalendarManagementService;
 import br.com.saveeditor.brasfoot.application.services.LeagueManagementService;
 import br.com.saveeditor.brasfoot.application.services.ManagerManagementService;
 import br.com.saveeditor.brasfoot.application.services.PlayerManagementService;
@@ -18,6 +19,7 @@ import br.com.saveeditor.brasfoot.domain.Player;
 import br.com.saveeditor.brasfoot.domain.Team;
 import br.com.saveeditor.brasfoot.domain.enums.TeamReputation;
 import br.com.saveeditor.brasfoot.presentation.model.CountryRow;
+import br.com.saveeditor.brasfoot.presentation.model.CalendarRoundRow;
 import br.com.saveeditor.brasfoot.presentation.model.LeagueRow;
 import br.com.saveeditor.brasfoot.presentation.model.LeagueTableRow;
 import br.com.saveeditor.brasfoot.presentation.model.ManagerRow;
@@ -51,6 +53,7 @@ public class BrasfootPresenter {
     private final ManagerManagementService managerManagementService;
     private final LeagueManagementService leagueManagementService;
     private final CountryManagementService countryManagementService;
+    private final CalendarManagementService calendarManagementService;
     private final BrasfootGameLibraryPort gameLibraryPort;
 
     private BrasfootDesktopView view;
@@ -62,6 +65,7 @@ public class BrasfootPresenter {
                                 ManagerManagementService managerManagementService,
                                 LeagueManagementService leagueManagementService,
                                 CountryManagementService countryManagementService,
+                               CalendarManagementService calendarManagementService,
                                 BrasfootGameLibraryPort gameLibraryPort) {
         this.sessionService = sessionService;
         this.teamManagementService = teamManagementService;
@@ -69,11 +73,16 @@ public class BrasfootPresenter {
         this.managerManagementService = managerManagementService;
         this.leagueManagementService = leagueManagementService;
         this.countryManagementService = countryManagementService;
+        this.calendarManagementService = calendarManagementService;
         this.gameLibraryPort = gameLibraryPort;
     }
 
     public void attach(BrasfootDesktopView view) {
         this.view = view;
+    }
+
+    public boolean supportsRealBrasfootTactics() {
+        return gameLibraryPort.supportsRealBrasfootTactics();
     }
 
     public void selectBrasfootLibrary(Path libraryPath) {
@@ -94,6 +103,7 @@ public class BrasfootPresenter {
             refreshManagers();
             refreshLeagues();
             refreshCountries();
+            refreshCalendar();
         } catch (RuntimeException e) {
             showError("Falha ao abrir save", e);
         }
@@ -105,6 +115,15 @@ public class BrasfootPresenter {
             view.showSaveWritten(outputPath);
         } catch (RuntimeException e) {
             showError("Falha ao salvar copia", e);
+        }
+    }
+
+    public void saveOverCurrent() {
+        try {
+            Path outputPath = sessionService.saveOverCurrent(requireSession().toString());
+            view.showSaveWritten(outputPath);
+        } catch (RuntimeException e) {
+            showError("Falha ao substituir save", e);
         }
     }
 
@@ -163,6 +182,32 @@ public class BrasfootPresenter {
         } catch (RuntimeException e) {
             showError("Falha ao carregar paises", e);
         }
+    }
+
+    public void refreshCalendar() {
+        try {
+            view.showCalendar(calendarManagementService.getUpcomingRounds(requireSession()));
+        } catch (RuntimeException e) {
+            showError("Falha ao carregar calendario", e);
+        }
+    }
+
+    public void moveCalendarRound(String competitionKey, java.time.LocalDate sourceDate,
+                                  java.time.LocalDate targetDate) {
+        try {
+            int matches = calendarManagementService.moveRound(requireSession(), competitionKey, sourceDate, targetDate);
+            refreshCalendar();
+            view.showStatus(matches + " jogos movidos para " + targetDate + ".");
+        } catch (RuntimeException e) {
+            showError("Nao foi possivel mover a rodada", e);
+        }
+    }
+
+    public boolean calendarMoveHasHumanNationalTournamentConflict(String competitionKey,
+                                                                 java.time.LocalDate sourceDate,
+                                                                 java.time.LocalDate targetDate) {
+        return calendarManagementService.hasHumanNationalTournamentConflict(
+                requireSession(), competitionKey, sourceDate, targetDate);
     }
 
     public void loadLeagueTable(String leagueId) {
@@ -363,6 +408,59 @@ public class BrasfootPresenter {
                     + protectedTeamId + ".");
         } catch (RuntimeException e) {
             showError("Falha ao destruir times do pais", e);
+        }
+    }
+
+    public void batchUpdateAllTeams(Long money, TeamReputation reputation, String stadiumName, Integer level,
+                                    Integer tacticStyle) {
+        try {
+            UUID sessionId = requireSession();
+            List<Team> all = teamManagementService.getAllTeams(sessionId);
+            List<TeamBatchUpdateCommand> commands = all.stream()
+                    .map(team -> new TeamBatchUpdateCommand(team.getId(), money, reputation, stadiumName, null, level,
+                            tacticStyle, null, null))
+                    .toList();
+            var response = teamManagementService.batchUpdateTeams(sessionId, commands);
+            long succeeded = response.getResults().stream().filter(result -> result.isSuccess()).count();
+            refreshTeams();
+            view.showStatus(succeeded + "/" + commands.size() + " times atualizados em lote.");
+        } catch (RuntimeException e) {
+            showError("Falha ao editar times em lote", e);
+        }
+    }
+
+    public void destroyTeams(boolean keepHumanManaged) {
+        try {
+            UUID sessionId = requireSession();
+            List<Team> teams = teamManagementService.getAllTeams(sessionId);
+            var protectedIds = keepHumanManaged
+                    ? managerManagementService.getManagers(sessionId).stream()
+                        .filter(manager -> Boolean.TRUE.equals(manager.getIsHuman()))
+                        .map(Manager::getTeamId).filter(java.util.Objects::nonNull).collect(java.util.stream.Collectors.toSet())
+                    : java.util.Set.<Integer>of();
+            if (keepHumanManaged && protectedIds.isEmpty()) {
+                view.showError("Time humano não encontrado", "Não encontrei um time associado a técnico humano. Nenhum time foi alterado.");
+                return;
+            }
+            List<Team> targets = teams.stream().filter(team -> !protectedIds.contains(team.getId())).toList();
+            if (targets.isEmpty()) { view.showStatus("Não há times para destruir."); return; }
+            var commands = targets.stream().map(team -> new TeamBatchUpdateCommand(team.getId(), DESTROYED_TEAM_MONEY,
+                    TeamReputation.MUNICIPAL, null, DESTROYED_STADIUM_SECTORS, DESTROYED_TEAM_LEVEL)).toList();
+            var response = teamManagementService.batchUpdateTeams(sessionId, commands);
+            long teamSuccess = response.getResults().stream().filter(result -> result.isSuccess()).count();
+            int playerCount = 0; long playerSuccess = 0;
+            for (Team team : targets) {
+                var players = playerManagementService.getTeamPlayers(sessionId, team.getId());
+                var playerResponse = playerManagementService.batchUpdatePlayers(sessionId, team.getId(), players.stream()
+                        .map(player -> destroyedPlayerCommand(player.getId())).toList());
+                playerCount += players.size();
+                playerSuccess += playerResponse.getResults().stream().filter(result -> result.isSuccess()).count();
+            }
+            refreshTeams();
+            view.showStatus(teamSuccess + "/" + commands.size() + " times destruídos; " + playerSuccess + "/" + playerCount
+                    + " jogadores enfraquecidos. Times preservados: " + protectedIds.size() + ".");
+        } catch (RuntimeException e) {
+            showError("Falha ao destruir times", e);
         }
     }
 

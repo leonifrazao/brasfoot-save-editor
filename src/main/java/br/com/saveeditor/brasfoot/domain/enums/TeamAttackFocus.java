@@ -2,7 +2,8 @@ package br.com.saveeditor.brasfoot.domain.enums;
 
 public enum TeamAttackFocus {
     CENTER(0, "Pelo meio"),
-    SIDES(1, "Pelas laterais");
+    SIDES(1, "Pelos lados"),
+    BOTH(2, "Ambos");
 
     private final int code;
     private final String label;

@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.StandardCopyOption;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -77,11 +79,57 @@ public class SessionService implements UploadSaveUseCase, DownloadSaveUseCase {
 
         try {
             Files.write(outputPath, writeSavePort.write(session.getContext()));
+            copySaveMetadata(session.getContext(), outputPath);
             log.info("Save copy written to {}", outputPath);
             return outputPath;
         } catch (IOException e) {
             throw new IllegalStateException("Could not write save copy: " + outputPath, e);
         }
+    }
+
+    public Path saveOverCurrent(String sessionId) {
+        UUID id = sessionResolver.parse(sessionId);
+        Session session = sessionResolver.loadRequired(id);
+        String currentPath = session.getContext().getCurrentFilePath();
+        if (currentPath == null || currentPath.isBlank()) {
+            throw new IllegalStateException("O save atual não tem um caminho para substituir.");
+        }
+        Path outputPath = Path.of(currentPath).toAbsolutePath().normalize();
+        Path directory = outputPath.getParent() == null ? Path.of(".").toAbsolutePath().normalize() : outputPath.getParent();
+        Path temporary = null;
+        try {
+            temporary = Files.createTempFile(directory, ".brasfoot-save-", ".tmp");
+            Files.write(temporary, writeSavePort.write(session.getContext()));
+            try {
+                Files.move(temporary, outputPath, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            } catch (AtomicMoveNotSupportedException e) {
+                Files.move(temporary, outputPath, StandardCopyOption.REPLACE_EXISTING);
+            }
+            log.info("Save replaced at {}", outputPath);
+            return outputPath;
+        } catch (IOException e) {
+            throw new IllegalStateException("Não foi possível substituir o save: " + outputPath, e);
+        } finally {
+            if (temporary != null) {
+                try { Files.deleteIfExists(temporary); } catch (IOException ignored) { }
+            }
+        }
+    }
+
+    private void copySaveMetadata(SaveContext context, Path outputPath) throws IOException {
+        Path sourcePath = Path.of(context.getCurrentFilePath()).toAbsolutePath().normalize();
+        Path sourceInfo = metadataPath(sourcePath);
+        if (!Files.isRegularFile(sourceInfo)) {
+            return;
+        }
+        Files.copy(sourceInfo, metadataPath(outputPath), StandardCopyOption.COPY_ATTRIBUTES);
+    }
+
+    private Path metadataPath(Path savePath) {
+        String filename = savePath.getFileName().toString();
+        int extension = filename.lastIndexOf('.');
+        String basename = extension > 0 ? filename.substring(0, extension) : filename;
+        return savePath.resolveSibling(basename + ".info");
     }
 
     private Path createRandomOutputPath(SaveContext context) {

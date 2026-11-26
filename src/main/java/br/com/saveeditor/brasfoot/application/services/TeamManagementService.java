@@ -110,15 +110,8 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
             throw new IllegalArgumentException("Team not found with ID: " + teamId);
         }
 
-        Team currentTeam = mapToTeamDomain(teamObj);
-
+        mapToTeamDomain(teamObj);
         if (money != null) {
-            Team.builder()
-                    .id(currentTeam.getId())
-                    .name(currentTeam.getName())
-                    .money(money)
-                    .reputation(currentTeam.getReputation())
-                    .build();
             try {
                 ReflectionUtils.setFieldValue(teamObj, BrasfootConstants.TEAM_MONEY, money);
             } catch (Exception e) {
@@ -162,15 +155,8 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
                     continue;
                 }
 
-                Team currentTeam = mapToTeamDomain(teamObj);
-
+                mapToTeamDomain(teamObj);
                 if (command.money() != null) {
-                    Team.builder()
-                            .id(currentTeam.getId())
-                            .name(currentTeam.getName())
-                            .money(command.money())
-                            .reputation(currentTeam.getReputation())
-                            .build();
                     ReflectionUtils.setFieldValue(teamObj, BrasfootConstants.TEAM_MONEY, command.money());
                 }
                 if (command.reputation() != null) {
@@ -178,6 +164,7 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
                 }
                 updateStadium(teamObj, command.stadiumName(), command.stadiumSectors());
                 setIfPresent(teamObj, BrasfootConstants.TEAM_LEVEL, command.level());
+                updateTactics(teamObj, command.tacticStyle(), command.tacticMarking(), command.tacticFocus());
 
                 results.add(BatchResult.success(i, mapToTeamDomain(teamObj)));
             } catch (IllegalArgumentException e) {

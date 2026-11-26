@@ -3,6 +3,7 @@ package br.com.saveeditor.brasfoot.presentation.view;
 import br.com.saveeditor.brasfoot.presentation.model.LeagueRow;
 import br.com.saveeditor.brasfoot.presentation.model.LeagueTableRow;
 import br.com.saveeditor.brasfoot.presentation.model.CountryRow;
+import br.com.saveeditor.brasfoot.presentation.model.CalendarRoundRow;
 import br.com.saveeditor.brasfoot.presentation.model.ManagerRow;
 import br.com.saveeditor.brasfoot.presentation.model.PlayerRow;
 import br.com.saveeditor.brasfoot.presentation.model.TeamRow;
@@ -26,6 +27,8 @@ public interface BrasfootDesktopView {
     void showLeagueTable(String leagueId, List<LeagueTableRow> table);
 
     void showCountries(List<CountryRow> countries);
+
+    void showCalendar(List<CalendarRoundRow> rounds);
 
     void showStatus(String message);
 

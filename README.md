@@ -1,10 +1,10 @@
 # Brasfoot Save Editor
 
-Editor desktop para saves `.s22` do Brasfoot, construido em Java 17, Spring Boot e Qt Jambi. O projeto abre um save local, mantem os dados em uma sessao em memoria, permite editar informacoes importantes do jogo e salva uma nova copia do arquivo sem sobrescrever o save original.
+Editor desktop para saves `.s22` do Brasfoot, construido em Java 17, Spring Boot e Swing + FlatLaf. O projeto abre um save local, mantem os dados em uma sessao em memoria, permite editar informacoes importantes do jogo e pode substituir o save atual ou gravar uma copia com outro nome.
 
 ## Visao Geral
 
-O Brasfoot Save Editor nasceu para facilitar ajustes em saves do Brasfoot 2022/2023 sem depender da interface original do jogo. A aplicacao trabalha diretamente com os objetos serializados do Brasfoot por meio de Kryo e das classes carregadas do `.exe` ou `.jar` selecionado pelo usuario, expondo uma UI desktop simples para navegar e alterar times, jogadores, tecnicos, ligas e paises.
+O Brasfoot Save Editor nasceu para facilitar ajustes em saves do Brasfoot sem depender da interface original do jogo. A aplicacao trabalha diretamente com os objetos serializados por meio de Kryo e das classes carregadas do `.exe` ou `.jar` selecionado pelo usuario, expondo uma UI desktop para navegar e alterar times, jogadores, tecnicos, ligas e paises.
 
 Principais objetivos do projeto:
 
@@ -13,7 +13,7 @@ Principais objetivos do projeto:
 - visualizar os dados carregados em tabelas organizadas;
 - editar campos ja mapeados e validados no save;
 - aplicar alteracoes em lote para cenarios de teste ou customizacao;
-- preservar o arquivo original ao salvar sempre uma nova copia;
+- escolher entre substituir o arquivo atual ou salvar uma copia com outro nome;
 - manter a regra de negocio isolada da interface por uma arquitetura em camadas/hexagonal.
 
 ## Downloads Oficiais
@@ -41,11 +41,11 @@ O editor nao inclui arquivos do Brasfoot. Ao abrir o programa, clique em `Seleci
 
 ## Funcionalidades
 
-- Abertura de arquivos `.s22` por seletor de arquivo da interface Qt.
-- Salvamento como copia no mesmo diretorio do save original, com nome gerado automaticamente.
+- Abertura de arquivos `.s22` por seletor de arquivo da interface Swing.
+- Salvamento com escolha entre substituir o arquivo aberto (com confirmacao) ou gravar uma nova copia no mesmo diretorio.
 - Listagem e filtro de times por nome, ID, apelido, pais, divisao ou estadio.
 - Edicao de times: nome, apelido, pais, divisao, nivel, dinheiro, reputacao, estadio, setores do estadio e parametros taticos.
-- Edicao em lote de times por pais, incluindo dinheiro e rotina para enfraquecer/destruir os outros times do mesmo pais preservando o time selecionado.
+- Edicao em lote de times, incluindo dinheiro, reputacao, estadio, nivel e estilo; permite enfraquecer todos os times ou preservar os associados a tecnicos humanos.
 - Listagem de jogadores por time.
 - Edicao de jogadores: nome, idade, forca geral, posicao, energia, salario, lado, pais, fim de contrato, caracteristicas, habilidades individuais e estrelas.
 - Edicao em lote de jogadores do time selecionado: idade, forca geral, energia, pais, habilidades individuais e estrelas.
@@ -64,9 +64,11 @@ O editor nao inclui arquivos do Brasfoot. Ao abrir o programa, clique em `Seleci
 5. O adapter `KryoSaveAdapter` desserializa o payload usando `SaveFileService` e Kryo.
 6. O estado do save fica em memoria por meio de `CurrentSessionAdapter` e `SaveContext`.
 7. Os services de aplicacao alteram apenas os campos mapeados no dominio.
-8. Ao salvar, o projeto serializa novamente o estado atual e grava uma copia nova no diretorio do save original.
+8. Ao salvar, escolha substituir o arquivo aberto ou criar uma copia nova no diretorio do save original.
 
-O arquivo original nao e sobrescrito. A copia gerada segue o padrao `brasfoot-save-<uuid>.s22` ou mantem a extensao original quando ela existir.
+O envelope do save e detectado automaticamente: saves antigos sem compressao continuam aceitos, e saves do Brasfoot 2026 (GZIP) mantem a compressao e recebem uma copia do arquivo `.info` associado quando ele existir.
+
+Ao criar uma copia, o nome segue o padrao `brasfoot-save-<uuid>` e mantem a extensao original quando ela existir. A substituicao do arquivo aberto pede confirmacao antes de gravar.
 
 ## Arquitetura
 
@@ -82,7 +84,7 @@ src/main/java/br/com/saveeditor/brasfoot
 |-- debug             # ferramentas locais para investigacao de saves/bytecode
 |-- domain            # modelos, estado do save, enums e validacoes
 |-- infrastructure
-|   `-- adapters      # adapters Qt, arquivo/Kryo e estado em memoria
+|   `-- adapters      # adapters Swing, arquivo/Kryo e estado em memoria
 |-- presentation      # presenter, view contract e modelos de tela
 |-- service           # servicos legados/infra para Kryo e dados do jogo
 `-- util              # constantes e utilitarios de reflexao/string/console
@@ -93,10 +95,10 @@ src/main/java/br/com/saveeditor/brasfoot
 - `domain`: entidades e regras do save, como `Team`, `Player`, `Manager`, `League`, `SaveContext` e enums mapeados do Brasfoot.
 - `application`: services e portas que coordenam leitura, atualizacao e escrita sem depender diretamente da UI.
 - `presentation`: `BrasfootPresenter`, modelos de tela e contrato `BrasfootDesktopView`.
-- `infrastructure`: implementacoes concretas para Qt Jambi, Kryo e armazenamento de sessoes em memoria.
+- `infrastructure`: implementacoes concretas para Swing, Kryo e armazenamento de sessoes em memoria.
 - `debug`: utilitarios para investigar saves reais, classes obfuscadas do Brasfoot e campos ainda nao confirmados.
 
-A interface desktop e Java + Qt Jambi. O Spring Boot e usado como container de injecao de dependencias, mas a aplicacao roda com `WebApplicationType.NONE`: nao existe API REST nem frontend web.
+A interface desktop e Java Swing + FlatLaf. O Spring Boot e usado como container de injecao de dependencias, mas a aplicacao roda com `WebApplicationType.NONE`: nao existe API REST nem frontend web.
 
 ## Tecnologias
 
@@ -104,23 +106,22 @@ A interface desktop e Java + Qt Jambi. O Spring Boot e usado como container de i
 | --- | --- |
 | Java 17 | linguagem principal |
 | Spring Boot 3.2.1 | injecao de dependencias e bootstrap da aplicacao desktop |
-| Qt Jambi 6.11.0 | interface grafica desktop |
+| Swing + FlatLaf | interface grafica desktop |
 | Kryo 4.0.2 | desserializacao/serializacao dos saves |
 | Lombok | reducao de boilerplate em modelos |
-| Gson | processamento JSON auxiliar |
 | ArchUnit | validacao de regras arquiteturais nos testes |
 | Logback + logstash encoder | logs estruturados em JSON Lines |
 | Nix | ambiente reprodutivel de desenvolvimento |
 
 ## Requisitos
 
-- Para usar o ZIP Windows: nenhum requisito adicional; o runtime Java ja vai embutido.
+- Para usar o ZIP Windows: nenhum requisito adicional; o runtime Java 17 vai embutido.
 - Para usar o JAR multiplataforma: Java 17.
-- Para desenvolvimento: Java 17, Maven e Qt compativel com a versao do Qt Jambi configurada no `pom.xml`.
-- Para desenvolvimento local: bibliotecas auxiliares em `lib/` (`asm`, `reflectasm`, `minlog` e `objenesis`).
+- Para desenvolvimento: Java 17 e Maven. Swing vem incluido no Java; FlatLaf e baixado pelo Maven.
+- Para desenvolvimento local: bibliotecas auxiliares em `lib/` (`asm`, `reflectasm` e `minlog`). O Maven resolve `objenesis` como dependência.
 - Um `.exe` ou `.jar` do Brasfoot instalado pelo usuario, selecionado pela interface ao iniciar o fluxo de uso.
 
-O Qt Jambi precisa usar a mesma versao major/minor/patch da Qt instalada no sistema. O projeto esta configurado para Qt Jambi `6.11.0`, e o ambiente Nix tambem prepara Qt `6.11.0`.
+A interface usa Swing com FlatLaf e nao requer bibliotecas graficas nativas adicionais.
 
 Arquivos auxiliares locais esperados pelo `pom.xml` para desenvolvimento:
 
@@ -162,7 +163,7 @@ mvn spring-boot:run
 
 ### Usando Nix
 
-Se o ambiente local nao tiver Java, Maven ou Qt instalados, use o `shell.nix` do projeto.
+Se o ambiente local nao tiver Java ou Maven instalados, use o `shell.nix` do projeto.
 
 Entrar no shell:
 
@@ -202,27 +203,27 @@ nix-shell --run "mvn spring-boot:run"
 6. Aguarde o carregamento das abas de times, tecnicos, ligas e paises.
 7. Selecione um registro em uma tabela para preencher o editor lateral.
 8. Altere os campos desejados e clique no botao de salvar daquela area.
-9. Para jogadores, escolha o time e clique em `Carregar jogadores do time`.
-10. Quando terminar, clique em `Salvar copia` para gerar um novo arquivo `.s22`.
-11. Teste a copia no Brasfoot antes de substituir qualquer arquivo manualmente.
+9. Para jogadores, pesquise o time pelo nome e selecione-o para carregar o elenco.
+10. Quando terminar, clique em `Salvar…` e escolha substituir o save aberto ou salvar com outro nome.
+11. Teste o save no Brasfoot antes de continuar a partida.
 
 ## Abas Da Interface
 
 ### Times
 
-Permite pesquisar times e editar informacoes estruturais do clube. Campos suportados incluem nome, apelido, pais, divisao, nivel, dinheiro, reputacao, estadio, setores do estadio, estilo de jogo, marcacao e foco dos ataques.
+Permite pesquisar times e editar informacoes estruturais do clube. Campos suportados incluem nome, apelido, pais, divisao, nivel, dinheiro, reputacao, estadio, setores do estadio, estilo de jogo, marcacao e foco dos ataques. Estilos e focos exclusivos do Real Brasfoot aparecem somente quando a biblioteca Real e detectada; no Brasfoot original, a lista e limitada aos valores disponiveis nessa versao.
 
-Tambem existe edicao em lote por pais para alterar dinheiro dos clubes e uma acao especifica para enfraquecer todos os outros times do pais selecionado mantendo o time marcado na tabela.
+Os botoes `Editar time` e `Edicao em lote` separam a edicao individual das alteracoes gerais. A edicao em lote permite ajustar dinheiro, reputacao, estadio, nivel e estilo de jogo. Tambem permite enfraquecer todos os clubes exceto os associados a tecnicos humanos ou todos os clubes, mediante confirmacao.
 
 ### Jogadores
 
-Os jogadores sao carregados por time. A aba permite alterar dados basicos, contrato, caracteristicas, pais, estrelas e habilidades individuais como goleiro, velocidade, tecnica, passe, desarme, armacao e finalizacao.
+Os jogadores sao carregados por time; a busca mostra os times correspondentes enquanto o nome e digitado. A aba permite alterar dados basicos, contrato, caracteristicas, pais, estrelas e habilidades individuais como goleiro, velocidade, tecnica, passe, desarme, armacao e finalizacao.
 
 A edicao em lote aplica alteracoes nos jogadores do time atualmente selecionado. Valores sentinela indicados na propria UI, como `0=ignorar` ou `-1=ignorar`, evitam alterar campos nao desejados.
 
 ### Tecnicos
 
-Permite editar nome, time associado, flag de tecnico humano e confianca da diretoria/torcida.
+Permite editar nome, time associado pelo nome, flag de tecnico humano e confianca da diretoria/torcida.
 
 ### Ligas
 
@@ -236,7 +237,10 @@ Mostra os paises mapeados no save, com filtro por nome, grupo ou ID. Atualmente 
 
 - `docs/field-mapping.md`: registro dos campos confirmados por save real, bytecode e reflexao.
 - `scripts/save-debugger.sh`: script auxiliar para depuracao local de saves.
-- `scripts/build-windows-bundle.sh`: gera o bundle Windows com runtime Java embutido.
+- `scripts/build.sh` e `scripts/build.bat`: compilam `jar`, `exe`, `exe-debug` ou `both`; sem argumento, mostram um menu de selecao.
+- `scripts/build-windows-bundle.sh` e `scripts/build-windows-bundle.bat`: geram o bundle Windows com runtime Java embutido.
+
+Para compilar, execute `scripts/build.sh` no Linux ou `scripts\\build.bat` no Windows. Escolha `jar`, `exe`, `exe-debug` ou `both` no menu, ou passe a opcao como argumento. `exe` e `both` geram `target/brasfoot-save-editor-windows.zip` com o EXE e runtime Java 17, sem JAR separado nem BAT. `exe-debug` gera `target/brasfoot-save-editor-windows-debug.zip`, que inclui tambem o JAR da aplicacao e `run-debug.bat`. O JAR funciona no Linux e no Windows com Java 17.
 
 O mapeamento de campos e uma parte sensivel do projeto porque o Brasfoot usa classes e atributos obfuscados. Por isso, novos campos devem ser confirmados com evidencia antes de serem expostos na UI.
 
@@ -270,7 +274,7 @@ A suite cobre:
 ## Cuidados E Limitacoes
 
 - Sempre mantenha backup dos saves importantes antes de testar uma copia modificada.
-- O projeto salva uma copia automaticamente, mas nao valida todos os comportamentos internos do jogo apos a edicao.
+- A substituicao do arquivo aberto exige confirmacao; ainda assim, mantenha backup dos saves importantes e valide o comportamento no jogo.
 - Apenas campos ja mapeados devem ser alterados; campos obfuscados sem confirmacao podem corromper o save.
 - O editor precisa carregar o `.exe` ou `.jar` do Brasfoot do usuario antes de abrir um save; sem isso a desserializacao pode falhar com erro de classe `best.*` nao encontrada.
 - Este projeto nao distribui arquivos proprietarios do Brasfoot.
@@ -278,9 +282,9 @@ A suite cobre:
 
 ## Troubleshooting
 
-### Erro Sobre Qt Ou Plugin De Plataforma
+### Erro Ao Abrir A Interface
 
-Use o ambiente Nix ou confira se a Qt instalada tem a mesma versao do Qt Jambi. Em ambiente Nix, as variaveis `LD_LIBRARY_PATH`, `QT_PLUGIN_PATH` e `QT_QPA_PLATFORM_PLUGIN_PATH` ja sao configuradas pelo `shell.nix`.
+No Windows, gere o pacote de diagnostico com `scripts\\build.bat exe-debug` e execute `run-debug.bat`; ele mostra a mensagem de erro no terminal. A interface Swing usa componentes Java multiplataforma.
 
 ### Erro Sobre Classes Do Brasfoot
 
@@ -306,7 +310,7 @@ Veja os logs em `logs/brasfoot-save-editor.jsonl` e confira a mensagem exibida n
 |-- src/main/resources/   # configuracoes de logging e Spring
 |-- src/test/java/        # testes automatizados
 |-- pom.xml               # build Maven e dependencias
-`-- shell.nix             # ambiente de desenvolvimento com Java, Maven e Qt
+`-- shell.nix             # ambiente de desenvolvimento com Java e Maven
 ```
 
 ## Contribuicao

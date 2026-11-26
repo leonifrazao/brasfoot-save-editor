@@ -73,7 +73,7 @@ public class Team {
 
     public void setTacticStyle(Integer tacticStyle) {
         if (tacticStyle != null && TeamPlayStyle.fromCode(tacticStyle).getCode() != tacticStyle) {
-            throw new IllegalArgumentException("tacticStyle must be between 0 and 2");
+            throw new IllegalArgumentException("tacticStyle must be between 0 and 8");
         }
         this.tacticStyle = tacticStyle;
     }
@@ -87,7 +87,7 @@ public class Team {
 
     public void setTacticFocus(Integer tacticFocus) {
         if (tacticFocus != null && TeamAttackFocus.fromCode(tacticFocus).getCode() != tacticFocus) {
-            throw new IllegalArgumentException("tacticFocus must be between 0 and 1");
+            throw new IllegalArgumentException("tacticFocus must be between 0 and 2");
         }
         this.tacticFocus = tacticFocus;
     }
