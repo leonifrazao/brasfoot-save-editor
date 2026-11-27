@@ -1,29 +1,43 @@
 name: CI
 
-
 on:
   push:
-    branches: [main]
+    branches: [master, main]
   pull_request:
-    branches: [main]
+    branches: [master, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Fazer checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
-      - name: Set up Java
+      - name: Configurar Java 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '17'
-          cache: 'maven'
+          cache: maven
 
-      - name: Build e testes
+      - name: Compilar e testar
         run: mvn -B verify
 
-      
+      - name: Empacotar o ZIP para Windows
+        run: bash scripts/package-windows-bundle.sh
 
+      - name: Disponibilizar JAR e ZIP
+        uses: actions/upload-artifact@v7
+        with:
+          name: brasfoot-save-editor
+          path: |
+            target/brasfoot-save-editor.jar
+            target/brasfoot-save-editor-windows.zip
+          if-no-files-found: error
+          compression-level: 0

@@ -18,10 +18,12 @@ Principais objetivos do projeto:
 
 ## Downloads Oficiais
 
-A release atual esta disponivel em [v1.0.0](https://github.com/leonifrazao/brasfoot-save-editor/releases/tag/v1.0.0).
+A release atual esta disponivel em [v1.1.0](https://github.com/leonifrazao/brasfoot-save-editor/releases/tag/v1.1.0).
 
-- [brasfoot-save-editor-windows.zip](https://github.com/leonifrazao/brasfoot-save-editor/releases/download/v1.0.0/brasfoot-save-editor-windows.zip): recomendado para Windows. Ja inclui runtime Java; basta extrair o ZIP e executar `brasfoot-save-editor.exe`.
-- [brasfoot-save-editor.jar](https://github.com/leonifrazao/brasfoot-save-editor/releases/download/v1.0.0/brasfoot-save-editor.jar): alternativa multiplataforma. Requer Java 17 instalado e pode ser executado com `java -jar brasfoot-save-editor.jar`.
+- [brasfoot-save-editor-windows.zip](https://github.com/leonifrazao/brasfoot-save-editor/releases/download/v1.1.0/brasfoot-save-editor-windows.zip): recomendado para Windows. Ja inclui runtime Java; basta extrair o ZIP e executar `brasfoot-save-editor.exe`.
+- [brasfoot-save-editor.jar](https://github.com/leonifrazao/brasfoot-save-editor/releases/download/v1.1.0/brasfoot-save-editor.jar): alternativa multiplataforma. Requer Java 17 instalado e pode ser executado com `java -jar brasfoot-save-editor.jar`.
+
+Para obter as alterações mais recentes da `master`, abra uma execução bem-sucedida da CI e baixe o artefato `brasfoot-save-editor`. Ele contém o JAR e o ZIP para Windows com Java 17. [Execuções da CI na master](https://github.com/leonifrazao/brasfoot-save-editor/actions/workflows/ci.yml?query=branch%3Amaster)
 
 O editor nao inclui arquivos do Brasfoot. Ao abrir o programa, clique em `Selecionar Brasfoot` e escolha o `.exe` ou `.jar` da sua propria instalacao do Brasfoot antes de abrir o save `.s22`.
 
@@ -42,14 +44,16 @@ O editor nao inclui arquivos do Brasfoot. Ao abrir o programa, clique em `Seleci
 ## Funcionalidades
 
 - Abertura de arquivos `.s22` por seletor de arquivo da interface Swing.
-- Salvamento com escolha entre substituir o arquivo aberto (com confirmacao) ou gravar uma nova copia no mesmo diretorio.
+- Revisão de alterações, desfazer/refazer, releitura do save e gravação por substituição com backup ou em uma cópia.
 - Listagem e filtro de times por nome, ID, apelido, pais, divisao ou estadio.
 - Edicao de times: nome, apelido, pais, divisao, nivel, dinheiro, reputacao, estadio, setores do estadio e parametros taticos.
-- Edicao em lote de times, incluindo dinheiro, reputacao, estadio, nivel e estilo; permite enfraquecer todos os times ou preservar os associados a tecnicos humanos.
-- Listagem de jogadores por time.
-- Edicao de jogadores: nome, idade, forca geral, posicao, energia, salario, lado, pais, fim de contrato, caracteristicas, habilidades individuais e estrelas.
+- Edição em lote de times, com ações para enfraquecer todos os clubes ou os de um país, ou melhorar todos. Cada ação permite preservar os clubes humanos.
+- Listagem de jogadores por time, com acesso ao elenco a partir da aba Times.
+- Edição de jogadores com atributos básicos, contrato, habilidades, estrelas, potencial e desenvolvimento experimentais, número da camisa, mercado e lesões.
 - Edicao em lote de jogadores do time selecionado: idade, forca geral, energia, pais, habilidades individuais e estrelas.
 - Edicao de tecnicos: nome, time, tecnico humano, confianca da diretoria e confianca da torcida.
+- Transferências de jogadores entre dois elencos e de técnicos entre clubes, com busca enquanto se digita.
+- Edição de datas de rodadas futuras e fases de mata-mata compatíveis com o save.
 - Visualizacao de ligas/campeonatos e edicao de linhas da tabela: pontos, vitorias, empates, derrotas, gols pro e gols contra.
 - Visualizacao e filtro de paises, com edicao do nivel/forca do pais.
 - Logs estruturados em JSON Lines para diagnostico local.
@@ -68,7 +72,9 @@ O editor nao inclui arquivos do Brasfoot. Ao abrir o programa, clique em `Seleci
 
 O envelope do save e detectado automaticamente: saves antigos sem compressao continuam aceitos, e saves do Brasfoot 2026 (GZIP) mantem a compressao e recebem uma copia do arquivo `.info` associado quando ele existir.
 
-Ao criar uma copia, o nome segue o padrao `brasfoot-save-<uuid>` e mantem a extensao original quando ela existir. A substituicao do arquivo aberto pede confirmacao antes de gravar.
+**Aplicar alterações** atualiza a sessão em memória. Use **Desfazer** e **Refazer** na barra superior para percorrer o histórico da sessão. **Recarregar save** relê o arquivo aberto e pede confirmação quando houver alterações pendentes.
+
+**Salvar…** abre a revisão das mudanças. Ao criar uma cópia, o nome segue o padrão `brasfoot-save-<uuid>` e mantém a extensão original quando ela existir. Ao substituir o arquivo aberto, o editor cria um backup do save anterior na pasta `backups/` ao lado do original.
 
 ## Arquitetura
 
@@ -133,7 +139,7 @@ Arquivos auxiliares locais esperados pelo `pom.xml` para desenvolvimento:
 
 ### Usando Release Windows
 
-1. Baixe [`brasfoot-save-editor-windows.zip`](https://github.com/leonifrazao/brasfoot-save-editor/releases/download/v1.0.0/brasfoot-save-editor-windows.zip).
+1. Baixe [`brasfoot-save-editor-windows.zip`](https://github.com/leonifrazao/brasfoot-save-editor/releases/download/v1.1.0/brasfoot-save-editor-windows.zip).
 2. Extraia o ZIP.
 3. Execute `brasfoot-save-editor.exe`.
 4. Clique em `Selecionar Brasfoot` e escolha o `.exe` ou `.jar` da sua instalacao do Brasfoot.
@@ -141,7 +147,7 @@ Arquivos auxiliares locais esperados pelo `pom.xml` para desenvolvimento:
 
 ### Usando JAR Multiplataforma
 
-Baixe [`brasfoot-save-editor.jar`](https://github.com/leonifrazao/brasfoot-save-editor/releases/download/v1.0.0/brasfoot-save-editor.jar) e execute:
+Baixe [`brasfoot-save-editor.jar`](https://github.com/leonifrazao/brasfoot-save-editor/releases/download/v1.1.0/brasfoot-save-editor.jar) e execute:
 
 ```bash
 java -jar brasfoot-save-editor.jar
@@ -213,7 +219,15 @@ nix-shell --run "mvn spring-boot:run"
 
 Permite pesquisar times e editar informacoes estruturais do clube. Campos suportados incluem nome, apelido, pais, divisao, nivel, dinheiro, reputacao, estadio, setores do estadio, estilo de jogo, marcacao e foco dos ataques. Estilos e focos exclusivos do Real Brasfoot aparecem somente quando a biblioteca Real e detectada; no Brasfoot original, a lista e limitada aos valores disponiveis nessa versao.
 
-Selecione um time na tabela para abrir o formulário lateral. Use `Aplicar alterações` para atualizar o save em memória ou `Descartar alterações` para restaurar os valores. Ao trocar de registro, o editor guarda o rascunho até você voltar a ele. O botão `Edição em lote` abre uma janela separada para ajustar dinheiro, reputação, estádio, nível e estilo de jogo ou enfraquecer clubes mediante confirmação.
+Um clique no time abre o elenco em **Jogadores**. **Ver jogadores também** abre o elenco do clube selecionado. Para editar o clube, volte à aba Times e use o formulário lateral. A reputação é escolhida pelo nome, de **Municipal** a **Mundial**.
+
+Use **Aplicar alterações** para atualizar o save em memória ou **Descartar alterações** para restaurar os valores. Ao trocar de registro, o editor guarda o rascunho. **Edição em lote** abre o formulário de ajustes e três ações rápidas.
+
+- **Destruir todos...** reduz caixa, nível, reputação, capacidade do estádio e atributos dos elencos.
+- **Destruir todos do país...** aplica a mesma redução aos times do país escolhido.
+- **Melhorar todos...** eleva caixa e capacidade do estádio, aplica reputação Mundial e coloca força, energia e habilidades dos jogadores em 100.
+
+Cada ação rápida pergunta se deve incluir ou preservar os times controlados por técnicos humanos.
 
 ### Jogadores
 
@@ -221,9 +235,19 @@ Os jogadores sao carregados por time; a busca mostra os times correspondentes en
 
 Selecione um jogador no elenco para editar no painel lateral, com os mesmos controles de aplicar e descartar da aba Times. A janela de edição em lote atua sobre o elenco carregado e usa `-1` para manter valores numéricos. O comando `Salvar…` grava no arquivo as alterações já aplicadas.
 
-### Tecnicos
+**Evolução (experimental)** permite alterar potencial e potencial estimado na escala de 1 a 10 e desenvolvimento de 0 a 100. A tabela também mostra o potencial. A ficha inclui número da camisa, valor de mercado, preço pedido, opções de venda e empréstimo e a data de recuperação. Em **Lesão**, clique em **Remover lesão** e depois em **Aplicar alterações** para efetivar a remoção.
+
+### Técnicos
 
 Permite editar nome, time associado pelo nome, flag de tecnico humano e confianca da diretoria/torcida.
+
+### Transferências
+
+Em **Jogadores**, escolha os clubes de origem e destino. As duas tabelas mostram ID e nome, e você pode filtrar o elenco da origem. Selecione o jogador, confira o nome e o destino no resumo e clique em **Transferir jogador**. Os dois elencos se atualizam na hora. O ID mostrado é a posição no elenco e pode mudar após a transferência.
+
+O valor, a data no histórico, o novo salário e o fim do contrato são opcionais. Uma transferência paga debita o destino e credita a origem. A data escolhida vale para o registro no histórico. Com os campos em branco, o negócio é gratuito, usa o dia atual do jogo e mantém salário e contrato. Jogadores emprestados precisam retornar antes da transferência.
+
+Em **Técnicos**, pesquise por nome ou clube atual e escolha o destino. Se houver um técnico de computador no destino, ele pode assumir o clube de origem. Se o técnico transferido estava sem clube, o técnico substituído fica disponível. Clubes de outros técnicos humanos ficam protegidos. Os seletores de busca abrem a lista de resultados enquanto você digita.
 
 ### Ligas
 
@@ -232,6 +256,10 @@ Lista as ligas encontradas no save e permite carregar a tabela de uma liga espec
 ### Paises
 
 Mostra os paises mapeados no save, com filtro por nome, grupo ou ID. Atualmente expoe a edicao do nivel/forca do pais.
+
+### Calendário
+
+Filtre por competição, selecione uma rodada futura ou fase compatível e escolha o novo dia. O editor verifica a ordem das rodadas, as datas reservadas do mata-mata e os conflitos de clubes no destino.
 
 ## Documentacao Tecnica
 
@@ -243,6 +271,8 @@ Mostra os paises mapeados no save, com filtro por nome, grupo ou ID. Atualmente 
 Para compilar, execute `scripts/build.sh` no Linux ou `scripts\\build.bat` no Windows. Escolha `jar`, `exe`, `exe-debug` ou `both` no menu, ou passe a opcao como argumento. `exe` e `both` geram `target/brasfoot-save-editor-windows.zip` com o EXE e runtime Java 17, sem JAR separado nem BAT. `exe-debug` gera `target/brasfoot-save-editor-windows-debug.zip`, que inclui tambem o JAR da aplicacao e `run-debug.bat`. O JAR funciona no Linux e no Windows com Java 17.
 
 O mapeamento de campos e uma parte sensivel do projeto porque o Brasfoot usa classes e atributos obfuscados. Por isso, novos campos devem ser confirmados com evidencia antes de serem expostos na UI.
+
+O workflow [CI](https://github.com/leonifrazao/brasfoot-save-editor/actions/workflows/ci.yml) roda em push e pull request para `master` e `main`, ou sob demanda. Ele usa Java 17, executa `mvn -B verify` e disponibiliza o JAR e o ZIP Windows como artefatos da execução. Para repetir o build localmente no Nix, use `nix-shell --run 'mvn -B verify && bash scripts/package-windows-bundle.sh'`.
 
 ## Logs
 

@@ -24,6 +24,11 @@ final class EditDescriptions {
             Map.entry("stadiumSectors", "Setores"), Map.entry("tacticStyle", "Estilo"), Map.entry("tacticMarking", "Marcação"),
             Map.entry("tacticFocus", "Foco"), Map.entry("age", "Idade"), Map.entry("overall", "Força"),
             Map.entry("position", "Posição"), Map.entry("energy", "Energia"), Map.entry("salary", "Salário"),
+            Map.entry("potential", "Potencial"), Map.entry("estimatedPotential", "Potencial estimado"),
+            Map.entry("development", "Desenvolvimento"), Map.entry("shirtNumber", "Número da camisa"),
+            Map.entry("marketValue", "Valor de mercado"), Map.entry("askingPrice", "Preço pedido"),
+            Map.entry("listedForSale", "Listado para venda"), Map.entry("listedForLoan", "Listado para empréstimo"),
+            Map.entry("injuredUntil", "Lesionado até"),
             Map.entry("side", "Lado"), Map.entry("contractEnd", "Fim do contrato"), Map.entry("characteristic1", "Característica 1"),
             Map.entry("characteristic2", "Característica 2"), Map.entry("skillGoalkeeping", "Goleiro"),
             Map.entry("skillSpeed", "Velocidade"), Map.entry("skillTechnique", "Técnica"), Map.entry("skillPassing", "Passe"),
@@ -79,7 +84,8 @@ final class EditDescriptions {
                 default -> number.toString();
             };
         }
-        if ("contractEnd".equals(field) && value instanceof Long time && time > 0) {
+        if ("injuredUntil".equals(field) && value instanceof Long time && time == 0) return "Sem lesão";
+        if (("contractEnd".equals(field) || "injuredUntil".equals(field)) && value instanceof Long time && time > 0) {
             return Instant.ofEpochMilli(time < 100_000_000_000L ? time * 1000 : time)
                     .atZone(ZoneId.systemDefault()).toLocalDate().toString();
         }

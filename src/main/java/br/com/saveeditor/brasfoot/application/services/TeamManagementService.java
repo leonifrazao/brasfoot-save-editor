@@ -110,8 +110,9 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
             throw new IllegalArgumentException("Team not found with ID: " + teamId);
         }
 
-        mapToTeamDomain(teamObj);
+        Team previous = mapToTeamDomain(teamObj);
         if (money != null) {
+            previous.setMoney(money);
             try {
                 ReflectionUtils.setFieldValue(teamObj, BrasfootConstants.TEAM_MONEY, money);
             } catch (Exception e) {
@@ -155,8 +156,9 @@ public class TeamManagementService implements GetTeamUseCase, UpdateTeamUseCase 
                     continue;
                 }
 
-                mapToTeamDomain(teamObj);
+                Team previous = mapToTeamDomain(teamObj);
                 if (command.money() != null) {
+                    previous.setMoney(command.money());
                     ReflectionUtils.setFieldValue(teamObj, BrasfootConstants.TEAM_MONEY, command.money());
                 }
                 if (command.reputation() != null) {

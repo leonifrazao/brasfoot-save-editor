@@ -127,6 +127,10 @@ public class SessionService implements UploadSaveUseCase, DownloadSaveUseCase {
         return new SaveEdit.Preview(currentPath(session), history.pendingSteps());
     }
 
+    public synchronized Path currentSavePath(UUID id) {
+        return currentPath(sessionResolver.loadRequired(id));
+    }
+
     public synchronized void close(UUID id) {
         sessionStatePort.delete(id);
         history = new SessionEditHistory();

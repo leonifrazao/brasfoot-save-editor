@@ -1,6 +1,7 @@
 package br.com.saveeditor.brasfoot.presentation.presenter;
 
 import br.com.saveeditor.brasfoot.application.ports.in.record.PlayerBatchUpdateCommand;
+import br.com.saveeditor.brasfoot.application.ports.in.record.PlayerTransferTerms;
 import br.com.saveeditor.brasfoot.application.ports.in.record.TeamBatchUpdateCommand;
 import br.com.saveeditor.brasfoot.application.ports.out.BrasfootGameLibraryPort;
 import br.com.saveeditor.brasfoot.application.services.CountryManagementService;
@@ -17,6 +18,7 @@ import br.com.saveeditor.brasfoot.domain.LeagueTableEntry;
 import br.com.saveeditor.brasfoot.domain.Manager;
 import br.com.saveeditor.brasfoot.domain.ManagerTrophy;
 import br.com.saveeditor.brasfoot.domain.Player;
+import br.com.saveeditor.brasfoot.domain.PlayerExtraAttributes;
 import br.com.saveeditor.brasfoot.domain.Team;
 import br.com.saveeditor.brasfoot.domain.enums.TeamReputation;
 import br.com.saveeditor.brasfoot.presentation.model.CountryRow;
@@ -32,11 +34,16 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.nio.file.Path;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static net.logstash.logback.argument.StructuredArguments.kv;
 
@@ -44,12 +51,11 @@ import static net.logstash.logback.argument.StructuredArguments.kv;
 public class BrasfootPresenter {
 
     private static final Logger log = LoggerFactory.getLogger(BrasfootPresenter.class);
-    private static final long DESTROYED_TEAM_MONEY = 0L;
-    private static final int DESTROYED_TEAM_LEVEL = 0;
-    private static final int DESTROYED_PLAYER_OVERALL = 1;
-    private static final int DESTROYED_PLAYER_ENERGY = 0;
-    private static final int DESTROYED_PLAYER_SKILL = 0;
-    private static final List<Integer> DESTROYED_STADIUM_SECTORS = List.of(1, 0, 0, 0);
+    private static final TeamPreset WEAKEN_TEAMS = new TeamPreset("Enfraquecer clubes", 0L, TeamReputation.MUNICIPAL,
+            0, List.of(1, 0, 0, 0), 1, 0, false);
+    // Use the ordinary money display range and the largest stadium expansion limits in Brasfoot Next.
+    private static final TeamPreset IMPROVE_TEAMS = new TeamPreset("Melhorar clubes", 99_999_999_999L, TeamReputation.MUNDIAL,
+            100, List.of(25_000, 120_000, 10_000, 1_200), Player.MAX_ATTRIBUTE, Player.MAX_ATTRIBUTE, true);
 
     private final SessionService sessionService;
     private final TeamManagementService teamManagementService;
@@ -115,14 +121,27 @@ public class BrasfootPresenter {
 
     public void openSave(Path savePath) {
         try {
-            String sessionId = sessionService.open(savePath);
-            currentSessionId = UUID.fromString(sessionId);
-            view.showSessionOpened(sessionId, savePath.toAbsolutePath().normalize());
-            refreshSession();
-            publishHistory();
+            loadSave(savePath);
         } catch (RuntimeException e) {
             showError("Falha ao abrir save", e);
         }
+    }
+
+    public void reloadSave() {
+        try {
+            loadSave(sessionService.currentSavePath(requireSession()));
+            view.showStatus("Save recarregado.");
+        } catch (RuntimeException e) {
+            showError("Falha ao recarregar save", e);
+        }
+    }
+
+    private void loadSave(Path savePath) {
+        String sessionId = sessionService.open(savePath);
+        currentSessionId = UUID.fromString(sessionId);
+        view.showSessionOpened(sessionId, savePath.toAbsolutePath().normalize());
+        refreshSession();
+        publishHistory();
     }
 
     public void saveCopy() {
@@ -204,13 +223,80 @@ public class BrasfootPresenter {
 
     public void loadPlayers(int teamId) {
         try {
-            List<PlayerRow> players = playerManagementService.getTeamPlayers(requireSession(), teamId).stream()
-                    .map(this::toPlayerRow)
-                    .toList();
+            List<PlayerRow> players = roster(teamId);
             view.showPlayers(teamId, players);
             view.showStatus(players.size() + " jogadores carregados.");
         } catch (RuntimeException e) {
             showError("Falha ao carregar jogadores", e);
+        }
+    }
+
+    public List<PlayerRow> rosterForTransfer(int teamId) {
+        try {
+            return roster(teamId);
+        } catch (RuntimeException e) {
+            showError("Falha ao carregar elenco da transferência", e);
+            return List.of();
+        }
+    }
+
+    public LocalDate currentGameDate() {
+        return calendarManagementService.getCurrentDate(requireSession());
+    }
+
+    private List<PlayerRow> roster(int teamId) {
+        return playerManagementService.getTeamPlayers(requireSession(), teamId).stream()
+                .map(this::toPlayerRow)
+                .toList();
+    }
+
+    public boolean transferPlayer(int fromId, int playerId, int toId) {
+        return transferPlayer(fromId, playerId, toId, PlayerTransferTerms.DEFAULT);
+    }
+
+    public boolean transferPlayer(int fromId, int playerId, int toId, PlayerTransferTerms terms) {
+        try {
+            UUID id = requireSession();
+            SaveEdit edit = applyEdit(id, () -> {
+                var completed = playerManagementService.transferPlayer(id, fromId, playerId, toId, terms);
+                Player player = completed.player();
+                var dateFormat = DateTimeFormatter.ofPattern("dd/MM/uuuu");
+                var details = new ArrayList<SaveEdit.Detail>();
+                details.add(new SaveEdit.Detail("Clube", teamName(id, fromId), teamName(id, toId)));
+                details.add(new SaveEdit.Detail("Valor", null, terms.fee() == 0 ? "Gratuita" : String.valueOf(terms.fee())));
+                details.add(new SaveEdit.Detail("Data da transferência", null, completed.date().format(dateFormat)));
+                if (terms.salary() != null) {
+                    details.add(new SaveEdit.Detail("Salário", Objects.toString(player.getSalary(), null), terms.salary().toString()));
+                }
+                if (terms.contractEnd() != null) {
+                    details.add(new SaveEdit.Detail("Fim do contrato", null, terms.contractEnd().format(dateFormat)));
+                }
+                return new SaveEdit("Transferência de jogador · " + player.getName(), details);
+            });
+            refreshTeams();
+            view.showStatus(edit.title() + " concluída.");
+            return true;
+        } catch (RuntimeException e) {
+            showError("Falha ao transferir jogador", e);
+            return false;
+        }
+    }
+
+    public void transferManager(int managerId, int toId) {
+        try {
+            UUID id = requireSession();
+            SaveEdit edit = applyEdit(id, () -> {
+                Manager manager = managerManagementService.getManager(id, managerId).orElseThrow();
+                if (Objects.equals(manager.getTeamId(), toId)) {
+                    throw new IllegalArgumentException("Escolha outro time de destino.");
+                }
+                SaveEdit assignment = describeManagerUpdate(id, managerId, Manager.builder().teamId(toId).build());
+                return new SaveEdit("Transferência de técnico · " + manager.getName(), assignment.details());
+            });
+            refreshManagers();
+            view.showStatus(edit.title() + " concluída.");
+        } catch (RuntimeException e) {
+            showError("Falha ao transferir técnico", e);
         }
     }
 
@@ -359,6 +445,17 @@ public class BrasfootPresenter {
                                 Integer skillSpeed, Integer skillTechnique, Integer skillPassing, Integer skillTackling,
                                 Integer skillPlaymaking, Integer skillFinishing, Integer country,
                                 Boolean starLocal, Boolean starGlobal) {
+        return updatePlayer(teamId, playerId, name, age, overall, position, energy, salary, side, contractEnd,
+                characteristic1, characteristic2, skillGoalkeeping, skillSpeed, skillTechnique, skillPassing,
+                skillTackling, skillPlaymaking, skillFinishing, country, starLocal, starGlobal, PlayerExtraAttributes.EMPTY);
+    }
+
+    public boolean updatePlayer(int teamId, int playerId, String name, Integer age, Integer overall,
+                                Integer position, Integer energy, Integer salary, Integer side, Long contractEnd,
+                                Integer characteristic1, Integer characteristic2, Integer skillGoalkeeping,
+                                Integer skillSpeed, Integer skillTechnique, Integer skillPassing, Integer skillTackling,
+                                Integer skillPlaymaking, Integer skillFinishing, Integer country,
+                                Boolean starLocal, Boolean starGlobal, PlayerExtraAttributes extra) {
         try {
             UUID id = requireSession();
             applyEdit(id, () -> {
@@ -366,7 +463,7 @@ public class BrasfootPresenter {
                 Player after = playerManagementService.updatePlayer(id, teamId, playerId, normalizeOptionalText(name), age,
                         overall, position, energy, salary, side, contractEnd, characteristic1, characteristic2,
                         skillGoalkeeping, skillSpeed, skillTechnique, skillPassing, skillTackling, skillPlaymaking,
-                        skillFinishing, country, starLocal, starGlobal);
+                        skillFinishing, country, starLocal, starGlobal, extra);
                 return describePlayer(id, teamId, before, after);
             });
             loadPlayers(teamId);
@@ -488,7 +585,7 @@ public class BrasfootPresenter {
                 return;
             }
 
-            SaveEdit edit = applyEdit(sessionId, () -> destroyTargets(sessionId, targetTeams,
+            SaveEdit edit = applyEdit(sessionId, () -> applyTeamPreset(sessionId, targetTeams, WEAKEN_TEAMS,
                     "Outros clubes de " + countryName(countryId), "Time protegido", teamName(sessionId, protectedTeamId)));
             refreshTeams();
             view.showStatus(edit.title());
@@ -521,33 +618,58 @@ public class BrasfootPresenter {
     }
 
     public void destroyTeams(boolean keepHumanManaged) {
+        applyTeamPreset(WEAKEN_TEAMS, null, keepHumanManaged);
+    }
+
+    public void destroyTeamsInCountry(int countryId, boolean keepHumanManaged) {
+        applyTeamPreset(WEAKEN_TEAMS, countryId, keepHumanManaged);
+    }
+
+    public void improveTeams(boolean keepHumanManaged) {
+        applyTeamPreset(IMPROVE_TEAMS, null, keepHumanManaged);
+    }
+
+    public Set<Integer> humanManagedTeamIds() {
+        return humanManagedTeamIds(requireSession());
+    }
+
+    private Set<Integer> humanManagedTeamIds(UUID sessionId) {
+        return managerManagementService.getManagers(sessionId).stream()
+                .filter(manager -> Boolean.TRUE.equals(manager.getIsHuman()))
+                .map(Manager::getTeamId).filter(Objects::nonNull).filter(id -> id >= 0)
+                .collect(Collectors.toSet());
+    }
+
+    private void applyTeamPreset(TeamPreset preset, Integer countryId, boolean keepHumanManaged) {
         try {
             UUID sessionId = requireSession();
             List<Team> teams = teamManagementService.getAllTeams(sessionId);
-            var teamIds = teams.stream().map(Team::getId).collect(java.util.stream.Collectors.toSet());
-            var protectedIds = keepHumanManaged
-                    ? managerManagementService.getManagers(sessionId).stream()
-                        .filter(manager -> Boolean.TRUE.equals(manager.getIsHuman()))
-                        .map(Manager::getTeamId).filter(teamIds::contains).collect(java.util.stream.Collectors.toSet())
-                    : java.util.Set.<Integer>of();
-            if (keepHumanManaged && protectedIds.isEmpty()) {
+            Set<Integer> protectedIds = keepHumanManaged ? humanManagedTeamIds(sessionId) : Set.of();
+            if (keepHumanManaged && teams.stream().noneMatch(team -> protectedIds.contains(team.getId()))) {
                 view.showError("Time humano não encontrado", "Não encontrei um time associado a técnico humano. Nenhum time foi alterado.");
                 return;
             }
-            List<Team> targets = teams.stream().filter(team -> !protectedIds.contains(team.getId())).toList();
-            if (targets.isEmpty()) { view.showStatus("Não há times para destruir."); return; }
-            SaveEdit edit = applyEdit(sessionId, () -> destroyTargets(sessionId, targets,
-                    keepHumanManaged ? "Clubes de computador" : "Todos os clubes", "Times preservados", protectedIds.size()));
+            List<Team> inScope = teams.stream()
+                    .filter(team -> countryId == null || countryId.equals(team.getCountry())).toList();
+            List<Team> targets = inScope.stream().filter(team -> !protectedIds.contains(team.getId())).toList();
+            if (targets.isEmpty()) {
+                view.showStatus("Nenhum time corresponde à seleção.");
+                return;
+            }
+            String scope = countryId != null ? countryName(countryId)
+                    : keepHumanManaged ? "Clubes de computador" : "Todos os clubes";
+            SaveEdit edit = applyEdit(sessionId, () -> applyTeamPreset(sessionId, targets, preset,
+                    scope, "Times preservados", inScope.size() - targets.size()));
             refreshTeams();
             view.showStatus(edit.title());
         } catch (RuntimeException e) {
-            showError("Falha ao destruir times", e);
+            showError("Falha ao aplicar edição em lote", e);
         }
     }
 
-    private SaveEdit destroyTargets(UUID id, List<Team> targets, String scope, String protectionLabel, Object protection) {
-        var commands = targets.stream().map(team -> new TeamBatchUpdateCommand(team.getId(), DESTROYED_TEAM_MONEY,
-                TeamReputation.MUNICIPAL, null, DESTROYED_STADIUM_SECTORS, DESTROYED_TEAM_LEVEL)).toList();
+    private SaveEdit applyTeamPreset(UUID id, List<Team> targets, TeamPreset preset, String scope,
+                                     String protectionLabel, Object protection) {
+        var commands = targets.stream().map(preset::teamCommand).toList();
         var response = teamManagementService.batchUpdateTeams(id, commands);
         long teamSuccess = response.getResults().stream().filter(result -> result.isSuccess()).count();
         int playerCount = 0;
@@ -555,22 +677,37 @@ public class BrasfootPresenter {
         for (Team team : targets) {
             var players = playerManagementService.getTeamPlayers(id, team.getId());
             var playerResponse = playerManagementService.batchUpdatePlayers(id, team.getId(), players.stream()
-                    .map(player -> destroyedPlayerCommand(player.getId())).toList());
+                    .map(player -> preset.playerCommand(player.getId())).toList());
             playerCount += players.size();
             playerSuccess += playerResponse.getResults().stream().filter(result -> result.isSuccess()).count();
         }
-        return EditDescriptions.describe("Enfraquecer clubes · " + scope,
+        return EditDescriptions.describe(preset.title() + " · " + scope,
                 "Times atualizados", teamSuccess + "/" + commands.size(),
                 "Jogadores atualizados", playerSuccess + "/" + playerCount,
-                protectionLabel, protection, "Dinheiro", DESTROYED_TEAM_MONEY, "Reputação", TeamReputation.MUNICIPAL,
-                "Nível", DESTROYED_TEAM_LEVEL, "Setores", DESTROYED_STADIUM_SECTORS, "Força", DESTROYED_PLAYER_OVERALL,
-                "Energia e habilidades", 0, "Estrelas", "removidas");
+                protectionLabel, protection, preset.improves() ? "Dinheiro mínimo" : "Dinheiro", preset.money(),
+                "Reputação", preset.reputation(), preset.improves() ? "Nível mínimo" : "Nível", preset.level(),
+                preset.improves() ? "Mínimo por setor" : "Setores", preset.stadiumSectors(),
+                "Força", preset.overall(), "Energia e habilidades", preset.attribute(),
+                "Estrelas", preset.improves() ? "local e mundial" : "removidas");
     }
 
-    private PlayerBatchUpdateCommand destroyedPlayerCommand(int playerId) {
-        return new PlayerBatchUpdateCommand(playerId, null, DESTROYED_PLAYER_OVERALL, null, DESTROYED_PLAYER_ENERGY,
-                null, false, false, null, DESTROYED_PLAYER_SKILL, DESTROYED_PLAYER_SKILL, DESTROYED_PLAYER_SKILL,
-                DESTROYED_PLAYER_SKILL, DESTROYED_PLAYER_SKILL, DESTROYED_PLAYER_SKILL, DESTROYED_PLAYER_SKILL);
+    private record TeamPreset(String title, long money, TeamReputation reputation, int level,
+                              List<Integer> stadiumSectors, int overall, int attribute, boolean improves) {
+        TeamBatchUpdateCommand teamCommand(Team team) {
+            List<Integer> sectors = team.getStadiumSectors();
+            List<Integer> newSectors = sectors == null ? null : improves
+                    ? IntStream.range(0, sectors.size())
+                        .mapToObj(i -> Math.max(sectors.get(i), stadiumSectors.get(i))).toList()
+                    : stadiumSectors;
+            int newLevel = improves && team.getLevel() != null ? Math.max(level, team.getLevel()) : level;
+            return new TeamBatchUpdateCommand(team.getId(), improves ? Math.max(money, team.getMoney()) : money,
+                    reputation, null, newSectors, newLevel);
+        }
+
+        PlayerBatchUpdateCommand playerCommand(int playerId) {
+            return new PlayerBatchUpdateCommand(playerId, null, overall, null, attribute, null, improves, improves,
+                    null, attribute, attribute, attribute, attribute, attribute, attribute, attribute);
+        }
     }
 
     public void updateLeagueTableEntry(String leagueId, int teamId, int points, int wins, int draws, int losses,
@@ -609,8 +746,11 @@ public class BrasfootPresenter {
     }
 
     private SaveEdit describePlayer(UUID id, int teamId, Player before, Player after) {
-        return EditDescriptions.compare("Jogador: " + before.getName() + " · " + teamName(id, teamId),
+        SaveEdit edit = EditDescriptions.compare("Jogador: " + before.getName() + " · " + teamName(id, teamId),
                 toPlayerRow(before), toPlayerRow(after));
+        var details = new ArrayList<>(edit.details());
+        details.addAll(EditDescriptions.compare(edit.title(), before.getExtraAttributes(), after.getExtraAttributes()).details());
+        return new SaveEdit(edit.title(), details);
     }
 
     private SaveEdit describeManagerUpdate(UUID id, int managerId, Manager update) {
@@ -671,7 +811,8 @@ public class BrasfootPresenter {
                 player.getCountry(),
                 player.getCharacteristic1(), player.getCharacteristic2(), player.getSkillGoalkeeping(),
                 player.getSkillSpeed(), player.getSkillTechnique(), player.getSkillPassing(), player.getSkillTackling(),
-                player.getSkillPlaymaking(), player.getSkillFinishing(), player.isStarLocal(), player.isStarGlobal());
+                player.getSkillPlaymaking(), player.getSkillFinishing(), player.isStarLocal(), player.isStarGlobal(),
+                player.getDraftKey(), player.getExtraAttributes());
     }
 
     private ManagerRow toManagerRow(Manager manager) {

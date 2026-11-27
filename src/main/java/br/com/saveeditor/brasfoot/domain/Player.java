@@ -10,7 +10,6 @@ import br.com.saveeditor.brasfoot.domain.enums.PlayerSide;
 @ToString
 @EqualsAndHashCode
 @NoArgsConstructor
-@Builder
 public class Player {
     public static final int MIN_AGE = 15;
     public static final int MAX_AGE = 50;
@@ -44,6 +43,11 @@ public class Player {
     private Integer skillFinishing;
     private boolean starLocal;
     private boolean starGlobal;
+    @Setter
+    private PlayerExtraAttributes extraAttributes = PlayerExtraAttributes.EMPTY;
+    @Setter
+    @EqualsAndHashCode.Exclude
+    private int draftKey;
 
     public Player(int id, String name, int age, int overall, int position, int energy, int morale) {
         this(id, name, age, overall, position, energy, morale, false, false);
@@ -76,6 +80,7 @@ public class Player {
         this.starGlobal = starGlobal;
     }
 
+    @Builder
     public Player(int id, String name, int age, int overall, int position, int energy, int morale, Integer salary,
                   Integer side, Long contractEnd, Integer characteristic1, Integer characteristic2,
                   Integer skillGoalkeeping, Integer skillSpeed, Integer skillTechnique, Integer skillPassing,

@@ -16,7 +16,7 @@ final class TeamEditorPanel extends RecordEditor<Integer, TeamRow> {
     private final NumericSpinner division;
     private final NumericSpinner level;
     private final NumericSpinner money;
-    private final NumericSpinner reputation;
+    private final JComboBox<TeamReputation> reputation;
     private final JTextField stadium;
     private final List<NumericSpinner> sectors;
     private final JComboBox<TeamPlayStyle> style;
@@ -37,17 +37,8 @@ final class TeamEditorPanel extends RecordEditor<Integer, TeamRow> {
         division = field(club, "Divisão", new NumericSpinner("Divisão", 0, Integer.MIN_VALUE, Integer.MAX_VALUE));
         level = field(club, "Nível", new NumericSpinner("Nível", 0, Integer.MIN_VALUE, Integer.MAX_VALUE));
         money = field(club, "Dinheiro", new NumericSpinner("Dinheiro", 0, 0, Long.MAX_VALUE));
-        TeamReputation[] grades = TeamReputation.values();
-        reputation = field(club, "Reputação", new NumericSpinner("Reputação", grades[0].getValue(),
-                grades[0].getValue(), grades[grades.length - 1].getValue()));
-        JLabel grade = new JLabel();
-        grade.setToolTipText("0 Municipal · 1 Estadual · 2 Regional · 3 Nacional · 4 Continental · 5 Mundial");
-        SwingMainWindow.addRow(club, "", grade);
-        reputation.input().getDocument().addDocumentListener(SwingMainWindow.change(() -> {
-            String text = reputation.input().getText().strip();
-            grade.setText(Arrays.stream(grades).filter(value -> text.equals(Integer.toString(value.getValue())))
-                    .map(value -> value.name()).findFirst().orElse(" "));
-        }));
+        reputation = field(club, "Reputação", new JComboBox<>(TeamReputation.values()));
+        reputation.setRenderer(SwingMainWindow.enumRenderer(TeamReputation::getDisplayName));
 
         JPanel tactics = group("Táticas");
         style = field(tactics, "Estilo de jogo", new JComboBox<>());
@@ -77,7 +68,7 @@ final class TeamEditorPanel extends RecordEditor<Integer, TeamRow> {
         division.display(row.division());
         level.display(row.level());
         money.display(row.money());
-        reputation.display(TeamReputation.valueOf(row.reputation()).getValue());
+        reputation.setSelectedItem(TeamReputation.valueOf(row.reputation()));
         stadium.setText(row.stadiumName());
         for (int i = 0; i < sectors.size(); i++) {
             sectors.get(i).display(row.stadiumSectors() == null ? 0 : row.stadiumSectors().get(i));
@@ -104,7 +95,7 @@ final class TeamEditorPanel extends RecordEditor<Integer, TeamRow> {
         List<Integer> stadiumSizes = sectors.stream().anyMatch(this::changed)
                 ? sectors.stream().map(spinner -> spinner.readInt(false)).toList() : null;
         return presenter.updateTeam(id, changedText(name), changedText(alias), changed(money) ? money.read(false) : null,
-                changed(reputation) ? TeamReputation.fromValue(reputation.readInt(false)) : null,
+                changed(reputation) ? (TeamReputation) reputation.getSelectedItem() : null,
                 changedText(stadium), stadiumSizes, changedChoice(country, Country::getId),
                 changedNumber(division, true), changedNumber(level, true),
                 changedChoice(style, TeamPlayStyle::getCode), changedChoice(marking, TeamMarking::getCode),

@@ -4,7 +4,9 @@ import br.com.saveeditor.brasfoot.application.services.*;
 import br.com.saveeditor.brasfoot.application.shared.BatchResponse;
 import br.com.saveeditor.brasfoot.application.shared.SaveEdit;
 import br.com.saveeditor.brasfoot.domain.Manager;
+import br.com.saveeditor.brasfoot.domain.Player;
 import br.com.saveeditor.brasfoot.domain.Team;
+import br.com.saveeditor.brasfoot.domain.enums.Country;
 import br.com.saveeditor.brasfoot.domain.enums.TeamReputation;
 import br.com.saveeditor.brasfoot.presentation.view.BrasfootDesktopView;
 import org.junit.jupiter.api.BeforeEach;
@@ -62,6 +64,50 @@ class BrasfootPresenterTest {
 
         verify(view).showError(eq("Time humano não encontrado"), anyString());
         verify(teams, never()).batchUpdateTeams(any(), anyList());
+    }
+
+    @Test
+    void countryPresetTargetsOnlyClubsInTheChosenCountryAndCanPreserveHumanClubs() {
+        int brazil = Country.BRASIL.getId();
+        Team human = team(1);
+        human.setCountry(brazil);
+        Team rival = team(2);
+        rival.setCountry(brazil);
+        Team overseas = team(3);
+        overseas.setCountry(Country.PORTUGAL.getId());
+        when(teams.getAllTeams(sessionId)).thenReturn(List.of(human, rival, overseas));
+        when(managers.getManagers(sessionId)).thenReturn(List.of(manager(0, true, 1)));
+        when(teams.batchUpdateTeams(eq(sessionId), anyList())).thenReturn(new BatchResponse<>(List.of()));
+        when(players.batchUpdatePlayers(eq(sessionId), anyInt(), anyList())).thenReturn(new BatchResponse<>(List.of()));
+
+        presenter.destroyTeamsInCountry(brazil, true);
+        verify(teams).batchUpdateTeams(eq(sessionId),
+                argThat(commands -> commands.size() == 1 && commands.get(0).teamId() == 2));
+        verify(players, never()).batchUpdatePlayers(eq(sessionId), eq(1), anyList());
+
+        presenter.destroyTeamsInCountry(brazil, false);
+        verify(teams).batchUpdateTeams(eq(sessionId),
+                argThat(commands -> commands.size() == 2 && commands.get(0).teamId() == 1 && commands.get(1).teamId() == 2));
+        verify(players, never()).batchUpdatePlayers(eq(sessionId), eq(3), anyList());
+    }
+
+    @Test
+    void improvePresetRaisesClubAndPlayerAttributesForEveryIncludedTeam() {
+        when(managers.getManagers(sessionId)).thenReturn(List.of(manager(0, true, 1)));
+        when(teams.batchUpdateTeams(eq(sessionId), anyList())).thenReturn(new BatchResponse<>(List.of()));
+        when(players.getTeamPlayers(eq(sessionId), anyInt()))
+                .thenReturn(List.of(new Player(0, "Jogador", 21, 70, 2, 80, 100)));
+        when(players.batchUpdatePlayers(eq(sessionId), anyInt(), anyList())).thenReturn(new BatchResponse<>(List.of()));
+
+        presenter.improveTeams(true);
+
+        verify(teams).batchUpdateTeams(eq(sessionId), argThat(commands -> commands.size() == 2
+                && commands.stream().allMatch(command -> command.teamId() != 1
+                && command.reputation() == TeamReputation.MUNDIAL && command.money() > 100 && command.level() == 100)));
+        verify(players, times(2)).batchUpdatePlayers(eq(sessionId), intThat(id -> id != 1),
+                argThat(commands -> commands.size() == 1 && commands.get(0).overall() == 100
+                        && commands.get(0).energy() == 100 && commands.get(0).skillFinishing() == 100
+                        && commands.get(0).starLocal() && commands.get(0).starGlobal()));
     }
 
     private static Team team(int id) {

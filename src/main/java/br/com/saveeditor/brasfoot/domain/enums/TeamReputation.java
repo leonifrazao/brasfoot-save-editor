@@ -4,22 +4,28 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum TeamReputation {
-    MUNICIPAL(0),
-    ESTADUAL(1),
-    REGIONAL(2),
-    NACIONAL(3),
-    CONTINENTAL(4),
-    MUNDIAL(5);
+    MUNICIPAL(0, "Municipal"),
+    ESTADUAL(1, "Estadual"),
+    REGIONAL(2, "Regional"),
+    NACIONAL(3, "Nacional"),
+    CONTINENTAL(4, "Continental"),
+    MUNDIAL(5, "Mundial");
 
     private final int value;
+    private final String displayName;
 
-    TeamReputation(int value) {
+    TeamReputation(int value, String displayName) {
         this.value = value;
+        this.displayName = displayName;
     }
 
     @JsonValue
     public int getValue() {
         return value;
+    }
+
+    public String getDisplayName() {
+        return displayName;
     }
 
     @JsonCreator

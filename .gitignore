@@ -38,6 +38,7 @@ brasfoot_files/
 
 # Saves, extracted game installations and local analysis material
 /brasfoot-files/
+/brasfoot-next/
 /game/
 *.info
 

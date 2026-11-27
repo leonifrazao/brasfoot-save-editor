@@ -9,6 +9,8 @@ public class BrasfootConstants {
 
     // --- Game Root ---
     public static final String TEAMS_LIST = "aj"; // List<Team>
+    public static final String SENIOR_PLAYERS_LIST = "ag"; // List<Player> in stable save order
+    public static final String PLAYER_TRANSFERS_LIST = "au"; // List<best.ap>
     public static final String MANAGERS_LIST = "al"; // List<Manager>; best.f.L()
     public static final String HUMAN_MANAGERS_LIST = "am"; // List<Manager>; best.f.M()
     public static final String MANAGER_CHANGES_LIST = "at"; // List<best.u>; best.f.bn()
@@ -36,7 +38,19 @@ public class BrasfootConstants {
 
     // --- Player (best.F) ---
     public static final String PLAYER_NAME = "dm"; // String
-    public static final String PLAYER_ID = "bW"; // int (Team ID ref?)
+    public static final String PLAYER_CLUB_ID = "bW"; // int; current club ID
+    public static final String PLAYER_CLUB_REFERENCE = "eo"; // transient best.ah
+    public static final String PLAYER_PREVIOUS_CLUB = "eZ";
+    public static final String PLAYER_SHIRT_NUMBER = "ew";
+    public static final String PLAYER_POTENTIAL = "es";
+    public static final String PLAYER_ESTIMATED_POTENTIAL = "fc";
+    public static final String PLAYER_DEVELOPMENT = "fd";
+    public static final String PLAYER_MARKET_VALUE = "eu";
+    public static final String PLAYER_ASKING_PRICE = "ev";
+    public static final String PLAYER_INJURED_UNTIL = "eI";
+    public static final String PLAYER_ON_LOAN = "eX";
+    public static final String PLAYER_LISTED_FOR_LOAN = "eW";
+    public static final String PLAYER_LISTED_FOR_SALE = "eY";
     public static final String PLAYER_AGE = "em"; // int
     public static final String PLAYER_OVERALL = "eq"; // int (Força)
     public static final String PLAYER_SALARY = "et"; // int (Salário atual; getter obfuscado best.F.fj())

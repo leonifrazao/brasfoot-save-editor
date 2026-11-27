@@ -1,5 +1,6 @@
 package br.com.saveeditor.brasfoot.infrastructure.adapters.in.swing;
 
+import br.com.saveeditor.brasfoot.domain.PlayerExtraAttributes;
 import br.com.saveeditor.brasfoot.domain.enums.TeamReputation;
 import br.com.saveeditor.brasfoot.presentation.model.PlayerRow;
 import br.com.saveeditor.brasfoot.presentation.model.TeamRow;
@@ -125,7 +126,10 @@ class SideEditorTest {
                     List.of(1, 1, 1, 1), 0, 0, 0);
             TeamEditorPanel editor = new TeamEditorPanel(presenter);
             editor.showRecord(team.id(), team);
-            number(editor, "Reputação").input().setText("4");
+            var reputation = (JComboBox<?>) inputFor(editor, "Reputação");
+            assertEquals(TeamReputation.ESTADUAL, reputation.getSelectedItem());
+            assertEquals(TeamReputation.values().length, reputation.getItemCount());
+            reputation.setSelectedItem(TeamReputation.CONTINENTAL);
             number(editor, "Dinheiro").input().setText("5000000000");
             button(editor, "Aplicar alterações").doClick(0);
 
@@ -151,7 +155,40 @@ class SideEditorTest {
             button(editor, "Aplicar alterações").doClick(0);
 
             verify(presenter).updatePlayer(1, 0, null, null, null, null, null, null, null, null,
-                    null, null, null, 85, null, null, null, null, null, null, null, null);
+                    null, null, null, 85, null, null, null, null, null, null, null, null, PlayerExtraAttributes.EMPTY);
+        });
+    }
+
+    @Test
+    void removeInjuryStagesClearingTheDateUntilThePlayerEditIsApplied() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            BrasfootPresenter presenter = mock(BrasfootPresenter.class);
+            long recoveryDate = java.time.Instant.parse("2030-09-15T12:00:00Z").toEpochMilli();
+            var attributes = new PlayerExtraAttributes(null, null, null, null, null, null, null, null, recoveryDate);
+            var player = new PlayerRow(0, "Jogador", 20, 70, 1, 80, null, null, null, null,
+                    null, null, null, null, null, null, null, null, null, false, false, 0, attributes);
+            var editor = new PlayerEditorPanel(presenter);
+            var key = new PlayerEditorPanel.Key(1, 0);
+            editor.showRecord(key, player);
+            JButton remove = button(editor, "Remover lesão");
+            var date = (JFormattedTextField) inputFor(editor, "Lesionado até");
+            JButton apply = button(editor, "Aplicar alterações");
+
+            assertTrue(remove.isEnabled());
+            remove.doClick(0);
+            assertEquals("", date.getText());
+            assertFalse(remove.isEnabled());
+            assertTrue(apply.isEnabled());
+            verifyNoInteractions(presenter);
+
+            button(editor, "Descartar alterações").doClick(0);
+            assertTrue(remove.isEnabled());
+            remove.doClick(0);
+            apply.doClick(0);
+
+            verify(presenter).updatePlayer(1, 0, null, null, null, null, null, null, null, null,
+                    null, null, null, null, null, null, null, null, null, null, null, null,
+                    new PlayerExtraAttributes(null, null, null, null, null, null, null, null, 0L));
         });
     }
 
@@ -210,9 +247,12 @@ class SideEditorTest {
     }
 
     private static NumericSpinner number(Container parent, String label) {
-        Component input = descendants(parent).filter(JLabel.class::isInstance).map(JLabel.class::cast)
+        return (NumericSpinner) SwingUtilities.getAncestorOfClass(NumericSpinner.class, inputFor(parent, label));
+    }
+
+    private static Component inputFor(Container parent, String label) {
+        return descendants(parent).filter(JLabel.class::isInstance).map(JLabel.class::cast)
                 .filter(caption -> label.equals(caption.getText())).findFirst().orElseThrow().getLabelFor();
-        return (NumericSpinner) SwingUtilities.getAncestorOfClass(NumericSpinner.class, input);
     }
 
     private static Stream<Component> descendants(Component component) {

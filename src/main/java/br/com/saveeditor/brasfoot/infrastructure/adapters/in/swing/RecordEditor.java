@@ -62,7 +62,7 @@ abstract class RecordEditor<K, R> extends JPanel {
         add(footer, BorderLayout.SOUTH);
         apply.addActionListener(e -> applyChanges());
         discard.addActionListener(e -> {
-            drafts.remove(key);
+            if (key != null) drafts.remove(draftKey(key));
             showRecord(key, row);
         });
         apply.setEnabled(false);
@@ -100,7 +100,7 @@ abstract class RecordEditor<K, R> extends JPanel {
             if (selectedRow != null) {
                 load(selectedRow);
                 baseline.replaceAll((control, previous) -> value(control));
-                Map<JComponent, Object> draft = drafts.get(key);
+                Map<JComponent, Object> draft = drafts.get(draftKey(key));
                 if (draft != null) draft.forEach(RecordEditor::restore);
             } else {
                 baseline.keySet().forEach(control -> control.setEnabled(false));
@@ -147,16 +147,17 @@ abstract class RecordEditor<K, R> extends JPanel {
 
     private void draftChanged() {
         if (loading || applying) return;
+        K draftKey = key == null ? null : draftKey(key);
         if (key != null) {
             Map<JComponent, Object> changes = new LinkedHashMap<>();
             baseline.forEach((control, original) -> {
                 Object current = value(control);
                 if (!Objects.equals(original, current)) changes.put(control, current);
             });
-            if (changes.isEmpty()) drafts.remove(key);
-            else drafts.put(key, changes);
+            if (changes.isEmpty()) drafts.remove(draftKey);
+            else drafts.put(draftKey, changes);
         }
-        boolean activeDraft = key != null && drafts.containsKey(key);
+        boolean activeDraft = draftKey != null && drafts.containsKey(draftKey);
         apply.setEnabled(activeDraft);
         discard.setEnabled(activeDraft);
         String summary = drafts.size() == 1 ? "1 rascunho pendente" : drafts.size() + " rascunhos pendentes";
@@ -166,7 +167,8 @@ abstract class RecordEditor<K, R> extends JPanel {
     private void applyChanges() {
         if (key == null) return;
         K editingKey = key;
-        var draft = drafts.remove(editingKey);
+        K draftKey = draftKey(editingKey);
+        var draft = drafts.remove(draftKey);
         error.setText("");
         boolean saved = false;
         applying = true;
@@ -180,7 +182,7 @@ abstract class RecordEditor<K, R> extends JPanel {
         if (saved && Objects.equals(editingKey, key)) {
             baseline.replaceAll((control, previous) -> value(control));
         } else if (!saved && draft != null) {
-            drafts.put(editingKey, draft);
+            drafts.put(draftKey, draft);
         }
         draftChanged();
     }
@@ -203,6 +205,8 @@ abstract class RecordEditor<K, R> extends JPanel {
         else if (control instanceof JCheckBox check) check.setSelected(Boolean.TRUE.equals(value));
         else textInput(control).setText((String) value);
     }
+
+    K draftKey(K key) { return key; }
 
     abstract String recordName(R record);
     abstract void load(R record);

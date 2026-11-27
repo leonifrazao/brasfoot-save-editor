@@ -22,6 +22,8 @@ import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.nio.file.Files;
@@ -36,7 +38,11 @@ import javax.swing.BoxLayout;
 /** Swing desktop interface: native Java widgets, with no platform-specific UI libraries. */
 public final class SwingMainWindow extends JFrame implements BrasfootDesktopView {
     private final BrasfootPresenter presenter;
+    private final JTabbedPane tabs = new JTabbedPane();
+    private final TransferPanel transfers;
+    private JComponent playerTab;
     private final JLabel session = new JLabel("Nenhum save aberto");
+    private final JButton reloadButton = new JButton("Recarregar save");
     private final JButton saveButton = new JButton("Salvar…");
     private final JButton undoButton = new JButton("Desfazer");
     private final JButton redoButton = new JButton("Refazer");
@@ -53,12 +59,12 @@ public final class SwingMainWindow extends JFrame implements BrasfootDesktopView
             team -> new Object[]{team.id(), team.name(), team.alias(), countryName(team.country()), team.division(),
                     team.level(), team.money(), team.reputation(), team.stadiumName()},
             "ID", "Time", "Apelido", "País", "Div.", "Nível", "Dinheiro", "Reputação", "Estádio");
-    private final RecordTable<PlayerRow> playerTable = new RecordTable<>(PlayerRow::id,
-            player -> new Object[]{player.id(), player.name(), player.age(), player.overall(),
+    private final RecordTable<PlayerRow> playerTable = new RecordTable<>(PlayerRow::draftKey,
+            player -> new Object[]{player.id(), player.name(), player.age(), player.overall(), player.extraAttributes().potential(),
                     PlayerPosition.fromCode(player.position()).getLabel(), PlayerSide.fromCode(player.side()).getLabel(),
                     player.energy(), countryName(player.country()),
                     (player.starLocal() ? "Local " : "") + (player.starGlobal() ? "Mundial" : "")},
-            "ID", "Jogador", "Idade", "Força", "Posição", "Lado", "Energia", "País", "Estrelas");
+            "ID", "Jogador", "Idade", "Força", "Potencial", "Posição", "Lado", "Energia", "País", "Estrelas");
     private final TeamEditorPanel teamEditor;
     private final PlayerEditorPanel playerEditor;
     private final ManagerTablePanel managerTable = new ManagerTablePanel();
@@ -78,7 +84,7 @@ public final class SwingMainWindow extends JFrame implements BrasfootDesktopView
     private final JButton saveManagerButton = new JButton("Salvar técnico");
     private final Map<String,JTextField> standingFields = fields("Pontos", "Vitorias", "Empates", "Derrotas", "Gols pro", "Gols contra");
     private final JTextField countryLevel = new JTextField(8);
-    private final JSpinner calendarTargetDate = new JSpinner(new SpinnerDateModel(new Date(), null, null, Calendar.DAY_OF_MONTH));
+    private final JSpinner calendarTargetDate = dayPicker();
     private boolean updatingPlayerTeams;
     private Integer loadedRosterId;
     private JButton batchPlayersButton;
@@ -87,6 +93,7 @@ public final class SwingMainWindow extends JFrame implements BrasfootDesktopView
     public SwingMainWindow(BrasfootPresenter presenter) {
         super("Brasfoot Save Editor");
         this.presenter = presenter;
+        transfers = new TransferPanel(presenter);
         teamEditor = new TeamEditorPanel(presenter);
         playerEditor = new PlayerEditorPanel(presenter);
         presenter.attach(this);
@@ -107,16 +114,21 @@ public final class SwingMainWindow extends JFrame implements BrasfootDesktopView
         JButton libraryButton = new JButton("Selecionar Brasfoot"), openButton = new JButton("Abrir save");
         libraryButton.addActionListener(e -> selectLibrary());
         openButton.addActionListener(e -> openSave());
+        reloadButton.addActionListener(e -> {
+            if (confirmLeavingChanges("Recarregar save")) presenter.reloadSave();
+        });
         saveButton.addActionListener(e -> chooseSaveMode());
         undoButton.addActionListener(e -> presenter.undo());
         redoButton.addActionListener(e -> presenter.redo());
         saveButton.setEnabled(false);
+        reloadButton.setEnabled(false);
         undoButton.setEnabled(false);
         redoButton.setEnabled(false);
         undoButton.setToolTipText("Desfazer a última edição aplicada");
         redoButton.setToolTipText("Refazer a edição desfeita");
         toolbar.add(libraryButton);
         toolbar.add(openButton);
+        toolbar.add(reloadButton);
         toolbar.add(saveButton);
         toolbar.add(undoButton);
         toolbar.add(redoButton);
@@ -126,8 +138,17 @@ public final class SwingMainWindow extends JFrame implements BrasfootDesktopView
         bindHistoryShortcut(KeyStroke.getKeyStroke(KeyEvent.VK_Y, shortcut), "redoSaveEdit", redoButton);
         bindHistoryShortcut(KeyStroke.getKeyStroke(KeyEvent.VK_Z, shortcut | InputEvent.SHIFT_DOWN_MASK),
                 "redoSaveEdit", redoButton);
-        JTabbedPane tabs = new JTabbedPane();
-        tabs.addTab("Times", teamTab()); tabs.addTab("Jogadores", playerTab()); tabs.addTab("Técnicos", managerTab()); tabs.addTab("Ligas", leaguesTab()); tabs.addTab("Paises", countryTab()); tabs.addTab("Calendario", calendarTab());
+        playerTab = playerTab();
+        tabs.addTab("Times", teamTab());
+        tabs.addTab("Jogadores", playerTab);
+        tabs.addTab("Técnicos", managerTab());
+        tabs.addTab("Transferências", transfers);
+        tabs.addTab("Ligas", leaguesTab());
+        tabs.addTab("Paises", countryTab());
+        tabs.addTab("Calendario", calendarTab());
+        tabs.addChangeListener(e -> {
+            if (tabs.getSelectedComponent() == transfers) transfers.refreshRosters();
+        });
         JPanel root = new JPanel(new BorderLayout(6,6)); root.setBorder(BorderFactory.createEmptyBorder(8,8,8,8));
         root.add(toolbar, BorderLayout.NORTH); root.add(tabs, BorderLayout.CENTER); root.add(status, BorderLayout.SOUTH); setContentPane(root);
     }
@@ -154,9 +175,32 @@ public final class SwingMainWindow extends JFrame implements BrasfootDesktopView
         batchTeamsButton = new JButton("Edição em lote…");
         batchTeamsButton.setEnabled(false);
         batchTeamsButton.addActionListener(e -> showBatchTeamEditor());
-        teamTable.onSelection(team -> teamEditor.showRecord(team == null ? null : team.id(), team));
+        JButton viewPlayers = new JButton("Ver jogadores também");
+        viewPlayers.setEnabled(false);
+        viewPlayers.addActionListener(e -> openRoster(teamTable.recordAt(teamTable.getSelectedRow())));
+        teamTable.onSelection(team -> {
+            viewPlayers.setEnabled(team != null);
+            teamEditor.showRecord(team == null ? null : team.id(), team);
+        });
+        teamTable.addMouseListener(new MouseAdapter() {
+            @Override public void mouseClicked(MouseEvent event) {
+                if (SwingUtilities.isLeftMouseButton(event) && event.getClickCount() == 1) {
+                    openRoster(teamTable.recordAt(teamTable.rowAtPoint(event.getPoint())));
+                }
+            }
+        });
+        teamTable.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "openRoster");
+        teamTable.getActionMap().put("openRoster", new AbstractAction() {
+            @Override public void actionPerformed(ActionEvent event) { viewPlayers.doClick(0); }
+        });
         configureColumns(teamTable, 42, 145, 100, 84, 42, 52, 86, 83, 135);
-        return editSplit(tablePanel(filter, teamTable, batchTeamsButton), teamEditor);
+        return editSplit(tablePanel(filter, teamTable, viewPlayers, batchTeamsButton), teamEditor);
+    }
+
+    private void openRoster(TeamRow team) {
+        if (team == null) return;
+        if (!Objects.equals(loadedRosterId, team.id())) presenter.loadPlayers(team.id());
+        if (Objects.equals(loadedRosterId, team.id())) tabs.setSelectedComponent(playerTab);
     }
 
     private void showBatchTeamEditor() {
@@ -182,10 +226,24 @@ public final class SwingMainWindow extends JFrame implements BrasfootDesktopView
         editor.add(new JLabel("Estádio (vazio mantém)")); editor.add(stadium);
         editor.add(new JLabel("Nível (-1 mantém)")); editor.add(level);
         editor.add(new JLabel("Estilo de jogo")); editor.add(batchStyle);
-        Object[] options = {"Aplicar alterações", "Destruir exceto meu time", "Destruir todos", "Cancelar"};
-        int result = JOptionPane.showOptionDialog(this, editor, "Edição em lote — todos os times",
-                JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, options, options[0]);
-        if (result == 0) {
+        JPanel content = new JPanel(new BorderLayout(0, 12));
+        content.add(editor, BorderLayout.NORTH);
+        String apply = "Aplicar alterações";
+        Object[] options = {apply, "Cancelar"};
+        JOptionPane pane = new JOptionPane(content, JOptionPane.PLAIN_MESSAGE,
+                JOptionPane.DEFAULT_OPTION, null, options, apply);
+        JPanel presets = new JPanel(new GridLayout(1, 3, 6, 0));
+        for (TeamBatchAction action : TeamBatchAction.values()) {
+            JButton button = new JButton(action.label + "...");
+            button.addActionListener(e -> pane.setValue(action));
+            presets.add(button);
+        }
+        content.add(presets, BorderLayout.SOUTH);
+        JDialog dialog = pane.createDialog(this, "Edição em lote — todos os times");
+        dialog.setVisible(true);
+        dialog.dispose();
+
+        if (apply.equals(pane.getValue())) {
             try {
                 int levelValue = level.readInt(false);
                 presenter.batchUpdateAllTeams(money.getText().isBlank() ? null : Long.valueOf(money.getText()),
@@ -193,15 +251,56 @@ public final class SwingMainWindow extends JFrame implements BrasfootDesktopView
                         stadium.getText().isBlank() ? null : stadium.getText(), levelValue < 0 ? null : levelValue,
                         batchStyle.getSelectedItem() instanceof TeamPlayStyle selected ? selected.getCode() : null);
             } catch (Exception ex) { showError("Dados inválidos", ex.getMessage()); }
-        } else if (result == 1) confirmDestroyTeams(true);
-        else if (result == 2) confirmDestroyTeams(false);
+        } else if (pane.getValue() instanceof TeamBatchAction action) {
+            confirmTeamBatchAction(action);
+        }
     }
 
-    private void confirmDestroyTeams(boolean keepHumanTeam) {
-        String action = keepHumanTeam ? "Destruir todos os times exceto os controlados por técnico humano?"
-                : "Destruir TODOS os times, inclusive o seu? Você pode desfazer a alteração nesta sessão.";
-        if (JOptionPane.showConfirmDialog(this, action, "Confirmar destruição", JOptionPane.YES_NO_OPTION,
-                JOptionPane.WARNING_MESSAGE) == JOptionPane.YES_OPTION) presenter.destroyTeams(keepHumanTeam);
+    private void confirmTeamBatchAction(TeamBatchAction action) {
+        JPanel editor = new JPanel(new BorderLayout(0, 8));
+        JComboBox<Integer> country = new JComboBox<>();
+        if (action == TeamBatchAction.DESTROY_COUNTRY) {
+            List<Integer> available = teams.stream().map(TeamRow::country).filter(Objects::nonNull)
+                    .distinct().sorted(Comparator.comparing(SwingMainWindow::countryName)).toList();
+            if (available.isEmpty()) {
+                showError(action.label, "Nenhum país encontrado nos times deste save.");
+                return;
+            }
+            country.setModel(new DefaultComboBoxModel<>(available.toArray(Integer[]::new)));
+            country.setRenderer(enumRenderer(SwingMainWindow::countryName));
+            Set<Integer> humanIds = presenter.humanManagedTeamIds();
+            TeamRow selected = teamTable.recordAt(teamTable.getSelectedRow());
+            Integer preferredCountry = selected == null ? null : selected.country();
+            if (selected == null || !humanIds.contains(selected.id()) || preferredCountry == null) {
+                preferredCountry = teams.stream().filter(team -> humanIds.contains(team.id()))
+                        .map(TeamRow::country).filter(Objects::nonNull).findFirst().orElse(preferredCountry);
+            }
+            if (preferredCountry != null) country.setSelectedItem(preferredCountry);
+            JPanel countryForm = new JPanel(new GridBagLayout());
+            addRow(countryForm, "País", country);
+            editor.add(countryForm, BorderLayout.NORTH);
+        }
+        editor.add(new JLabel("A ação deve afetar os times controlados por técnicos humanos?"), BorderLayout.CENTER);
+        Object[] options = {"Preservar times humanos", "Incluir times humanos", "Cancelar"};
+        int choice = JOptionPane.showOptionDialog(this, editor, action.label,
+                JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[2]);
+        if (choice != 0 && choice != 1) return;
+        boolean preserveHumans = choice == 0;
+        switch (action) {
+            case DESTROY_ALL -> presenter.destroyTeams(preserveHumans);
+            case DESTROY_COUNTRY -> presenter.destroyTeamsInCountry((Integer) country.getSelectedItem(), preserveHumans);
+            case IMPROVE_ALL -> presenter.improveTeams(preserveHumans);
+        }
+    }
+
+    private enum TeamBatchAction {
+        DESTROY_ALL("Destruir todos"),
+        DESTROY_COUNTRY("Destruir todos do país"),
+        IMPROVE_ALL("Melhorar todos");
+
+        private final String label;
+
+        TeamBatchAction(String label) { this.label = label; }
     }
     private JComponent playerTab() {
         playerTeam.setRenderer(new DefaultListCellRenderer() {
@@ -227,8 +326,8 @@ public final class SwingMainWindow extends JFrame implements BrasfootDesktopView
         batchPlayersButton.addActionListener(e -> showBatchPlayerEditor());
         batchPlayersButton.setEnabled(false);
         playerTable.onSelection(player -> playerEditor.showRecord(
-                player == null ? null : new PlayerEditorPanel.Key(loadedRosterId, player.id()), player));
-        configureColumns(playerTable, 42, 175, 48, 48, 74, 60, 63, 92, 75);
+                player == null ? null : new PlayerEditorPanel.Key(loadedRosterId, player.draftKey()), player));
+        configureColumns(playerTable, 42, 175, 48, 48, 68, 74, 60, 63, 92, 75);
 
         JPanel selector = new JPanel(new GridLayout(1, 2, 6, 0));
         JLabel selectorLabel = new JLabel("Time do elenco");
@@ -393,11 +492,16 @@ public final class SwingMainWindow extends JFrame implements BrasfootDesktopView
         JPanel left=new JPanel(new BorderLayout());left.add(top,BorderLayout.NORTH);left.add(new JScrollPane(standingTable));
         return sideBySide(left,editor);
     }
-    private JPanel calendarTab() {
-        var dateEditor = new JSpinner.DateEditor(calendarTargetDate, "dd/MM/yyyy");
+    static JSpinner dayPicker() {
+        var picker = new JSpinner(new SpinnerDateModel(new Date(), null, null, Calendar.DAY_OF_MONTH));
+        var dateEditor = new JSpinner.DateEditor(picker, "dd/MM/yyyy");
         dateEditor.getFormat().setLenient(false);
         dateEditor.getTextField().setFocusLostBehavior(JFormattedTextField.PERSIST);
-        calendarTargetDate.setEditor(dateEditor);
+        picker.setEditor(dateEditor);
+        return picker;
+    }
+
+    private JPanel calendarTab() {
         JPanel controls = new JPanel(new FlowLayout(FlowLayout.LEFT));
         controls.add(new JLabel("Competicao")); controls.add(calendarCompetition);
         controls.add(new JLabel("Nova data")); controls.add(calendarTargetDate);
@@ -447,6 +551,7 @@ public final class SwingMainWindow extends JFrame implements BrasfootDesktopView
         session.setText("Sessão " + id + " - " + path);
         resetSessionViews();
         saveButton.setEnabled(true);
+        reloadButton.setEnabled(true);
         showStatus("Save aberto.");
     }
 
@@ -454,6 +559,7 @@ public final class SwingMainWindow extends JFrame implements BrasfootDesktopView
         session.setText("Nenhum save aberto");
         resetSessionViews();
         saveButton.setEnabled(false);
+        reloadButton.setEnabled(false);
     }
 
     @Override public void showEditHistory(SaveEdit.HistoryStatus history) {
@@ -476,6 +582,7 @@ public final class SwingMainWindow extends JFrame implements BrasfootDesktopView
         managerTable.setManagers(List.of());
         managerTeam.removeAllItems();
         managerTable.setTeams(List.of());
+        transfers.clear();
         showLeagues(List.of());
         selectedLeague = null;
         leagueRows.clear();
@@ -494,6 +601,7 @@ public final class SwingMainWindow extends JFrame implements BrasfootDesktopView
         managerTeam.removeAllItems();
         rows.stream().sorted(Comparator.comparing(TeamRow::name, String.CASE_INSENSITIVE_ORDER)).forEach(managerTeam::addItem);
         managerTable.setTeams(rows);
+        transfers.setTeams(rows);
         loadManagerForm();
         filterPlayerTeams();
         if (playerTeam.getSelectedItem() instanceof TeamRow roster) presenter.loadPlayers(roster.id());
@@ -502,6 +610,7 @@ public final class SwingMainWindow extends JFrame implements BrasfootDesktopView
     @Override public void showPlayers(int teamId, List<PlayerRow> rows) {
         boolean newRoster = !Objects.equals(teamId, loadedRosterId);
         loadedRosterId = teamId;
+        if (newRoster) filterPlayerTeams();
         players.clear();
         players.addAll(rows);
         playerTable.setRows(rows, newRoster);
@@ -510,6 +619,7 @@ public final class SwingMainWindow extends JFrame implements BrasfootDesktopView
 
     @Override public void showManagers(List<ManagerRow> rows) {
         managerTable.setManagers(rows);
+        transfers.setManagers(rows);
     }
     @Override public void showLeagues(List<LeagueRow> rows){leagues.clear();leagues.addAll(rows);leagueChoice.removeAllItems();rows.forEach(leagueChoice::addItem);if(!rows.isEmpty())presenter.loadLeagueTable(rows.get(0).id());}
     @Override public void showLeagueTable(String id,List<LeagueTableRow> rows){selectedLeague=id;leagueRows.clear();leagueRows.addAll(rows);fill(standingTable,rows.stream().map(r->new Object[]{r.position(),r.teamId(),r.teamName(),r.points(),r.played(),r.wins(),r.draws(),r.losses(),r.goalsFor(),r.goalsAgainst(),r.goalDifference()}).toList());if(!rows.isEmpty())standingTable.setRowSelectionInterval(0,0);}
@@ -655,12 +765,12 @@ public final class SwingMainWindow extends JFrame implements BrasfootDesktopView
         }
     }
 
-    private static JPanel tablePanel(Component filter, RecordTable<?> table, JButton batch) {
+    private static JPanel tablePanel(Component filter, RecordTable<?> table, JButton... actions) {
         JPanel panel = new JPanel(new BorderLayout(0, 6));
         panel.add(filter, BorderLayout.NORTH);
         panel.add(table.scrollPane(), BorderLayout.CENTER);
-        JPanel footer = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        footer.add(batch);
+        JPanel footer = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        for (JButton action : actions) footer.add(action);
         panel.add(footer, BorderLayout.SOUTH);
         return panel;
     }

@@ -47,6 +47,10 @@ public class CalendarManagementService {
         this.sessionStatePort = sessionStatePort;
     }
 
+    public LocalDate getCurrentDate(UUID sessionId) {
+        return currentDate(sessionResolver.loadRequired(sessionId).getContext().getState().getObjetoRaiz());
+    }
+
     public List<CalendarRoundRow> getUpcomingRounds(UUID sessionId) {
         Object root = sessionResolver.loadRequired(sessionId).getContext().getState().getObjetoRaiz();
         LocalDate currentDate = currentDate(root);

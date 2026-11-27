@@ -15,11 +15,17 @@ final class RecordTable<R> extends JTable {
     private final TableRowSorter<Model> sorter;
     private final JScrollPane scroll;
     private final ToIntFunction<R> id;
+    private final boolean selectFirst;
     private Consumer<R> selectionListener = row -> {};
     private Integer lastSelectedId;
     private boolean updating;
 
     RecordTable(ToIntFunction<R> id, Function<R, Object[]> cells, String... columns) {
+        this(true, id, cells, columns);
+    }
+
+    RecordTable(boolean selectFirst, ToIntFunction<R> id, Function<R, Object[]> cells, String... columns) {
+        this.selectFirst = selectFirst;
         this.id = id;
         model = new Model(cells, columns);
         setModel(model);
@@ -36,6 +42,17 @@ final class RecordTable<R> extends JTable {
     JScrollPane scrollPane() { return scroll; }
 
     void onSelection(Consumer<R> listener) { selectionListener = listener; }
+
+    R recordAt(int viewIndex) {
+        return viewIndex < 0 ? null : model.rows.get(convertRowIndexToModel(viewIndex)).record();
+    }
+
+    void revealRecord(int recordId) {
+        int viewIndex = findVisibleSelection(recordId);
+        if (viewIndex < 0) return;
+        setRowSelectionInterval(viewIndex, viewIndex);
+        scrollRectToVisible(getCellRect(viewIndex, 0, true));
+    }
 
     void setRows(List<R> rows, boolean newContext) {
         update(() -> {
@@ -60,8 +77,8 @@ final class RecordTable<R> extends JTable {
         try {
             change.run();
             clearSelection();
-            int viewIndex = findVisibleSelection();
-            if (viewIndex < 0 && lastSelectedId == null && getRowCount() > 0) viewIndex = 0;
+            int viewIndex = lastSelectedId == null ? -1 : findVisibleSelection(lastSelectedId);
+            if (selectFirst && viewIndex < 0 && lastSelectedId == null && getRowCount() > 0) viewIndex = 0;
             if (viewIndex >= 0) setRowSelectionInterval(viewIndex, viewIndex);
             var extent = viewport.getExtentSize();
             var size = getPreferredSize();
@@ -73,10 +90,9 @@ final class RecordTable<R> extends JTable {
         notifySelection();
     }
 
-    private int findVisibleSelection() {
-        if (lastSelectedId == null) return -1;
+    private int findVisibleSelection(int recordId) {
         for (int index = 0; index < model.rows.size(); index++) {
-            if (id.applyAsInt(model.rows.get(index).record()) == lastSelectedId) {
+            if (id.applyAsInt(model.rows.get(index).record()) == recordId) {
                 return convertRowIndexToView(index);
             }
         }
@@ -84,8 +100,7 @@ final class RecordTable<R> extends JTable {
     }
 
     private void notifySelection() {
-        int viewIndex = getSelectedRow();
-        R row = viewIndex < 0 ? null : model.rows.get(convertRowIndexToModel(viewIndex)).record();
+        R row = recordAt(getSelectedRow());
         if (row != null) lastSelectedId = id.applyAsInt(row);
         selectionListener.accept(row);
     }
