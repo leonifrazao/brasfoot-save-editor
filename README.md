@@ -18,10 +18,10 @@ Principais objetivos do projeto:
 
 ## Downloads Oficiais
 
-A release atual esta disponivel em [v1.1.0](https://github.com/leonifrazao/brasfoot-save-editor/releases/tag/v1.1.0).
+Baixe a versão mais recente do editor. [Última release](https://github.com/leonifrazao/brasfoot-save-editor/releases/latest)
 
-- [brasfoot-save-editor-windows.zip](https://github.com/leonifrazao/brasfoot-save-editor/releases/download/v1.1.0/brasfoot-save-editor-windows.zip): recomendado para Windows. Ja inclui runtime Java; basta extrair o ZIP e executar `brasfoot-save-editor.exe`.
-- [brasfoot-save-editor.jar](https://github.com/leonifrazao/brasfoot-save-editor/releases/download/v1.1.0/brasfoot-save-editor.jar): alternativa multiplataforma. Requer Java 17 instalado e pode ser executado com `java -jar brasfoot-save-editor.jar`.
+- `brasfoot-save-editor-windows.zip` é o pacote recomendado para Windows. Inclui Java 17. Extraia o ZIP e execute `brasfoot-save-editor.exe`.
+- `brasfoot-save-editor.jar` é a versão multiplataforma. Requer Java 17 e pode ser executada com `java -jar brasfoot-save-editor.jar`.
 
 Para obter as alterações mais recentes da `master`, abra uma execução bem-sucedida da CI e baixe o artefato `brasfoot-save-editor`. Ele contém o JAR e o ZIP para Windows com Java 17. [Execuções da CI na master](https://github.com/leonifrazao/brasfoot-save-editor/actions/workflows/ci.yml?query=branch%3Amaster)
 
@@ -139,7 +139,7 @@ Arquivos auxiliares locais esperados pelo `pom.xml` para desenvolvimento:
 
 ### Usando Release Windows
 
-1. Baixe [`brasfoot-save-editor-windows.zip`](https://github.com/leonifrazao/brasfoot-save-editor/releases/download/v1.1.0/brasfoot-save-editor-windows.zip).
+1. Baixe `brasfoot-save-editor-windows.zip` na seção [Downloads Oficiais](#downloads-oficiais).
 2. Extraia o ZIP.
 3. Execute `brasfoot-save-editor.exe`.
 4. Clique em `Selecionar Brasfoot` e escolha o `.exe` ou `.jar` da sua instalacao do Brasfoot.
@@ -147,7 +147,7 @@ Arquivos auxiliares locais esperados pelo `pom.xml` para desenvolvimento:
 
 ### Usando JAR Multiplataforma
 
-Baixe [`brasfoot-save-editor.jar`](https://github.com/leonifrazao/brasfoot-save-editor/releases/download/v1.1.0/brasfoot-save-editor.jar) e execute:
+Baixe `brasfoot-save-editor.jar` na seção [Downloads Oficiais](#downloads-oficiais) e execute o comando abaixo.
 
 ```bash
 java -jar brasfoot-save-editor.jar
