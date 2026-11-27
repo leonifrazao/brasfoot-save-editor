@@ -29,7 +29,9 @@ public class CurrentSessionAdapter implements SessionStatePort {
     }
 
     @Override
-    public void delete(UUID id) {
-        // Desktop flow keeps the current save loaded after writing copies.
+    public synchronized void delete(UUID id) {
+        if (currentSession != null && currentSession.getId().equals(id)) {
+            currentSession = null;
+        }
     }
 }

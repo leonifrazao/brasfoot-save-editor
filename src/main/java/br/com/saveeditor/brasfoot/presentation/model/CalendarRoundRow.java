@@ -7,6 +7,11 @@ public record CalendarRoundRow(
         LocalDate date,
         String competition,
         String phase,
-        int matchCount
+        int matchCount,
+        String country,
+        String eventKey
 ) {
+    public CalendarRoundRow(String competitionKey, LocalDate date, String competition, String phase, int matchCount) {
+        this(competitionKey, date, competition, phase, matchCount, null, competitionKey);
+    }
 }

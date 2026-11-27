@@ -11,6 +11,8 @@ import br.com.saveeditor.brasfoot.domain.NavegacaoState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -135,12 +137,32 @@ class PlayerManagementServiceTest {
         assertThrows(IllegalArgumentException.class, () -> playerManagementService.getPlayer(sessionId, 10, 5));
     }
 
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1})
+    void updatePlayer_changesSideWithoutChangingPlayingStyle(int side) {
+        player0.er = 1 - side;
+        player0.ex = 4;
+
+        Player updated = playerManagementService.updatePlayer(sessionId, 10, 0,
+                null, null, null, null, null, null, side, null, null, null,
+                null, null, null, null, null, null, null,
+                null, null, null);
+
+        assertEquals(side, player0.er);
+        assertEquals(side, updated.getSide());
+        assertEquals(side, playerManagementService.getPlayer(sessionId, 10, 0).getSide());
+        assertEquals(4, player0.ex);
+        assertEquals(0, player1.er);
+    }
+
     @SuppressWarnings("unused")
     private static class DummyPlayer {
         public String dm;
         public int em;
         public int eq;
         public int en;
+        public int er;
+        public int ex;
         public int eK;
         public boolean el;
         public boolean ek;

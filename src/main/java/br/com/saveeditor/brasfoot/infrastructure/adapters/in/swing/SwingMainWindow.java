@@ -1,11 +1,13 @@
 package br.com.saveeditor.brasfoot.infrastructure.adapters.in.swing;
 
+import br.com.saveeditor.brasfoot.application.shared.SaveEdit;
 import br.com.saveeditor.brasfoot.presentation.model.*;
 import br.com.saveeditor.brasfoot.presentation.presenter.BrasfootPresenter;
 import br.com.saveeditor.brasfoot.presentation.view.BrasfootDesktopView;
 import br.com.saveeditor.brasfoot.domain.enums.*;
 import javax.swing.*;
 import javax.swing.event.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import java.awt.BorderLayout;
@@ -16,8 +18,14 @@ import java.awt.GridLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.Toolkit;
+import java.awt.event.ActionEvent;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
@@ -29,125 +37,133 @@ import javax.swing.BoxLayout;
 public final class SwingMainWindow extends JFrame implements BrasfootDesktopView {
     private final BrasfootPresenter presenter;
     private final JLabel session = new JLabel("Nenhum save aberto");
+    private final JButton saveButton = new JButton("Salvar…");
+    private final JButton undoButton = new JButton("Desfazer");
+    private final JButton redoButton = new JButton("Refazer");
+    private boolean pendingAppliedEdits;
     private final JLabel status = new JLabel("Abra um save .s22 para comecar.");
     private final List<TeamRow> teams = new ArrayList<>();
     private final List<PlayerRow> players = new ArrayList<>();
-    private final List<ManagerRow> managers = new ArrayList<>();
     private final List<LeagueRow> leagues = new ArrayList<>();
     private final List<LeagueTableRow> leagueRows = new ArrayList<>();
     private final List<CountryRow> countries = new ArrayList<>();
     private final List<CalendarRoundRow> calendarRounds = new ArrayList<>();
     private final List<CalendarRoundRow> visibleCalendarRounds = new ArrayList<>();
-    private final JTable teamTable = table("ID", "Time", "Apelido", "País", "Div", "Nivel", "Dinheiro", "Reputacao", "Estadio");
-    private final JTable playerTable = table("ID", "Jogador", "Idade", "Forca", "Posicao", "Lado", "Energia", "País", "Estrelas");
-    private final JTable managerTable = table("ID", "Tecnico", "Time", "Humano", "Diretoria", "Torcida", "Trofeus");
+    private final RecordTable<TeamRow> teamTable = new RecordTable<>(TeamRow::id,
+            team -> new Object[]{team.id(), team.name(), team.alias(), countryName(team.country()), team.division(),
+                    team.level(), team.money(), team.reputation(), team.stadiumName()},
+            "ID", "Time", "Apelido", "País", "Div.", "Nível", "Dinheiro", "Reputação", "Estádio");
+    private final RecordTable<PlayerRow> playerTable = new RecordTable<>(PlayerRow::id,
+            player -> new Object[]{player.id(), player.name(), player.age(), player.overall(),
+                    PlayerPosition.fromCode(player.position()).getLabel(), PlayerSide.fromCode(player.side()).getLabel(),
+                    player.energy(), countryName(player.country()),
+                    (player.starLocal() ? "Local " : "") + (player.starGlobal() ? "Mundial" : "")},
+            "ID", "Jogador", "Idade", "Força", "Posição", "Lado", "Energia", "País", "Estrelas");
+    private final TeamEditorPanel teamEditor;
+    private final PlayerEditorPanel playerEditor;
+    private final ManagerTablePanel managerTable = new ManagerTablePanel();
     private final JTable leagueTable = table("Pos", "ID", "Time", "Pts", "J", "V", "E", "D", "GP", "GC", "SG");
     private final JTable countryTable = table("ID", "Pais", "Grupo", "Nivel", "Divisoes");
     private final JTable standingTable = table("Pos", "Time ID", "Time", "Pts", "J", "V", "E", "D", "GP", "GC", "SG");
-    private final JTable calendarTable = table("Data atual", "Competicao", "Rodada", "Jogos");
+    private final JTable calendarTable = table("Data atual", "Competição", "País", "Rodada / fase", "Jogos");
     private final JLabel calendarHint = new JLabel("Selecione uma rodada futura para alterar a data.");
     private final JComboBox<CalendarCompetitionFilter> calendarCompetition = new JComboBox<>();
     private final JComboBox<TeamRow> playerTeam = new JComboBox<>();
     private final JTextField playerTeamSearch = new JTextField(20);
     private final JComboBox<LeagueRow> leagueChoice = new JComboBox<>();
     private String selectedLeague;
-    private final Map<String,JTextField> teamFields = fields("Nome", "Apelido", "Divisao", "Nivel", "Dinheiro", "Estadio", "Setor 1", "Setor 2", "Setor 3", "Setor 4");
-    private final JComboBox<Country> teamCountry = new JComboBox<>(Country.values());
-    private final JComboBox<String> reputation = new JComboBox<>();
-    private final JComboBox<TeamPlayStyle> style = new JComboBox<>(TeamPlayStyle.values());
-    private final JComboBox<TeamMarking> marking = new JComboBox<>(TeamMarking.values());
-    private final JComboBox<TeamAttackFocus> attack = new JComboBox<>(TeamAttackFocus.values());
-    private final Map<String,JTextField> playerFields = fields("Nome", "Idade", "Forca", "Energia", "Salario", "Goleiro", "Velocidade", "Tecnica", "Passe", "Desarme", "Armacao", "Finalizacao");
-    private final JComboBox<Country> playerCountry = new JComboBox<>(Country.values());
-    private final JComboBox<PlayerSide> playerSide = new JComboBox<>(PlayerSide.values());
-    private final JComboBox<PlayerPosition> playerPosition = new JComboBox<>(PlayerPosition.values());
-    private final JComboBox<PlayerCharacteristic> characteristic1 = new JComboBox<>(PlayerCharacteristic.values());
-    private final JComboBox<PlayerCharacteristic> characteristic2 = new JComboBox<>(PlayerCharacteristic.values());
-    private final JSpinner contractEndDate = new JSpinner(new SpinnerDateModel(new Date(), null, null, Calendar.DAY_OF_MONTH));
-    private final JCheckBox starLocal = new JCheckBox("Estrela local"), starGlobal = new JCheckBox("Estrela mundial");
     private final Map<String,JTextField> managerFields = fields("Nome", "Confianca diretoria", "Confianca torcida");
     private final JComboBox<TeamRow> managerTeam = new JComboBox<>();
-    private final JCheckBox human = new JCheckBox("Tecnico humano");
+    private final JCheckBox human = new JCheckBox("Técnico humano");
+    private final JButton saveManagerButton = new JButton("Salvar técnico");
     private final Map<String,JTextField> standingFields = fields("Pontos", "Vitorias", "Empates", "Derrotas", "Gols pro", "Gols contra");
     private final JTextField countryLevel = new JTextField(8);
     private final JSpinner calendarTargetDate = new JSpinner(new SpinnerDateModel(new Date(), null, null, Calendar.DAY_OF_MONTH));
     private boolean updatingPlayerTeams;
-    private JButton editPlayerButton;
+    private Integer loadedRosterId;
     private JButton batchPlayersButton;
-    private JButton editTeamButton;
     private JButton batchTeamsButton;
 
     public SwingMainWindow(BrasfootPresenter presenter) {
         super("Brasfoot Save Editor");
         this.presenter = presenter;
+        teamEditor = new TeamEditorPanel(presenter);
+        playerEditor = new PlayerEditorPanel(presenter);
         presenter.attach(this);
-        setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        setMinimumSize(new Dimension(1100, 700));
-        setSize(1320, 850);
+        setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+        addWindowListener(new WindowAdapter() {
+            @Override public void windowClosing(WindowEvent event) {
+                if (confirmLeavingChanges("Fechar o editor")) dispose();
+            }
+        });
+        setMinimumSize(new Dimension(980, 560));
+        setSize(1240, 680);
         setLocationRelativeTo(null);
         buildUi();
     }
 
     private void buildUi() {
         JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        JButton libraryButton = new JButton("Selecionar Brasfoot"), openButton = new JButton("Abrir save"), saveButton = new JButton("Salvar…");
-        libraryButton.addActionListener(e -> selectLibrary()); openButton.addActionListener(e -> openSave()); saveButton.addActionListener(e -> chooseSaveMode());
-        toolbar.add(libraryButton); toolbar.add(openButton); toolbar.add(saveButton); toolbar.add(session);
+        JButton libraryButton = new JButton("Selecionar Brasfoot"), openButton = new JButton("Abrir save");
+        libraryButton.addActionListener(e -> selectLibrary());
+        openButton.addActionListener(e -> openSave());
+        saveButton.addActionListener(e -> chooseSaveMode());
+        undoButton.addActionListener(e -> presenter.undo());
+        redoButton.addActionListener(e -> presenter.redo());
+        saveButton.setEnabled(false);
+        undoButton.setEnabled(false);
+        redoButton.setEnabled(false);
+        undoButton.setToolTipText("Desfazer a última edição aplicada");
+        redoButton.setToolTipText("Refazer a edição desfeita");
+        toolbar.add(libraryButton);
+        toolbar.add(openButton);
+        toolbar.add(saveButton);
+        toolbar.add(undoButton);
+        toolbar.add(redoButton);
+        toolbar.add(session);
+        int shortcut = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx();
+        bindHistoryShortcut(KeyStroke.getKeyStroke(KeyEvent.VK_Z, shortcut), "undoSaveEdit", undoButton);
+        bindHistoryShortcut(KeyStroke.getKeyStroke(KeyEvent.VK_Y, shortcut), "redoSaveEdit", redoButton);
+        bindHistoryShortcut(KeyStroke.getKeyStroke(KeyEvent.VK_Z, shortcut | InputEvent.SHIFT_DOWN_MASK),
+                "redoSaveEdit", redoButton);
         JTabbedPane tabs = new JTabbedPane();
-        tabs.addTab("Times", teamTab()); tabs.addTab("Jogadores", playerTab()); tabs.addTab("Tecnicos", managerTab()); tabs.addTab("Ligas", leaguesTab()); tabs.addTab("Paises", countryTab()); tabs.addTab("Calendario", calendarTab());
+        tabs.addTab("Times", teamTab()); tabs.addTab("Jogadores", playerTab()); tabs.addTab("Técnicos", managerTab()); tabs.addTab("Ligas", leaguesTab()); tabs.addTab("Paises", countryTab()); tabs.addTab("Calendario", calendarTab());
         JPanel root = new JPanel(new BorderLayout(6,6)); root.setBorder(BorderFactory.createEmptyBorder(8,8,8,8));
         root.add(toolbar, BorderLayout.NORTH); root.add(tabs, BorderLayout.CENTER); root.add(status, BorderLayout.SOUTH); setContentPane(root);
     }
 
-    private JPanel teamTab() {
-        style.setRenderer(enumRenderer(TeamPlayStyle::getDisplayName));
-        marking.setRenderer(enumRenderer(TeamMarking::getDisplayName));
-        attack.setRenderer(enumRenderer(TeamAttackFocus::getDisplayName));
-        teamCountry.setRenderer(enumRenderer(Country::getName));
-        JTextField filter = new JTextField(); filter.setToolTipText("Pesquisar time por nome, ID, apelido, país ou estádio");
-        filter.getDocument().addDocumentListener(change(() -> fillTeams(filter.getText())));
-        for (TeamReputation r : TeamReputation.values()) reputation.addItem(r.name());
-        editTeamButton = new JButton("Editar time");
-        editTeamButton.setEnabled(false);
-        editTeamButton.addActionListener(e -> editSelectedTeam());
+    private void bindHistoryShortcut(KeyStroke key, String action, JButton button) {
+        getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(key, action);
+        getRootPane().getActionMap().put(action, new AbstractAction() {
+            @Override public void actionPerformed(ActionEvent event) {
+                if (button.isEnabled()) button.doClick(0);
+            }
+        });
+    }
+
+    private JComponent teamTab() {
+        JTextField filter = new JTextField();
+        filter.putClientProperty("JTextField.placeholderText", "Pesquisar time por nome, ID, apelido, país ou estádio");
+        filter.putClientProperty("JTextField.showClearButton", true);
+        filter.getDocument().addDocumentListener(change(() -> {
+            String query = filter.getText().strip().toLowerCase(Locale.ROOT);
+            teamTable.filter(team -> (team.id() + " " + team.name() + " " + team.alias() + " "
+                    + countryName(team.country()) + " " + team.division() + " " + team.stadiumName())
+                    .toLowerCase(Locale.ROOT).contains(query));
+        }));
         batchTeamsButton = new JButton("Edição em lote…");
         batchTeamsButton.setEnabled(false);
         batchTeamsButton.addActionListener(e -> showBatchTeamEditor());
-        teamTable.getSelectionModel().addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) {
-                boolean selected = selected(teamTable, teams) != null;
-                editTeamButton.setEnabled(selected);
-                batchTeamsButton.setEnabled(!teams.isEmpty());
-            }
-        });
-        JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        actions.add(editTeamButton); actions.add(batchTeamsButton);
-        JPanel list = new JPanel(new BorderLayout(5, 5));
-        list.add(filter, BorderLayout.NORTH); list.add(new JScrollPane(teamTable), BorderLayout.CENTER); list.add(actions, BorderLayout.SOUTH);
-        return list;
-    }
-
-    private void editSelectedTeam() {
-        TeamRow team = selected(teamTable, teams);
-        if (team == null) return;
-        configureTeamStyleChoices();
-        loadTeamForm();
-        JPanel editor = form("Dados do time", teamFields);
-        addRow(editor, "País", teamCountry);
-        addRow(editor, "Reputação", reputation);
-        addRow(editor, "Estilo de jogo", style);
-        addRow(editor, "Marcação", marking);
-        addRow(editor, "Concentrar ataques", attack);
-        int result = JOptionPane.showConfirmDialog(this, new JScrollPane(editor), "Editar time — " + team.name(),
-                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-        if (result == JOptionPane.OK_OPTION) saveTeam();
+        teamTable.onSelection(team -> teamEditor.showRecord(team == null ? null : team.id(), team));
+        configureColumns(teamTable, 42, 145, 100, 84, 42, 52, 86, 83, 135);
+        return editSplit(tablePanel(filter, teamTable, batchTeamsButton), teamEditor);
     }
 
     private void showBatchTeamEditor() {
         if (teams.isEmpty()) return;
         JTextField money = new JTextField();
         JTextField stadium = new JTextField();
-        JSpinner level = new JSpinner(new SpinnerNumberModel(-1, -1, 100, 1));
+        NumericSpinner level = new NumericSpinner("Nível", -1, -1, 100);
         JComboBox<String> rep = new JComboBox<>(); rep.addItem("Manter reputação");
         for (TeamReputation value : TeamReputation.values()) rep.addItem(value.name());
         JComboBox<TeamPlayStyle> batchStyle = new JComboBox<>();
@@ -171,9 +187,10 @@ public final class SwingMainWindow extends JFrame implements BrasfootDesktopView
                 JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, options, options[0]);
         if (result == 0) {
             try {
+                int levelValue = level.readInt(false);
                 presenter.batchUpdateAllTeams(money.getText().isBlank() ? null : Long.valueOf(money.getText()),
                         "Manter reputação".equals(rep.getSelectedItem()) ? null : TeamReputation.valueOf((String) rep.getSelectedItem()),
-                        stadium.getText().isBlank() ? null : stadium.getText(), (Integer) level.getValue() < 0 ? null : (Integer) level.getValue(),
+                        stadium.getText().isBlank() ? null : stadium.getText(), levelValue < 0 ? null : levelValue,
                         batchStyle.getSelectedItem() instanceof TeamPlayStyle selected ? selected.getCode() : null);
             } catch (Exception ex) { showError("Dados inválidos", ex.getMessage()); }
         } else if (result == 1) confirmDestroyTeams(true);
@@ -182,12 +199,11 @@ public final class SwingMainWindow extends JFrame implements BrasfootDesktopView
 
     private void confirmDestroyTeams(boolean keepHumanTeam) {
         String action = keepHumanTeam ? "Destruir todos os times exceto os controlados por técnico humano?"
-                : "Destruir TODOS os times, inclusive o seu? Esta ação não pode ser desfeita no save atual.";
+                : "Destruir TODOS os times, inclusive o seu? Você pode desfazer a alteração nesta sessão.";
         if (JOptionPane.showConfirmDialog(this, action, "Confirmar destruição", JOptionPane.YES_NO_OPTION,
                 JOptionPane.WARNING_MESSAGE) == JOptionPane.YES_OPTION) presenter.destroyTeams(keepHumanTeam);
     }
-    private JPanel playerTab() {
-        configurePlayerControls();
+    private JComponent playerTab() {
         playerTeam.setRenderer(new DefaultListCellRenderer() {
             @Override public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean selected, boolean focus) {
                 super.getListCellRendererComponent(list, value, index, selected, focus);
@@ -195,71 +211,56 @@ public final class SwingMainWindow extends JFrame implements BrasfootDesktopView
                 return this;
             }
         });
-        playerTeam.setMaximumRowCount(20);
-        playerTeam.setToolTipText("Escolha um time para carregar ou trocar de elenco.");
-        playerCountry.setRenderer(enumRenderer(Country::getName));
-        playerTeamSearch.setToolTipText("Filtre times por nome, apelido, ID ou país.");
+        playerTeam.setMaximumRowCount(16);
+        playerTeam.setPrototypeDisplayValue(new TeamRow(0, " Time do elenco             ", null, 0, null,
+                null, null, null, null, null, null, null, null, null));
+        playerTeamSearch.putClientProperty("JTextField.placeholderText", "Pesquisar time do elenco");
+        playerTeamSearch.putClientProperty("JTextField.showClearButton", true);
         playerTeamSearch.getDocument().addDocumentListener(change(this::filterPlayerTeams));
-        playerTeam.addActionListener(e->{
-            if(!updatingPlayerTeams){TeamRow t=(TeamRow)playerTeam.getSelectedItem();if(t!=null)presenter.loadPlayers(t.id());}
+        playerTeam.addActionListener(e -> {
+            if (updatingPlayerTeams || !(playerTeam.getSelectedItem() instanceof TeamRow team)
+                    || Objects.equals(loadedRosterId, team.id())) return;
+            presenter.loadPlayers(team.id());
+            if (!Objects.equals(loadedRosterId, team.id())) filterPlayerTeams();
         });
-        editPlayerButton = new JButton("Editar jogador");
-        editPlayerButton.addActionListener(e -> editSelectedPlayer());
         batchPlayersButton = new JButton("Edição em lote…");
         batchPlayersButton.addActionListener(e -> showBatchPlayerEditor());
-        editPlayerButton.setEnabled(false);
         batchPlayersButton.setEnabled(false);
-        playerTable.getSelectionModel().addListSelectionListener(e->{
-            if(!e.getValueIsAdjusting()){
-                boolean hasSelection=selected(playerTable,players)!=null;
-                editPlayerButton.setEnabled(hasSelection);
-                batchPlayersButton.setEnabled(playerTeam.getSelectedItem()!=null&&!players.isEmpty());
-            }
-        });
-        JPanel roster = new JPanel(new BorderLayout(6, 6));
-        JPanel teamSelector = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        teamSelector.add(new JLabel("Pesquisar time"));
-        teamSelector.add(playerTeamSearch);
-        teamSelector.add(new JLabel("Time do elenco"));
-        teamSelector.add(playerTeam);
-        roster.add(teamSelector, BorderLayout.NORTH);
-        roster.add(new JScrollPane(playerTable), BorderLayout.CENTER);
-        JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        actions.add(editPlayerButton);
-        actions.add(batchPlayersButton);
-        roster.add(actions, BorderLayout.SOUTH);
-        return roster;
+        playerTable.onSelection(player -> playerEditor.showRecord(
+                player == null ? null : new PlayerEditorPanel.Key(loadedRosterId, player.id()), player));
+        configureColumns(playerTable, 42, 175, 48, 48, 74, 60, 63, 92, 75);
+
+        JPanel selector = new JPanel(new GridLayout(1, 2, 6, 0));
+        JLabel selectorLabel = new JLabel("Time do elenco");
+        selectorLabel.setLabelFor(playerTeam);
+        JPanel club = new JPanel(new BorderLayout(6, 0));
+        club.add(selectorLabel, BorderLayout.WEST);
+        club.add(playerTeam, BorderLayout.CENTER);
+        selector.add(playerTeamSearch);
+        selector.add(club);
+        return editSplit(tablePanel(selector, playerTable, batchPlayersButton), playerEditor);
     }
 
     private void filterPlayerTeams() {
-        TeamRow selectedTeam = (TeamRow) playerTeam.getSelectedItem();
-        String query = playerTeamSearch.getText().trim().toLowerCase(Locale.ROOT);
+        String query = playerTeamSearch.getText().strip().toLowerCase(Locale.ROOT);
         List<TeamRow> matches = teams.stream()
                 .filter(team -> (team.id() + " " + team.name() + " " + team.alias() + " " + countryName(team.country()))
                         .toLowerCase(Locale.ROOT).contains(query))
                 .sorted(Comparator.comparing(TeamRow::name, String.CASE_INSENSITIVE_ORDER))
                 .toList();
+        TeamRow loaded = teams.stream().filter(team -> Objects.equals(loadedRosterId, team.id())).findFirst().orElse(null);
+        var model = new DefaultComboBoxModel<>(matches.toArray(TeamRow[]::new));
+        model.setSelectedItem(loaded);
         updatingPlayerTeams = true;
         try {
-            playerTeam.removeAllItems();
-            matches.forEach(playerTeam::addItem);
-            if (selectedTeam != null && matches.stream().anyMatch(team -> team.id() == selectedTeam.id())) {
-                playerTeam.setSelectedItem(selectedTeam);
-            } else {
-                playerTeam.setSelectedIndex(-1);
-            }
+            playerTeam.setModel(model);
         } finally {
             updatingPlayerTeams = false;
         }
-        if (playerTeam.getSelectedItem() == null) {
-            players.clear();
-            fill(playerTable, List.of());
-            editPlayerButton.setEnabled(false);
-            batchPlayersButton.setEnabled(false);
-        }
         if (!query.isEmpty() && !matches.isEmpty() && playerTeamSearch.hasFocus()) {
             SwingUtilities.invokeLater(() -> {
-                if (playerTeamSearch.hasFocus() && playerTeam.getItemCount() > 0 && !playerTeam.isPopupVisible()) {
+                if (playerTeamSearch.hasFocus() && playerTeam.isShowing()
+                        && playerTeam.getItemCount() > 0 && !playerTeam.isPopupVisible()) {
                     playerTeam.showPopup();
                 }
             });
@@ -268,33 +269,13 @@ public final class SwingMainWindow extends JFrame implements BrasfootDesktopView
         }
     }
 
-    private void editSelectedPlayer() {
-        PlayerRow player = selected(playerTable, players);
-        if (player == null) return;
-        loadPlayerForm();
-        JPanel editor = form("Dados do jogador", playerFields);
-        addRow(editor, "País", playerCountry);
-        addRow(editor, "Posição", playerPosition);
-        addRow(editor, "Lado", playerSide);
-        addRow(editor, "Fim do contrato", contractEndDate);
-        addRow(editor, "Característica 1", characteristic1);
-        addRow(editor, "Característica 2", characteristic2);
-        JPanel stars = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
-        stars.add(starLocal);
-        stars.add(starGlobal);
-        addFormFooter(editor, stars);
-        int result = JOptionPane.showConfirmDialog(this, new JScrollPane(editor),
-                "Editar jogador — " + player.name(), JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-        if (result == JOptionPane.OK_OPTION) savePlayer();
-    }
-
     private void showBatchPlayerEditor() {
         TeamRow team = (TeamRow) playerTeam.getSelectedItem();
         if (team == null || players.isEmpty()) {
             showError("Edição em lote", "Escolha um time com jogadores carregados.");
             return;
         }
-        Map<String, JSpinner> values = new LinkedHashMap<>();
+        Map<String, NumericSpinner> values = new LinkedHashMap<>();
         JPanel form = new JPanel(new GridBagLayout());
         form.setBorder(BorderFactory.createTitledBorder("Deixe -1 para manter o valor atual"));
         addBatchSpinner(form, values, "Idade", -1, 50);
@@ -332,23 +313,27 @@ public final class SwingMainWindow extends JFrame implements BrasfootDesktopView
                 JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
         if (result != JOptionPane.OK_OPTION) return;
 
-        int age = batchValue(values, "Idade");
-        if (age >= 0 && age < 15) {
-            showError("Edição em lote", "A idade precisa ser -1 (manter) ou estar entre 15 e 50.");
-            return;
+        try {
+            int age = batchValue(values, "Idade");
+            if (age >= 0 && age < 15) {
+                showError("Edição em lote", "A idade precisa ser -1 (manter) ou estar entre 15 e 50.");
+                return;
+            }
+            Integer positionCode = position.getSelectedIndex() == 0 ? null : position.getSelectedIndex() - 1;
+            presenter.batchUpdatePlayers(team.id(), nullableBatchValue(values, "Idade"),
+                    nullableBatchValue(values, "Força"), positionCode,
+                    nullableBatchValue(values, "Energia"), batchCountry.getSelectedItem() instanceof Country c ? c.getId() : null,
+                    nullableBatchValue(values, "Goleiro"), nullableBatchValue(values, "Velocidade"),
+                    nullableBatchValue(values, "Técnica"), nullableBatchValue(values, "Passe"),
+                    nullableBatchValue(values, "Desarme"), nullableBatchValue(values, "Armação"),
+                    nullableBatchValue(values, "Finalização"), triStateValue(localStar), triStateValue(globalStar));
+        } catch (IllegalArgumentException ex) {
+            showError("Edição em lote", ex.getMessage());
         }
-        Integer positionCode = position.getSelectedIndex() == 0 ? null : position.getSelectedIndex() - 1;
-        presenter.batchUpdatePlayers(team.id(), nullableBatchValue(values, "Idade"),
-                nullableBatchValue(values, "Força"), positionCode,
-                nullableBatchValue(values, "Energia"), batchCountry.getSelectedItem() instanceof Country c ? c.getId() : null,
-                nullableBatchValue(values, "Goleiro"), nullableBatchValue(values, "Velocidade"),
-                nullableBatchValue(values, "Técnica"), nullableBatchValue(values, "Passe"),
-                nullableBatchValue(values, "Desarme"), nullableBatchValue(values, "Armação"),
-                nullableBatchValue(values, "Finalização"), triStateValue(localStar), triStateValue(globalStar));
     }
 
-    private void addBatchSpinner(JPanel panel, Map<String, JSpinner> values, String name, int minimum, int maximum) {
-        JSpinner spinner = new JSpinner(new SpinnerNumberModel(-1, minimum, maximum, 1));
+    private void addBatchSpinner(JPanel panel, Map<String, NumericSpinner> values, String name, int minimum, int maximum) {
+        NumericSpinner spinner = new NumericSpinner(name, -1, minimum, maximum);
         values.put(name, spinner);
         addRow(panel, name, spinner);
     }
@@ -365,31 +350,16 @@ public final class SwingMainWindow extends JFrame implements BrasfootDesktopView
         };
     }
 
-    private static int batchValue(Map<String, JSpinner> values, String name) {
-        return ((Number) values.get(name).getValue()).intValue();
+    private static int batchValue(Map<String, NumericSpinner> values, String name) {
+        return values.get(name).readInt(false);
     }
 
-    private static Integer nullableBatchValue(Map<String, JSpinner> values, String name) {
+    private static Integer nullableBatchValue(Map<String, NumericSpinner> values, String name) {
         int value = batchValue(values, name);
         return value < 0 ? null : value;
     }
-    private void configurePlayerControls() {
-        playerSide.setRenderer(enumRenderer(PlayerSide::getDisplayName));
-        playerPosition.setRenderer(enumRenderer(PlayerPosition::getDisplayName));
-        characteristic1.setRenderer(enumRenderer(PlayerCharacteristic::getDisplayName));
-        characteristic2.setRenderer(enumRenderer(PlayerCharacteristic::getDisplayName));
-        contractEndDate.setEditor(new JSpinner.DateEditor(contractEndDate, "dd/MM/yyyy"));
-    }
-    private void configureTeamStyleChoices() {
-        boolean realBrasfoot = presenter.supportsRealBrasfootTactics();
-        style.removeAllItems();
-        Arrays.stream(TeamPlayStyle.values()).filter(value -> realBrasfoot || value.getCode() <= 2).forEach(style::addItem);
-        style.setEnabled(true);
-        attack.removeAllItems();
-        Arrays.stream(TeamAttackFocus.values()).filter(value -> realBrasfoot || value.getCode() <= 1).forEach(attack::addItem);
-        attack.setEnabled(true);
-    }
     private JPanel managerTab(){
+        managerTeam.setToolTipText("Se os dois técnicos já têm clube, eles trocam de clube. O destino precisa estar livre ou sob controle do computador.");
         managerTeam.setRenderer(new DefaultListCellRenderer() {
             @Override public Component getListCellRendererComponent(JList<?> list,Object value,int index,boolean selected,boolean focus) {
                 super.getListCellRendererComponent(list,value,index,selected,focus);
@@ -397,9 +367,16 @@ public final class SwingMainWindow extends JFrame implements BrasfootDesktopView
                 return this;
             }
         });
-        JPanel editor=form("Editor do técnico",managerFields);addRow(editor,"Time",managerTeam);addRow(editor,"",human); JButton save=new JButton("Salvar técnico");save.addActionListener(e->saveManager());addFormFooter(editor,save);
-        managerTable.getSelectionModel().addListSelectionListener(e->{if(!e.getValueIsAdjusting())loadManagerForm();});
-        return sideBySide(new JScrollPane(managerTable),editor);
+        JPanel editor = form("Editor do técnico", managerFields);
+        addRow(editor, "Time", managerTeam);
+        addRow(editor, "", human);
+        saveManagerButton.addActionListener(e -> saveManager());
+        addFormFooter(editor, saveManagerButton);
+        managerTable.addSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) loadManagerForm();
+        });
+        loadManagerForm();
+        return sideBySide(managerTable, editor);
     }
     private JPanel leaguesTab(){
         leagueChoice.setRenderer(new DefaultListCellRenderer() {
@@ -417,7 +394,10 @@ public final class SwingMainWindow extends JFrame implements BrasfootDesktopView
         return sideBySide(left,editor);
     }
     private JPanel calendarTab() {
-        calendarTargetDate.setEditor(new JSpinner.DateEditor(calendarTargetDate, "dd/MM/yyyy"));
+        var dateEditor = new JSpinner.DateEditor(calendarTargetDate, "dd/MM/yyyy");
+        dateEditor.getFormat().setLenient(false);
+        dateEditor.getTextField().setFocusLostBehavior(JFormattedTextField.PERSIST);
+        calendarTargetDate.setEditor(dateEditor);
         JPanel controls = new JPanel(new FlowLayout(FlowLayout.LEFT));
         controls.add(new JLabel("Competicao")); controls.add(calendarCompetition);
         controls.add(new JLabel("Nova data")); controls.add(calendarTargetDate);
@@ -426,25 +406,26 @@ public final class SwingMainWindow extends JFrame implements BrasfootDesktopView
             int selected = calendarTable.getSelectedRow();
             if (selected < 0) { showError("Calendario", "Selecione uma rodada."); return; }
             CalendarRoundRow row = visibleCalendarRounds.get(calendarTable.convertRowIndexToModel(selected));
-            LocalDate target = ((Date) calendarTargetDate.getValue()).toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
             try {
+                calendarTargetDate.commitEdit();
+                LocalDate target = ((Date) calendarTargetDate.getValue()).toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
                 if (presenter.calendarMoveHasHumanNationalTournamentConflict(
-                        row.competitionKey(), row.date(), target)) {
+                    row.eventKey(), row.date(), target)) {
                     int answer = JOptionPane.showConfirmDialog(this,
-                            "O técnico humano comanda um clube e uma seleção, e já há uma partida da seleção "
-                                    + "nesse dia por um torneio internacional (Copa, Eliminatórias, Euro, Nations League etc.).\n\n"
+                            "A nova data terá partidas de um clube e de uma seleção sob controle humano.\n\n"
                                     + "O Brasfoot pode apresentar um comportamento inesperado e permitir controlar "
-                                    + "apenas uma das partidas. Deseja mesmo colocar a rodada do clube nessa data?",
+                                    + "apenas uma das partidas. Deseja mover a rodada para essa data?",
                             "Possível conflito com jogo da seleção",
                             JOptionPane.YES_NO_OPTION,
                             JOptionPane.WARNING_MESSAGE);
                     if (answer != JOptionPane.YES_OPTION) return;
                 }
+                presenter.moveCalendarRound(row.eventKey(), row.date(), target);
+            } catch (java.text.ParseException ex) {
+                showError("Calendário", "Informe uma data no formato dia/mês/ano.");
             } catch (RuntimeException ex) {
                 showError("Calendario", ex.getMessage());
-                return;
             }
-            presenter.moveCalendarRound(row.competitionKey(), row.date(), target);
         });
         controls.add(move);
         JPanel top = new JPanel(new BorderLayout()); top.add(calendarHint, BorderLayout.NORTH); top.add(controls, BorderLayout.SOUTH);
@@ -462,81 +443,246 @@ public final class SwingMainWindow extends JFrame implements BrasfootDesktopView
     }
     private JPanel countryTab(){JPanel editor=new JPanel(new FlowLayout(FlowLayout.LEFT));editor.setBorder(BorderFactory.createTitledBorder("Editor do pais"));editor.add(new JLabel("Nivel"));editor.add(countryLevel);JButton save=new JButton("Salvar pais");save.addActionListener(e->saveCountry());editor.add(save);countryTable.getSelectionModel().addListSelectionListener(e->{CountryRow c=selected(countryTable,countries);if(c!=null)countryLevel.setText(""+c.level());});return sideBySide(new JScrollPane(countryTable),editor);}
 
-    @Override public void showSessionOpened(String id,Path path){session.setText("Sessao "+id+" - "+path);showStatus("Save aberto.");}
-    @Override public void showSaveWritten(Path path){showStatus("Save salvo em "+path);JOptionPane.showMessageDialog(this,"Save salvo em:\n"+path,"Save salvo",JOptionPane.INFORMATION_MESSAGE);}
-    @Override public void showTeams(List<TeamRow> rows){
-        teams.clear();teams.addAll(rows);fillTeams("");
-        TeamRow selectedManagerTeam=(TeamRow)managerTeam.getSelectedItem();
-        managerTeam.removeAllItems();
-        rows.stream().sorted(Comparator.comparing(TeamRow::name,String.CASE_INSENSITIVE_ORDER)).forEach(managerTeam::addItem);
-        if(selectedManagerTeam!=null) rows.stream().filter(t->t.id()==selectedManagerTeam.id()).findFirst().ifPresent(managerTeam::setSelectedItem);
-        updatingPlayerTeams=true;
-        try {
-            playerTeam.removeAllItems();
-            playerTeam.setSelectedIndex(-1);
-        } finally { updatingPlayerTeams=false; }
-        playerTeamSearch.setText("");
+    @Override public void showSessionOpened(String id, Path path) {
+        session.setText("Sessão " + id + " - " + path);
+        resetSessionViews();
+        saveButton.setEnabled(true);
+        showStatus("Save aberto.");
+    }
+
+    @Override public void showSessionClosed() {
+        session.setText("Nenhum save aberto");
+        resetSessionViews();
+        saveButton.setEnabled(false);
+    }
+
+    @Override public void showEditHistory(SaveEdit.HistoryStatus history) {
+        undoButton.setEnabled(history.canUndo());
+        redoButton.setEnabled(history.canRedo());
+        pendingAppliedEdits = history.pending();
+    }
+
+    private void resetSessionViews() {
+        teamEditor.clear();
+        playerEditor.clear();
+        loadedRosterId = null;
+        teams.clear();
+        players.clear();
+        teamTable.setRows(List.of(), true);
+        playerTable.setRows(List.of(), true);
         filterPlayerTeams();
-        players.clear();fill(playerTable,List.of());
-        editPlayerButton.setEnabled(false);
+        batchTeamsButton.setEnabled(false);
         batchPlayersButton.setEnabled(false);
-        if(!teams.isEmpty())teamTable.setRowSelectionInterval(0,0);
+        managerTable.setManagers(List.of());
+        managerTeam.removeAllItems();
+        managerTable.setTeams(List.of());
+        showLeagues(List.of());
+        selectedLeague = null;
+        leagueRows.clear();
+        fill(standingTable, List.of());
+        showCountries(List.of());
+        showCalendar(List.of());
     }
-    @Override public void showPlayers(int teamId,List<PlayerRow> rows){
-        PlayerRow previousSelection = selected(playerTable, players);
-        players.clear();players.addAll(rows);
-        fill(playerTable,players.stream().map(p->new Object[]{p.id(),p.name(),p.age(),p.overall(),PlayerPosition.fromCode(p.position()).getLabel(),PlayerSide.fromCode(p.side()).getLabel(),p.energy(),countryName(p.country()),(p.starLocal()?"Local ":"")+(p.starGlobal()?"Mundial":"")}).toList());
-        if(!players.isEmpty()) {
-            int selectedIndex = previousSelection == null ? -1
-                    : java.util.stream.IntStream.range(0, players.size())
-                    .filter(index -> players.get(index).id() == previousSelection.id()).findFirst().orElse(-1);
-            playerTable.setRowSelectionInterval(selectedIndex >= 0 ? selectedIndex : 0,
-                    selectedIndex >= 0 ? selectedIndex : 0);
-        }
-        editPlayerButton.setEnabled(!players.isEmpty());
-        batchPlayersButton.setEnabled(!players.isEmpty() && playerTeam.getSelectedItem() != null);
+
+    @Override public void showSaveWritten(Path path){showStatus("Save salvo em "+path);JOptionPane.showMessageDialog(this,"Save salvo em:\n"+path,"Save salvo",JOptionPane.INFORMATION_MESSAGE);}
+
+    @Override public void showTeams(List<TeamRow> rows) {
+        teams.clear();
+        teams.addAll(rows);
+        teamTable.setRows(rows, false);
+        batchTeamsButton.setEnabled(!teams.isEmpty());
+        managerTeam.removeAllItems();
+        rows.stream().sorted(Comparator.comparing(TeamRow::name, String.CASE_INSENSITIVE_ORDER)).forEach(managerTeam::addItem);
+        managerTable.setTeams(rows);
+        loadManagerForm();
+        filterPlayerTeams();
+        if (playerTeam.getSelectedItem() instanceof TeamRow roster) presenter.loadPlayers(roster.id());
     }
-    @Override public void showManagers(List<ManagerRow> rows){managers.clear();managers.addAll(rows);fill(managerTable,managers.stream().map(m->new Object[]{m.id(),m.name(),teamName(m.teamId()),m.human(),m.confidenceBoard(),m.confidenceFans(),m.trophies()==null?0:m.trophies().size()}).toList());if(!managers.isEmpty())managerTable.setRowSelectionInterval(0,0);}
+
+    @Override public void showPlayers(int teamId, List<PlayerRow> rows) {
+        boolean newRoster = !Objects.equals(teamId, loadedRosterId);
+        loadedRosterId = teamId;
+        players.clear();
+        players.addAll(rows);
+        playerTable.setRows(rows, newRoster);
+        batchPlayersButton.setEnabled(!rows.isEmpty());
+    }
+
+    @Override public void showManagers(List<ManagerRow> rows) {
+        managerTable.setManagers(rows);
+    }
     @Override public void showLeagues(List<LeagueRow> rows){leagues.clear();leagues.addAll(rows);leagueChoice.removeAllItems();rows.forEach(leagueChoice::addItem);if(!rows.isEmpty())presenter.loadLeagueTable(rows.get(0).id());}
     @Override public void showLeagueTable(String id,List<LeagueTableRow> rows){selectedLeague=id;leagueRows.clear();leagueRows.addAll(rows);fill(standingTable,rows.stream().map(r->new Object[]{r.position(),r.teamId(),r.teamName(),r.points(),r.played(),r.wins(),r.draws(),r.losses(),r.goalsFor(),r.goalsAgainst(),r.goalDifference()}).toList());if(!rows.isEmpty())standingTable.setRowSelectionInterval(0,0);}
     @Override public void showCountries(List<CountryRow> rows){countries.clear();countries.addAll(rows);fill(countryTable,rows.stream().map(c->new Object[]{c.id(),c.name(),c.group(),c.level(),c.divisionCount()}).toList());if(!rows.isEmpty())countryTable.setRowSelectionInterval(0,0);}
-    @Override public void showCalendar(List<CalendarRoundRow> rows){calendarRounds.clear();calendarRounds.addAll(rows);CalendarCompetitionFilter previous=(CalendarCompetitionFilter)calendarCompetition.getSelectedItem();calendarCompetition.removeAllItems();calendarCompetition.addItem(new CalendarCompetitionFilter(null,"Todas as competicoes"));Map<String,CalendarCompetitionFilter> choices=new LinkedHashMap<>();rows.forEach(r->choices.putIfAbsent(r.competitionKey(),new CalendarCompetitionFilter(r.competitionKey(),r.competition())));choices.values().forEach(calendarCompetition::addItem);if(previous!=null&&previous.competitionKey()!=null){for(int i=0;i<calendarCompetition.getItemCount();i++)if(Objects.equals(calendarCompetition.getItemAt(i).competitionKey(),previous.competitionKey()))calendarCompetition.setSelectedIndex(i);}renderCalendarRows();}
-    private void renderCalendarRows(){CalendarCompetitionFilter filter=(CalendarCompetitionFilter)calendarCompetition.getSelectedItem();visibleCalendarRounds.clear();calendarRounds.stream().filter(r->filter==null||filter.competitionKey()==null||filter.competitionKey().equals(r.competitionKey())).forEach(visibleCalendarRounds::add);fill(calendarTable,visibleCalendarRounds.stream().map(r->new Object[]{r.date(),r.competition(),r.phase(),r.matchCount()}).toList());calendarHint.setText(calendarRounds.isEmpty()?"Nenhum jogo futuro em campeonatos por pontos foi encontrado.":calendarRounds.size()+" rodadas futuras em "+Math.max(0,calendarCompetition.getItemCount()-1)+" competicoes. Rodadas numeradas pela ordem das datas no save.");if(!visibleCalendarRounds.isEmpty())calendarTable.setRowSelectionInterval(0,0);}
+    @Override public void showCalendar(List<CalendarRoundRow> rows) {
+        calendarRounds.clear();
+        calendarRounds.addAll(rows);
+        CalendarCompetitionFilter previous = (CalendarCompetitionFilter) calendarCompetition.getSelectedItem();
+        CalendarCompetitionFilter all = new CalendarCompetitionFilter(null, "Todas as competições");
+        Map<String, CalendarCompetitionFilter> choices = new LinkedHashMap<>();
+        for (CalendarRoundRow row : rows) {
+            String label = row.country() == null ? row.competition() : row.competition() + " · " + row.country();
+            choices.putIfAbsent(row.competitionKey(), new CalendarCompetitionFilter(row.competitionKey(), label));
+        }
+        var model = new DefaultComboBoxModel<CalendarCompetitionFilter>();
+        model.addElement(all);
+        choices.values().forEach(model::addElement);
+        if (previous != null && previous.competitionKey() != null) {
+            model.setSelectedItem(choices.getOrDefault(previous.competitionKey(), all));
+        }
+        calendarCompetition.setModel(model);
+        renderCalendarRows();
+    }
+
+    private void renderCalendarRows() {
+        CalendarCompetitionFilter filter = (CalendarCompetitionFilter) calendarCompetition.getSelectedItem();
+        visibleCalendarRounds.clear();
+        calendarRounds.stream().filter(row -> filter == null || filter.competitionKey() == null
+                || filter.competitionKey().equals(row.competitionKey())).forEach(visibleCalendarRounds::add);
+        fill(calendarTable, visibleCalendarRounds.stream().map(row ->
+                new Object[]{row.date(), row.competition(), row.country(), row.phase(), row.matchCount()}).toList());
+        int count = visibleCalendarRounds.size();
+        calendarHint.setText(switch (count) {
+            case 0 -> "Nenhuma rodada ou fase futura encontrada.";
+            case 1 -> "1 data editável.";
+            default -> count + " datas editáveis.";
+        });
+        if (count > 0) calendarTable.setRowSelectionInterval(0, 0);
+    }
     @Override public void showStatus(String message){status.setText(message);}
     @Override public void showError(String title,String message){status.setText(message);JOptionPane.showMessageDialog(this,message,title,JOptionPane.ERROR_MESSAGE);}
 
-    private void fillTeams(String query){String q=query.toLowerCase(Locale.ROOT);fill(teamTable,teams.stream().filter(t->(t.id()+" "+t.name()+" "+t.alias()+" "+countryName(t.country())+" "+t.division()+" "+t.stadiumName()).toLowerCase(Locale.ROOT).contains(q)).map(t->new Object[]{t.id(),t.name(),t.alias(),countryName(t.country()),t.division(),t.level(),t.money(),t.reputation(),t.stadiumName()}).toList());}
-    private void loadTeamForm(){TeamRow t=selected(teamTable,teams);if(t==null)return;put(teamFields,"Nome",t.name());put(teamFields,"Apelido",t.alias());teamCountry.setSelectedItem(Country.fromId(t.country()==null?-1:t.country()));put(teamFields,"Divisao",t.division());put(teamFields,"Nivel",t.level());put(teamFields,"Dinheiro",t.money());put(teamFields,"Estadio",t.stadiumName());for(int i=0;i<4;i++)put(teamFields,"Setor "+(i+1),t.stadiumSectors()!=null&&i<t.stadiumSectors().size()?t.stadiumSectors().get(i):0);reputation.setSelectedItem(t.reputation());TeamPlayStyle currentStyle=TeamPlayStyle.fromCode(t.tacticStyle());if(style.getItemCount()>0&&currentStyle.getCode()>2&&!presenter.supportsRealBrasfootTactics()){style.setSelectedIndex(0);style.setEnabled(false);}else{style.setEnabled(true);style.setSelectedItem(currentStyle);}marking.setSelectedItem(TeamMarking.fromCode(t.tacticMarking()));TeamAttackFocus currentFocus=TeamAttackFocus.fromCode(t.tacticFocus());if(attack.getItemCount()>0&&currentFocus.getCode()>1&&!presenter.supportsRealBrasfootTactics()){attack.setSelectedIndex(0);attack.setEnabled(false);}else{attack.setEnabled(true);attack.setSelectedItem(currentFocus);}}
-    private void loadPlayerForm(){PlayerRow p=selected(playerTable,players);if(p==null)return;put(playerFields,"Nome",p.name());put(playerFields,"Idade",p.age());put(playerFields,"Forca",p.overall());put(playerFields,"Energia",p.energy());put(playerFields,"Salario",p.salary());playerCountry.setSelectedItem(Country.fromId(p.country()==null?-1:p.country()));put(playerFields,"Goleiro",p.skillGoalkeeping());put(playerFields,"Velocidade",p.skillSpeed());put(playerFields,"Tecnica",p.skillTechnique());put(playerFields,"Passe",p.skillPassing());put(playerFields,"Desarme",p.skillTackling());put(playerFields,"Armacao",p.skillPlaymaking());put(playerFields,"Finalizacao",p.skillFinishing());playerPosition.setSelectedItem(PlayerPosition.fromCode(p.position()));playerSide.setSelectedItem(PlayerSide.fromCode(p.side()));characteristic1.setSelectedItem(PlayerCharacteristic.fromCode(p.characteristic1()));characteristic2.setSelectedItem(PlayerCharacteristic.fromCode(p.characteristic2()));contractEndDate.setValue(dateFromTimestamp(p.contractEnd()));starLocal.setSelected(p.starLocal());starGlobal.setSelected(p.starGlobal());}
-    private void loadManagerForm(){ManagerRow m=selected(managerTable,managers);if(m==null)return;put(managerFields,"Nome",m.name());teams.stream().filter(t->Objects.equals(t.id(),m.teamId())).findFirst().ifPresent(managerTeam::setSelectedItem);put(managerFields,"Confianca diretoria",m.confidenceBoard());put(managerFields,"Confianca torcida",m.confidenceFans());human.setSelected(Boolean.TRUE.equals(m.human()));}
+    private void loadManagerForm() {
+        ManagerRow manager = managerTable.selectedManager();
+        boolean selected = manager != null;
+        managerFields.values().forEach(field -> field.setEnabled(selected));
+        managerTeam.setEnabled(selected);
+        human.setEnabled(selected);
+        saveManagerButton.setEnabled(selected);
+        put(managerFields, "Nome", selected ? manager.name() : null);
+        put(managerFields, "Confianca diretoria", selected ? manager.confidenceBoard() : null);
+        put(managerFields, "Confianca torcida", selected ? manager.confidenceFans() : null);
+        human.setSelected(selected && Boolean.TRUE.equals(manager.human()));
+        TeamRow team = selected ? teams.stream().filter(t -> Objects.equals(t.id(), manager.teamId()))
+                .findFirst().orElse(null) : null;
+        managerTeam.setSelectedItem(team);
+    }
     private void loadStandingForm(){LeagueTableRow r=selected(standingTable,leagueRows);if(r==null)return;put(standingFields,"Pontos",r.points());put(standingFields,"Vitorias",r.wins());put(standingFields,"Empates",r.draws());put(standingFields,"Derrotas",r.losses());put(standingFields,"Gols pro",r.goalsFor());put(standingFields,"Gols contra",r.goalsAgainst());}
-    private void saveTeam(){TeamRow t=selected(teamTable,teams);if(t==null)return;try{List<String> sectors=new ArrayList<>();for(int i=1;i<=4;i++)sectors.add(val(teamFields,"Setor "+i));Country country=(Country)teamCountry.getSelectedItem();TeamPlayStyle selectedStyle=(TeamPlayStyle)style.getSelectedItem();TeamAttackFocus selectedFocus=(TeamAttackFocus)attack.getSelectedItem();presenter.updateTeam(t.id(),val(teamFields,"Nome"),val(teamFields,"Apelido"),val(teamFields,"Dinheiro"),String.valueOf(reputation.getSelectedItem()),val(teamFields,"Estadio"),sectors,country==null?"":Integer.toString(country.getId()),val(teamFields,"Divisao"),val(teamFields,"Nivel"),style.isEnabled()&&selectedStyle!=null?selectedStyle.getCode():null,((TeamMarking)marking.getSelectedItem()).getCode(),attack.isEnabled()&&selectedFocus!=null?selectedFocus.getCode():null);}catch(Exception e){showError("Dados inválidos",e.getMessage());}}
-    private void savePlayer(){PlayerRow p=selected(playerTable,players);TeamRow t=(TeamRow)playerTeam.getSelectedItem();if(p==null||t==null)return;try{PlayerSide side=(PlayerSide)playerSide.getSelectedItem();PlayerPosition position=(PlayerPosition)playerPosition.getSelectedItem();PlayerCharacteristic cr1=(PlayerCharacteristic)characteristic1.getSelectedItem();PlayerCharacteristic cr2=(PlayerCharacteristic)characteristic2.getSelectedItem();Country country=(Country)playerCountry.getSelectedItem();presenter.updatePlayer(t.id(),p.id(),val(playerFields,"Nome"),num(playerFields,"Idade"),num(playerFields,"Forca"),position.getCode(),num(playerFields,"Energia"),val(playerFields,"Salario"),Integer.toString(side.getCode()),Long.toString(timestampFromDate((Date)contractEndDate.getValue())),cr1.getCode(),cr2.getCode(),num(playerFields,"Goleiro"),num(playerFields,"Velocidade"),num(playerFields,"Tecnica"),num(playerFields,"Passe"),num(playerFields,"Desarme"),num(playerFields,"Armacao"),num(playerFields,"Finalizacao"),country==null?"":Integer.toString(country.getId()),starLocal.isSelected(),starGlobal.isSelected());}catch(Exception e){showError("Dados inválidos",e.getMessage());}}
-    private void saveManager(){ManagerRow m=selected(managerTable,managers);TeamRow team=(TeamRow)managerTeam.getSelectedItem();if(m!=null)presenter.updateManager(m.id(),val(managerFields,"Nome"),human.isSelected(),team==null?"":Integer.toString(team.id()),num(managerFields,"Confianca diretoria"),num(managerFields,"Confianca torcida"),m.trophies());}
+    private void saveManager() {
+        ManagerRow manager = managerTable.selectedManager();
+        if (manager == null) return;
+        TeamRow team = (TeamRow) managerTeam.getSelectedItem();
+        String teamId = team == null || Objects.equals(team.id(), manager.teamId()) ? "" : Integer.toString(team.id());
+        Boolean humanChange = human.isSelected() == Boolean.TRUE.equals(manager.human()) ? null : human.isSelected();
+        try {
+            presenter.updateManager(manager.id(), val(managerFields, "Nome"), humanChange, teamId,
+                    num(managerFields, "Confianca diretoria"), num(managerFields, "Confianca torcida"), manager.trophies());
+        } catch (NumberFormatException e) {
+            showError("Dados inválidos", "Informe valores inteiros para a confiança da diretoria e da torcida.");
+        }
+    }
     private void saveStanding(){LeagueTableRow r=selected(standingTable,leagueRows);if(r!=null)try{presenter.updateLeagueTableEntry(selectedLeague,r.teamId(),num(standingFields,"Pontos"),num(standingFields,"Vitorias"),num(standingFields,"Empates"),num(standingFields,"Derrotas"),num(standingFields,"Gols pro"),num(standingFields,"Gols contra"));}catch(Exception e){showError("Dados invalidos",e.getMessage());}}
     private void saveCountry(){CountryRow c=selected(countryTable,countries);if(c!=null)try{presenter.updateCountryLevel(c.id(),Integer.parseInt(countryLevel.getText()));}catch(Exception e){showError("Dados invalidos",e.getMessage());}}
-    private void openSave(){JFileChooser fc=new JFileChooser();fc.setDialogTitle("Abrir save do Brasfoot");if(fc.showOpenDialog(this)==JFileChooser.APPROVE_OPTION)presenter.openSave(fc.getSelectedFile().toPath());}
-    private void chooseSaveMode(){
-        Object[] choices={"Substituir o arquivo atual","Salvar com outro nome","Cancelar"};
-        int choice=JOptionPane.showOptionDialog(this,"Como deseja salvar as alterações?","Salvar save",
-                JOptionPane.DEFAULT_OPTION,JOptionPane.QUESTION_MESSAGE,null,choices,choices[0]);
-        if(choice==0){
-            int confirm=JOptionPane.showConfirmDialog(this,"O arquivo atual será substituído. Deseja continuar?",
-                    "Confirmar substituição",JOptionPane.YES_NO_OPTION,JOptionPane.WARNING_MESSAGE);
-            if(confirm==JOptionPane.YES_OPTION)presenter.saveOverCurrent();
-        }else if(choice==1)presenter.saveCopy();
+    private void openSave() {
+        JFileChooser chooser = createSaveChooser(presenter.getInstallationDirectory());
+        if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION && confirmLeavingChanges("Abrir outro save")) {
+            presenter.openSave(chooser.getSelectedFile().toPath());
+        }
     }
-    private void selectLibrary(){JFileChooser fc=new JFileChooser();fc.setDialogTitle("Selecionar biblioteca do Brasfoot");if(fc.showOpenDialog(this)==JFileChooser.APPROVE_OPTION)presenter.selectBrasfootLibrary(fc.getSelectedFile().toPath());}
+
+    static JFileChooser createSaveChooser(Path installationDirectory) {
+        JFileChooser chooser = new JFileChooser();
+        if (installationDirectory != null) {
+            Path saveDirectory = installationDirectory.resolve("sav");
+            if (isBrowsableDirectory(saveDirectory)) {
+                chooser.setCurrentDirectory(saveDirectory.toFile());
+            } else if (isBrowsableDirectory(installationDirectory)) {
+                chooser.setCurrentDirectory(installationDirectory.toFile());
+            }
+        }
+        chooser.setDialogTitle("Abrir save do Brasfoot");
+        chooser.setAcceptAllFileFilterUsed(false);
+        chooser.setFileFilter(new FileNameExtensionFilter("Saves do Brasfoot (*.s22)", "s22"));
+        return chooser;
+    }
+
+    private static boolean isBrowsableDirectory(Path directory) {
+        try {
+            // Accessing the explicit dot also checks search permission on Unix.
+            return Files.isDirectory(directory.resolve(".")) && Files.isReadable(directory);
+        } catch (SecurityException e) {
+            return false;
+        }
+    }
+
+    private void chooseSaveMode() {
+        SaveEdit.Preview preview = presenter.savePreview();
+        if (preview == null) return;
+        Object[] choices = {"Substituir arquivo atual", "Salvar cópia", "Cancelar"};
+        int choice = JOptionPane.showOptionDialog(this, new SaveReviewPanel(preview, pendingDrafts() > 0),
+                "Revisar e salvar", JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, choices, choices[2]);
+        if (choice == 0) presenter.saveOverCurrent();
+        else if (choice == 1) presenter.saveCopy();
+    }
+
+    private void selectLibrary() {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Selecionar biblioteca do Brasfoot");
+        if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION
+                && confirmLeavingChanges("Trocar biblioteca do Brasfoot")) {
+            presenter.selectBrasfootLibrary(chooser.getSelectedFile().toPath());
+        }
+    }
+
+    private int pendingDrafts() {
+        return teamEditor.draftCount() + playerEditor.draftCount();
+    }
+
+    private boolean confirmLeavingChanges(String title) {
+        boolean drafts = pendingDrafts() > 0;
+        if (!drafts && !pendingAppliedEdits) return true;
+        String message = pendingAppliedEdits
+                ? "As alterações ainda não gravadas no arquivo atual serão descartadas."
+                : "Os rascunhos que ainda não foram aplicados serão descartados.";
+        return JOptionPane.showConfirmDialog(this, message + "\nDeseja continuar?", title,
+                JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) == JOptionPane.YES_OPTION;
+    }
+
+    private static void configureColumns(JTable table, int... widths) {
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        for (int column = 0; column < widths.length; column++) {
+            table.getColumnModel().getColumn(column).setPreferredWidth(widths[column]);
+        }
+    }
+
+    private static JPanel tablePanel(Component filter, RecordTable<?> table, JButton batch) {
+        JPanel panel = new JPanel(new BorderLayout(0, 6));
+        panel.add(filter, BorderLayout.NORTH);
+        panel.add(table.scrollPane(), BorderLayout.CENTER);
+        JPanel footer = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        footer.add(batch);
+        panel.add(footer, BorderLayout.SOUTH);
+        return panel;
+    }
+
+    static JSplitPane editSplit(JComponent table, JComponent editor) {
+        table.setMinimumSize(new Dimension(320, 100));
+        editor.setMinimumSize(new Dimension(320, 100));
+        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, table, editor);
+        split.setContinuousLayout(true);
+        split.setResizeWeight(0.62);
+        split.setBorder(BorderFactory.createEmptyBorder());
+        SwingUtilities.invokeLater(() -> split.setDividerLocation(0.62));
+        return split;
+    }
+
     private static JTable table(String... cols){JTable t=new JTable(new DefaultTableModel(cols,0){public boolean isCellEditable(int r,int c){return false;}});t.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);t.setAutoCreateRowSorter(true);t.setFillsViewportHeight(true);return t;}
     private static void fill(JTable t,List<Object[]> rows){DefaultTableModel m=(DefaultTableModel)t.getModel();m.setRowCount(0);rows.forEach(m::addRow);}
     private static <T>T selected(JTable table,List<T> rows){
         int viewRow=table.getSelectedRow(); if(viewRow<0)return null;
         Object id=table.getModel().getValueAt(table.convertRowIndexToModel(viewRow),0);
         for(T row:rows){
-            Object rowId = row instanceof TeamRow value ? value.id()
-                    : row instanceof PlayerRow value ? value.id()
-                    : row instanceof ManagerRow value ? value.id()
-                    : row instanceof LeagueTableRow value ? value.position()
+            Object rowId = row instanceof LeagueTableRow value ? value.position()
                     : row instanceof CountryRow value ? value.id()
                     : null;
             if(Objects.equals(String.valueOf(rowId),String.valueOf(id)))return row;
@@ -545,21 +691,29 @@ public final class SwingMainWindow extends JFrame implements BrasfootDesktopView
     }
     private static Map<String,JTextField> fields(String...names){Map<String,JTextField> m=new LinkedHashMap<>();for(String n:names)m.put(n,new JTextField(12));return m;}
     private static JPanel form(String title,Map<String,JTextField> fields){JPanel p=new JPanel(new GridBagLayout());p.setBorder(BorderFactory.createTitledBorder(title));for(var e:fields.entrySet())addRow(p,e.getKey(),e.getValue());return p;}
-    private static void addRow(JPanel p,String label,Component c){GridBagConstraints g=new GridBagConstraints();g.gridx=0;g.gridy=p.getComponentCount()/2;g.anchor=GridBagConstraints.WEST;g.insets=new Insets(2,4,2,4);p.add(new JLabel(label),g);g.gridx=1;g.weightx=1;g.fill=GridBagConstraints.HORIZONTAL;p.add(c,g);}
+    static void addRow(JPanel panel, String label, Component field) {
+        GridBagConstraints constraints = new GridBagConstraints();
+        constraints.gridx = 0;
+        constraints.gridy = panel.getComponentCount() / 2;
+        constraints.anchor = GridBagConstraints.WEST;
+        constraints.insets = new Insets(2, 4, 2, 4);
+        JLabel caption = new JLabel(label);
+        caption.setLabelFor(field instanceof JSpinner spinner
+                ? ((JSpinner.DefaultEditor) spinner.getEditor()).getTextField() : field);
+        panel.add(caption, constraints);
+        constraints.gridx = 1;
+        constraints.weightx = 1;
+        constraints.fill = GridBagConstraints.HORIZONTAL;
+        panel.add(field, constraints);
+    }
     private static void addFormFooter(JPanel p,Component c){GridBagConstraints g=new GridBagConstraints();g.gridx=0;g.gridy=(p.getComponentCount()+1)/2;g.gridwidth=2;g.anchor=GridBagConstraints.WEST;g.insets=new Insets(8,4,2,4);p.add(c,g);}
-    private static JPanel wrap(Component... components){JPanel p=new JPanel();p.setLayout(new BoxLayout(p,BoxLayout.Y_AXIS));for(Component c:components)p.add(c);return p;}
     private static JPanel sideBySide(Component left,Component right){JSplitPane p=new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,new JScrollPane(left),new JScrollPane(right));p.setResizeWeight(.58);JPanel out=new JPanel(new BorderLayout());out.add(p);return out;}
     private static String val(Map<String,JTextField> f,String k){return f.get(k).getText().trim();}
     private static int num(Map<String,JTextField> f,String k){return Integer.parseInt(val(f,k));}
     private static void put(Map<String,JTextField> f,String k,Object v){f.get(k).setText(v==null?"":String.valueOf(v));}
     private static int integer(JSpinner s,int empty){return ((Number)s.getValue()).intValue()==empty?empty:((Number)s.getValue()).intValue();}
-    private static JComboBox<String> enumNames(Enum<?>[] e){JComboBox<String> c=new JComboBox<>();for(Enum<?> x:e)c.addItem(x.name());return c;}
-    private static <T> ListCellRenderer<T> enumRenderer(Function<T,String> label){return (list,value,index,selected,focus)->{JLabel cell=(JLabel)new DefaultListCellRenderer().getListCellRendererComponent(list,value,index,selected,focus);if(value!=null)cell.setText(label.apply(value));return cell;};}
-    private static Date dateFromTimestamp(Long timestamp){long value=timestamp==null||timestamp<=0?System.currentTimeMillis():timestamp;if(value<100_000_000_000L)value*=1000;return Date.from(Instant.ofEpochMilli(value));}
-    private static long timestampFromDate(Date value){LocalDate date=value.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();return date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();}
-    private static int countryId(Country c){return c==null?0:c.getId();}
+    static <T> ListCellRenderer<T> enumRenderer(Function<T,String> label){return (list,value,index,selected,focus)->{JLabel cell=(JLabel)new DefaultListCellRenderer().getListCellRendererComponent(list,value,index,selected,focus);if(value!=null)cell.setText(label.apply(value));return cell;};}
     private static String countryName(Integer id){Country country=id==null?null:Country.fromId(id);return country==null?"País desconhecido":country.getName();}
-    private String teamName(Integer id){return teams.stream().filter(team->Objects.equals(team.id(),id)).map(TeamRow::name).findFirst().orElse("Sem time");}
-    private static DocumentListener change(Runnable r){return new DocumentListener(){public void insertUpdate(DocumentEvent e){r.run();}public void removeUpdate(DocumentEvent e){r.run();}public void changedUpdate(DocumentEvent e){r.run();}};}
+    static DocumentListener change(Runnable r){return new DocumentListener(){public void insertUpdate(DocumentEvent e){r.run();}public void removeUpdate(DocumentEvent e){r.run();}public void changedUpdate(DocumentEvent e){r.run();}};}
     private record CalendarCompetitionFilter(String competitionKey,String label) { @Override public String toString(){return label;} }
 }

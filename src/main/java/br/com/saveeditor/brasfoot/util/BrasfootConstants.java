@@ -9,7 +9,9 @@ public class BrasfootConstants {
 
     // --- Game Root ---
     public static final String TEAMS_LIST = "aj"; // List<Team>
-    public static final String HUMAN_MANAGERS_LIST = "al"; // List<Manager>
+    public static final String MANAGERS_LIST = "al"; // List<Manager>; best.f.L()
+    public static final String HUMAN_MANAGERS_LIST = "am"; // List<Manager>; best.f.M()
+    public static final String MANAGER_CHANGES_LIST = "at"; // List<best.u>; best.f.bn()
 
     // --- Team (best.ah) ---
     public static final String TEAM_NAME = "dm"; // String
@@ -18,6 +20,8 @@ public class BrasfootConstants {
     public static final String TEAM_MANAGER_ID = "na"; // int; current manager id stored on team
     public static final String TEAM_IS_HUMAN = "mW"; // Boolean; team controlled by human
     public static final String TEAM_MANAGER_REFERENCE = "mZ"; // transient best.al; current manager reference
+    public static final String TEAM_AUTO_TRAINING = "nt"; // boolean; best.ah.M(boolean)
+    public static final String TEAM_LINEUP_CONFIRMED = "nv"; // boolean; best.ah.kf()
     public static final String TEAM_PLAYERS = "nd"; // List<Player>
     public static final String TEAM_MONEY = "nb"; // long
     public static final String TEAM_REPUTATION = "nc"; // int
@@ -41,7 +45,7 @@ public class BrasfootConstants {
     // 0=Gol, 1=Lat, 2=Zag, 3=Mei, 4=Ata
     public static final String PLAYER_POSITION = "en";
 
-    public static final String PLAYER_SIDE = "ex"; // int (0=Dir?, 1=Esq?)
+    public static final String PLAYER_SIDE = "er"; // int; best.F.getLado() / setLado(), 0=Direito, 1=Esquerdo
 
     public static final String PLAYER_ENERGY = "eK"; // int (0-100); getter best.F.fp(), shown as Energia in original table
     public static final String PLAYER_CONTRACT_END = "eJ"; // long (Timestamp)
@@ -68,9 +72,19 @@ public class BrasfootConstants {
     public static final String MANAGER_ID = "nU"; // int; manager id used by best.al.lT()
     public static final String MANAGER_CURRENT_TEAM = "nV"; // transient best.ah; current team reference
     public static final String MANAGER_CURRENT_TEAM_ID = "bW"; // int; current team id cache used by best.al.fg()
+    public static final String MANAGER_NATIONAL_TEAM = "hy"; // best.ah; national team returned by best.al.jo()
     public static final String MANAGER_PREVIOUS_TEAM = "nW"; // transient best.ah; previous team reference
     public static final String MANAGER_PREVIOUS_TEAM_ID = "nX"; // int; previous team id cache
+    public static final String MANAGER_PREVIOUS_COUNTRY = "bf"; // int; best.al.lN()
+    public static final String MANAGER_PREVIOUS_DIVISION = "nY"; // int; previous club division minus one
+    public static final String MANAGER_SEASONS_AT_TEAM = "oi"; // int; reset by best.al.E(best.ah)
     public static final String MANAGER_TROPHIES = "cA"; // ArrayList<best.ao>; manager title history returned by best.al.cT()
+
+    public static final String MANAGER_CHANGE_CLASS = "best.u";
+    public static final String MANAGER_CHANGE_TEAM_ID = "bW";
+    public static final String MANAGER_CHANGE_OUTGOING = "di";
+    public static final String MANAGER_CHANGE_INCOMING = "dj";
+    public static final String MANAGER_CHANGE_DATE = "p";
 
     // --- Manager trophy/history item (best.ao) ---
     public static final String MANAGER_TROPHY_YEAR = "ae"; // int; season/year index

@@ -1,5 +1,6 @@
 package br.com.saveeditor.brasfoot.presentation.view;
 
+import br.com.saveeditor.brasfoot.application.shared.SaveEdit;
 import br.com.saveeditor.brasfoot.presentation.model.LeagueRow;
 import br.com.saveeditor.brasfoot.presentation.model.LeagueTableRow;
 import br.com.saveeditor.brasfoot.presentation.model.CountryRow;
@@ -13,6 +14,10 @@ import java.util.List;
 
 public interface BrasfootDesktopView {
     void showSessionOpened(String sessionId, Path savePath);
+
+    void showSessionClosed();
+
+    void showEditHistory(SaveEdit.HistoryStatus history);
 
     void showSaveWritten(Path outputPath);
 

@@ -1,0 +1,39 @@
+Editor multiplataforma para editar saves .s22 do Brasfoot, com versões para Windows e Java.
+
+### Downloads
+
+Arquivo | Como usar
+--------|----------
+brasfoot-save-editor-windows.zip | Recomendado para Windows. Inclui Java 17. Extraia o ZIP e execute brasfoot-save-editor.exe.
+brasfoot-save-editor.jar | Multiplataforma. Requer Java 17. Execute com java -jar brasfoot-save-editor.jar.
+
+### Primeiros passos
+
+O editor não inclui arquivos do Brasfoot. Ao abrir o programa:
+
+1. Clique em Selecionar Brasfoot e escolha o .exe ou .jar da sua instalação.
+2. Clique em Abrir save e selecione o arquivo .s22.
+
+### Novidades
+
+- Interface multiplataforma em Swing + FlatLaf.
+- Edição individual e em lote de times e jogadores.
+- Busca de times na aba Jogadores e seletores com nomes de países e clubes.
+- Estilos e focos táticos exclusivos do Real Brasfoot, exibidos quando essa versão é detectada.
+- Edição de datas do calendário e ferramentas para ligas e saves.
+- Opção de substituir o save aberto ou salvar uma cópia com outro nome.
+- Compilação automatizada em .sh e .bat, com pacote Windows normal e opção de debug.
+
+### Capturas de tela
+
+Edição de times e jogadores
+![Edição de times e jogadores](https://github.com/user-attachments/assets/e7165c46-9782-4f11-821a-f59152a8b922)
+
+Busca de times na aba Jogadores
+![Busca de times](https://github.com/user-attachments/assets/7f2abc0f-0ec0-4d30-8dd7-7ec4d4e9ae83)
+
+Edição do calendário
+![Calendário](https://github.com/user-attachments/assets/40e4f2f3-2898-4a77-aaa8-f8b99406f16)
+
+Salvar o save
+![Opções de salvamento](https://github.com/user-attachments/assets/ee9d26a3-21d6-48c4-a623-3aa53906a5ba)

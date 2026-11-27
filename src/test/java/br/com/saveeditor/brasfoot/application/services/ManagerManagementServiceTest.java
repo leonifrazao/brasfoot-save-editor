@@ -10,6 +10,8 @@ import br.com.saveeditor.brasfoot.domain.NavegacaoState;
 import br.com.saveeditor.brasfoot.util.BrasfootConstants;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -167,35 +169,148 @@ class ManagerManagementServiceTest {
     }
 
     @Test
-    void updateManager_whenHumanTeamChanges_transfersTeamOwnership() throws Exception {
+    void updateManager_togglesHumanControlIndependentlyAndKeepsBothClubAssignments() {
+        when(sessionResolver.loadRequired(sessionId)).thenReturn(mockSession);
+        when(gameDataPort.getTeams(rootObject)).thenReturn(dummyTeamsList);
+        DummyManager first = (DummyManager) dummyManagersList.get(0);
+        DummyManager second = new DummyManager("Carlo Ancelotti", false, 80, 80, 60, "Italian", 900, 11, 2);
+        DummyTeam firstClub = new DummyTeam(1, true, first.nU);
+        DummyTeam secondClub = new DummyTeam(2, false, second.nU);
+        first.hy = new DummyTeam(101, true, first.nU);
+        second.hy = new DummyTeam(102, false, second.nU);
+        firstClub.mZ = first;
+        secondClub.mZ = second;
+        dummyManagersList.add(second);
+        dummyTeamsList.addAll(List.of(firstClub, secondClub));
+        humanTeamsList.add(firstClub);
+        rootObject.am.add(first);
+
+        Manager enable = new Manager();
+        enable.setIsHuman(true);
+        managerManagementService.updateManager(sessionId, 1, enable);
+        managerManagementService.updateManager(sessionId, 1, enable);
+        assertEquals(List.of(firstClub, secondClub), humanTeamsList);
+        assertEquals(List.of(first, second), rootObject.am);
+        assertTrue(first.mW);
+        assertTrue(second.mW);
+        assertTrue(secondClub.mW);
+        assertTrue(second.hy.mW);
+        assertSame(secondClub, second.nV);
+        assertSame(second, secondClub.mZ);
+
+        Manager disable = new Manager();
+        disable.setIsHuman(false);
+        Manager updated = managerManagementService.updateManager(sessionId, 0, disable);
+        assertFalse(updated.getIsHuman());
+        assertEquals(1, updated.getTeamId());
+        assertFalse(firstClub.mW);
+        assertFalse(first.hy.mW);
+        assertEquals(first.nU, firstClub.na);
+        assertSame(first, firstClub.mZ);
+        assertSame(firstClub, first.nV);
+        assertTrue(second.mW);
+        assertTrue(secondClub.mW);
+        assertEquals(List.of(secondClub), humanTeamsList);
+        assertEquals(List.of(second), rootObject.am);
+        verify(sessionStatePort, times(3)).save(mockSession);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void updateManager_swapsManagersAndKeepsBothClubsStaffed(boolean human) {
         when(sessionResolver.loadRequired(sessionId)).thenReturn(mockSession);
         when(gameDataPort.getTeams(mockSession.getContext().getState().getObjetoRaiz())).thenReturn(dummyTeamsList);
         DummyManager manager = (DummyManager) dummyManagersList.get(0);
+        manager.mW = human;
+        manager.oi = 5;
         manager.nU = 10;
-        DummyTeam oldTeam = new DummyTeam(1, true, 10);
-        DummyTeam newTeam = new DummyTeam(2, false, -1);
+        DummyTeam oldTeam = new DummyTeam(1, human, 10);
+        DummyManager displaced = new DummyManager("Carlo Ancelotti", false, 80, 80, 60, "Italian", 900, 11, 2);
+        DummyTeam newTeam = new DummyTeam(2, false, displaced.nU);
+        oldTeam.nv = true;
+        newTeam.nv = true;
+        newTeam.mZ = displaced;
+        displaced.nV = newTeam;
+        displaced.oi = 2;
+        dummyManagersList.add(displaced);
         dummyTeamsList.add(oldTeam);
         dummyTeamsList.add(newTeam);
-        humanTeamsList.add(oldTeam);
+        if (human) humanTeamsList.add(oldTeam);
 
         Manager updateData = new Manager();
-        updateData.setIsHuman(true);
         updateData.setTeamId(2);
 
         Manager updated = managerManagementService.updateManager(sessionId, 0, updateData);
 
         assertEquals(2, updated.getTeamId());
         assertEquals(false, oldTeam.mW);
-        assertEquals(-1, oldTeam.na);
-        assertNull(oldTeam.mZ);
-        assertEquals(true, newTeam.mW);
+        assertEquals(displaced.nU, oldTeam.na);
+        assertSame(displaced, oldTeam.mZ);
+        assertEquals(human, oldTeam.nt);
+        assertEquals(!human, oldTeam.nv);
+        assertEquals(!human, newTeam.nv);
+        assertEquals(human, newTeam.mW);
         assertEquals(10, newTeam.na);
         assertSame(manager, newTeam.mZ);
         assertEquals(2, manager.bW);
         assertSame(newTeam, manager.nV);
-        assertFalse(humanTeamsList.contains(oldTeam));
-        assertTrue(humanTeamsList.contains(newTeam));
+        assertSame(oldTeam, displaced.nV);
+        assertEquals(1, displaced.bW);
+        assertSame(oldTeam, manager.nW);
+        assertEquals(1, manager.nX);
+        assertSame(newTeam, displaced.nW);
+        assertEquals(2, displaced.nX);
+        assertEquals(0, manager.oi);
+        assertEquals(0, displaced.oi);
+        assertEquals(human ? List.of(newTeam) : List.of(), humanTeamsList);
+        assertEquals(human ? List.of(manager) : List.of(), rootObject.am);
         verify(sessionStatePort).save(mockSession);
+    }
+
+    @Test
+    void updateManager_whenDestinationIsVacant_hiresAnUnemployedManagerForTheOrigin() {
+        when(sessionResolver.loadRequired(sessionId)).thenReturn(mockSession);
+        when(gameDataPort.getTeams(rootObject)).thenReturn(dummyTeamsList);
+        DummyManager manager = (DummyManager) dummyManagersList.get(0);
+        DummyManager replacement = new DummyManager("Carlo Ancelotti", false, 80, 80, 60, "Italian", 900, 11, -1);
+        DummyTeam origin = new DummyTeam(1, true, manager.nU);
+        DummyTeam destination = new DummyTeam(2, false, -1);
+        dummyTeamsList.addAll(List.of(origin, destination));
+        dummyManagersList.add(replacement);
+        humanTeamsList.add(origin);
+        Manager change = new Manager();
+        change.setTeamId(2);
+
+        managerManagementService.updateManager(sessionId, 0, change);
+
+        assertSame(replacement, origin.mZ);
+        assertEquals(replacement.nU, origin.na);
+        assertEquals(1, replacement.bW);
+        assertSame(manager, destination.mZ);
+        assertEquals(List.of(destination), humanTeamsList);
+    }
+
+    @Test
+    void updateManager_whenOriginWouldBecomeVacant_rejectsBeforeChangingSave() {
+        when(sessionResolver.loadRequired(sessionId)).thenReturn(mockSession);
+        when(gameDataPort.getTeams(rootObject)).thenReturn(dummyTeamsList);
+        DummyManager manager = (DummyManager) dummyManagersList.get(0);
+        DummyTeam origin = new DummyTeam(1, true, manager.nU);
+        DummyTeam destination = new DummyTeam(2, false, -1);
+        dummyTeamsList.addAll(List.of(origin, destination));
+        humanTeamsList.add(origin);
+        Manager change = new Manager();
+        change.setTeamId(2);
+        change.setName("Nome novo");
+
+        assertThrows(IllegalArgumentException.class, () -> managerManagementService.updateManager(sessionId, 0, change));
+
+        assertEquals("Pep Guardiola", manager.dm);
+        assertEquals(1, manager.bW);
+        assertEquals(manager.nU, origin.na);
+        assertEquals(-1, destination.na);
+        assertEquals(List.of(origin), humanTeamsList);
+        verify(sessionStatePort, never()).save(any());
     }
 
     @Test
@@ -317,6 +432,7 @@ class ManagerManagementServiceTest {
         public final List<Object> al = new ArrayList<>();
         public final List<Object> aj = new ArrayList<>();
         public final List<Object> ak = new ArrayList<>();
+        public final List<Object> am = new ArrayList<>();
         public final List<Object> as = new ArrayList<>();
     }
 
@@ -330,6 +446,8 @@ class ManagerManagementServiceTest {
         public Boolean mW;
         public int na;
         public Object mZ;
+        public boolean nt;
+        public boolean nv;
 
         public DummyTeam(int id, boolean human, int managerId) {
             this.mU = id;
@@ -345,10 +463,12 @@ class ManagerManagementServiceTest {
         public int nU; // ManagerId
         public Object nV; // Current team reference
         public int bW; // Current team id
+        public DummyTeam hy; // National team
         public Object nW; // Previous team reference
         public int nX; // Previous team id
         public int of; // ConfidenceBoard
         public int og; // ConfidenceFans
+        public int oi; // Seasons at club
         public int age; 
         public String nationality;
         public int reputation;

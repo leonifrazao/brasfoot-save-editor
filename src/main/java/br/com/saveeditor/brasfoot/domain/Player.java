@@ -12,6 +12,12 @@ import br.com.saveeditor.brasfoot.domain.enums.PlayerSide;
 @NoArgsConstructor
 @Builder
 public class Player {
+    public static final int MIN_AGE = 15;
+    public static final int MAX_AGE = 50;
+    public static final int MIN_OVERALL = 1;
+    public static final int MIN_ENERGY = -1;
+    public static final int MIN_SKILL = 0;
+    public static final int MAX_ATTRIBUTE = 100;
 
     @Setter
     private int id;
@@ -44,16 +50,16 @@ public class Player {
     }
 
     public Player(int id, String name, int age, int overall, int position, int energy, int morale, boolean starLocal, boolean starGlobal) {
-        if (age < 15 || age > 50) {
+        if (age < MIN_AGE || age > MAX_AGE) {
             throw new IllegalArgumentException("Invalid age: must be between 15 and 50");
         }
-        if (overall < 1 || overall > 100) {
+        if (overall < MIN_OVERALL || overall > MAX_ATTRIBUTE) {
             throw new IllegalArgumentException("Invalid overall: must be between 1 and 100");
         }
         if (PlayerPosition.fromCode(position).getCode() != position) {
             throw new IllegalArgumentException("Invalid position: must be 0 to 4");
         }
-        if (energy < -1 || energy > 100) {
+        if (energy < MIN_ENERGY || energy > MAX_ATTRIBUTE) {
             throw new IllegalArgumentException("Invalid energy: must be between -1 and 100");
         }
         if (morale < 0 || morale > 100) {
@@ -93,7 +99,7 @@ public class Player {
 
 
     public void setAge(int value) {
-        if (value < 15 || value > 50) {
+        if (value < MIN_AGE || value > MAX_AGE) {
             throw new IllegalArgumentException("Invalid age: must be between 15 and 50");
         }
         this.age = value;
@@ -101,7 +107,7 @@ public class Player {
 
 
     public void setOverall(int value) {
-        if (value < 1 || value > 100) {
+        if (value < MIN_OVERALL || value > MAX_ATTRIBUTE) {
             throw new IllegalArgumentException("Invalid overall: must be between 1 and 100");
         }
         this.overall = value;
@@ -117,7 +123,7 @@ public class Player {
 
 
     public void setEnergy(int value) {
-        if (value < -1 || value > 100) {
+        if (value < MIN_ENERGY || value > MAX_ATTRIBUTE) {
             throw new IllegalArgumentException("Invalid energy: must be between -1 and 100");
         }
         this.energy = value;
@@ -216,7 +222,7 @@ public class Player {
     }
 
     private void validateSkill(Integer value) {
-        if (value != null && (value < 0 || value > 100)) {
+        if (value != null && (value < MIN_SKILL || value > MAX_ATTRIBUTE)) {
             throw new IllegalArgumentException("Invalid skill: must be between 0 and 100");
         }
     }

@@ -8,6 +8,7 @@ import br.com.saveeditor.brasfoot.application.ports.out.SessionStatePort;
 import br.com.saveeditor.brasfoot.application.shared.BatchResponse;
 import br.com.saveeditor.brasfoot.application.shared.BatchResult;
 import br.com.saveeditor.brasfoot.domain.Player;
+import br.com.saveeditor.brasfoot.domain.enums.PlayerSide;
 import br.com.saveeditor.brasfoot.domain.Session;
 import br.com.saveeditor.brasfoot.util.BrasfootConstants;
 import br.com.saveeditor.brasfoot.util.ReflectionUtils;
@@ -145,6 +146,9 @@ public class PlayerManagementService implements GetPlayerUseCase, UpdatePlayerUs
                                 Integer skillSpeed, Integer skillTechnique, Integer skillPassing, Integer skillTackling,
                                 Integer skillPlaymaking, Integer skillFinishing, Integer country,
                                 Boolean starLocal, Boolean starGlobal) {
+        if (side != null && PlayerSide.fromCode(side).getCode() != side) {
+            throw new IllegalArgumentException("Lado inválido. Use 0 para direito ou 1 para esquerdo.");
+        }
         updatePlayer(sessionId, teamId, playerId, age, overall, position, energy, null, starLocal, starGlobal);
         Session session = sessionResolver.loadRequired(sessionId);
         Object root = session.getContext().getState().getObjetoRaiz();

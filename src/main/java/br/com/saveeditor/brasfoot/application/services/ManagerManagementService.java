@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -89,6 +90,9 @@ public class ManagerManagementService implements GetManagerUseCase, UpdateManage
         Object managerObj = managerObjects.get(managerId);
 
         try {
+            if (updateData.getIsHuman() != null || updateData.getTeamId() != null) {
+                updateManagerAssignment(root, managerObjects, managerObj, updateData.getTeamId(), updateData.getIsHuman());
+            }
             if (updateData.getName() != null) {
                 ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_NAME, updateData.getName());
             }
@@ -97,9 +101,6 @@ public class ManagerManagementService implements GetManagerUseCase, UpdateManage
             }
             if (updateData.getConfidenceFans() != null) {
                 ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_CONFIDENCE_FANS, updateData.getConfidenceFans());
-            }
-            if (updateData.getIsHuman() != null || updateData.getTeamId() != null) {
-                updateManagerAssignment(root, managerObjects, managerId, managerObj, updateData.getTeamId(), updateData.getIsHuman());
             }
             if (updateData.getTrophies() != null) {
                 replaceManagerTrophies(root, managerObj, updateData.getTrophies());
@@ -516,61 +517,157 @@ public class ManagerManagementService implements GetManagerUseCase, UpdateManage
         return value == null ? 0 : value;
     }
 
-    private void updateManagerAssignment(Object root, List<Object> managerObjects, int managerId, Object managerObj,
+    private void updateManagerAssignment(Object root, List<Object> managerObjects, Object managerObj,
                                          Integer targetTeamId, Boolean requestedHuman) throws ReflectiveOperationException {
         boolean human = requestedHuman != null ? requestedHuman : booleanField(managerObj, BrasfootConstants.MANAGER_IS_HUMAN);
         List<Object> teamObjects = gameDataPort.getTeams(root);
         Object currentTeam = findCurrentTeam(teamObjects, managerObj);
-        Object targetTeam = targetTeamId == null ? currentTeam : targetTeamId < 0 ? null : findTeamByInternalId(teamObjects, targetTeamId);
-
+        Object targetTeam = targetTeamId == null ? currentTeam
+                : targetTeamId < 0 ? null : findTeamByInternalId(teamObjects, targetTeamId);
         if (targetTeamId != null && targetTeamId >= 0 && targetTeam == null) {
-            throw new IllegalArgumentException("Time nao encontrado para transferir tecnico humano: " + targetTeamId);
+            throw new IllegalArgumentException("Time não encontrado para vincular ao técnico: " + targetTeamId);
         }
 
-        if (!human) {
-            ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_IS_HUMAN, false);
-            detachManagerFromTeam(root, currentTeam, managerObj);
+        if ((human || targetTeam != null) && integerFieldRequired(managerObj, BrasfootConstants.MANAGER_ID) < 0) {
+            throw new IllegalArgumentException("Técnico sem ID interno no save");
+        }
+        if (targetTeam != null && targetTeam != currentTeam) {
+            transferManager(root, managerObjects, teamObjects, managerObj, currentTeam, targetTeam, human);
+        } else if (targetTeam != null) {
+            assignManagerToTeam(root, targetTeam, managerObj, human);
+        } else if (targetTeamId != null) {
+            if (currentTeam != null) rememberPreviousTeam(managerObj, currentTeam);
+            detachManagerFromTeam(root, currentTeam);
             setManagerCurrentTeam(managerObj, null);
-            return;
         }
 
-        if (targetTeamId != null && targetTeamId < 0) {
-            ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_IS_HUMAN, true);
-            detachManagerFromTeam(root, currentTeam, managerObj);
-            setManagerCurrentTeam(managerObj, null);
-            return;
+        ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_IS_HUMAN, human);
+        updateListMembership(root, BrasfootConstants.HUMAN_MANAGERS_LIST, managerObj, human);
+        if (requestedHuman != null) {
+            updateNationalTeamControl(managerObj, human);
         }
-
-        if (human && targetTeam == null) {
-            ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_IS_HUMAN, true);
-            setManagerCurrentTeam(managerObj, null);
-            return;
-        }
-
-        int resolvedTargetTeamId = integerFieldRequired(targetTeam, BrasfootConstants.TEAM_ID);
-        validateTargetTeamAvailable(managerObjects, managerId, targetTeam, resolvedTargetTeamId, managerObj);
-
-        if (currentTeam != null && currentTeam != targetTeam) {
-            detachManagerFromTeam(root, currentTeam, managerObj);
-        }
-
-        ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_IS_HUMAN, true);
-        setManagerCurrentTeam(managerObj, targetTeam);
-        attachManagerToTeam(root, targetTeam, managerObj);
     }
 
-    private Object findCurrentTeam(List<Object> teamObjects, Object managerObj) {
-        Integer currentTeamId = integerField(managerObj, BrasfootConstants.MANAGER_CURRENT_TEAM_ID);
-        if (currentTeamId != null && currentTeamId >= 0) {
-            Object team = findTeamByInternalId(teamObjects, currentTeamId);
-            if (team != null) {
-                return team;
+    private void transferManager(Object root, List<Object> managers, List<Object> teams, Object incoming,
+                                 Object origin, Object destination, boolean human) throws ReflectiveOperationException {
+        Object occupant = findTransferOccupant(managers, destination);
+        Object replacement = occupant;
+        if (origin != null && replacement == null) {
+            replacement = findUnemployedManager(managers, teams, incoming, origin);
+            if (replacement == null) {
+                throw new IllegalArgumentException("Não há um técnico de computador disponível para assumir o clube de origem.");
             }
         }
 
+        List<Object> changes = optionalList(root, BrasfootConstants.MANAGER_CHANGES_LIST);
+        Object originChange = changes != null && origin != null ? newManagerChange(root, origin, incoming, replacement) : null;
+        Object destinationChange = changes != null && occupant != null ? newManagerChange(root, destination, occupant, incoming) : null;
+
+        if (origin != null) {
+            rememberPreviousTeam(incoming, origin);
+            assignManagerToTeam(root, origin, replacement, false);
+        }
+        if (occupant != null) {
+            rememberPreviousTeam(occupant, destination);
+            if (origin == null) setManagerCurrentTeam(occupant, null);
+        }
+        assignManagerToTeam(root, destination, incoming, human);
+        setFieldIfPresent(incoming, BrasfootConstants.MANAGER_SEASONS_AT_TEAM, 0);
+        if (origin != null) setFieldIfPresent(replacement, BrasfootConstants.MANAGER_SEASONS_AT_TEAM, 0);
+
+        if (changes != null) {
+            if (originChange != null) changes.add(originChange);
+            if (destinationChange != null) changes.add(destinationChange);
+        }
+    }
+
+    private Object findTransferOccupant(List<Object> managers, Object team) throws ReflectiveOperationException {
+        int teamId = integerFieldRequired(team, BrasfootConstants.TEAM_ID);
+        int occupantId = integerFieldRequired(team, BrasfootConstants.TEAM_MANAGER_ID);
+        if (booleanField(team, BrasfootConstants.TEAM_IS_HUMAN)) {
+            throw new IllegalArgumentException("Time já está controlado por outro técnico humano");
+        }
+        Object occupant = null;
+        for (Object manager : managers) {
+            if (!Integer.valueOf(teamId).equals(integerField(manager, BrasfootConstants.MANAGER_CURRENT_TEAM_ID))) continue;
+            if (booleanField(manager, BrasfootConstants.MANAGER_IS_HUMAN)) {
+                throw new IllegalArgumentException("Time já está controlado por outro técnico humano");
+            }
+            if (occupant != null || occupantId < 0
+                    || !Integer.valueOf(occupantId).equals(integerField(manager, BrasfootConstants.MANAGER_ID))) {
+                throw new IllegalArgumentException("O vínculo do técnico no clube de destino está inconsistente no save.");
+            }
+            occupant = manager;
+        }
+        if (occupant == null && occupantId >= 0) {
+            throw new IllegalArgumentException("O técnico do clube de destino não foi encontrado no save.");
+        }
+        return occupant;
+    }
+
+    private Object findUnemployedManager(List<Object> managers, List<Object> teams, Object incoming, Object origin) {
+        Integer country = integerField(origin, BrasfootConstants.TEAM_COUNTRY);
+        Object fallback = null;
+        for (Object manager : managers) {
+            Integer managerId = integerField(manager, BrasfootConstants.MANAGER_ID);
+            Integer currentTeamId = integerField(manager, BrasfootConstants.MANAGER_CURRENT_TEAM_ID);
+            if (manager == incoming || managerId == null || managerId < 0 || currentTeamId == null || currentTeamId >= 0
+                    || booleanField(manager, BrasfootConstants.MANAGER_IS_HUMAN)
+                    || findCurrentTeam(teams, manager) != null) continue;
+            if (country != null && country.equals(integerField(manager, BrasfootConstants.MANAGER_PREVIOUS_COUNTRY))) {
+                return manager;
+            }
+            if (fallback == null) fallback = manager;
+        }
+        return fallback;
+    }
+
+    private Object newManagerChange(Object root, Object team, Object outgoing, Object incoming)
+            throws ReflectiveOperationException {
+        Class<?> changeClass = root.getClass().getClassLoader().loadClass(BrasfootConstants.MANAGER_CHANGE_CLASS);
+        Object change = changeClass.getConstructor().newInstance();
+        Calendar date = (Calendar) root.getClass().getMethod("bb").invoke(root);
+        ReflectionUtils.setFieldValue(change, BrasfootConstants.MANAGER_CHANGE_DATE, date.clone());
+        ReflectionUtils.setFieldValue(change, BrasfootConstants.MANAGER_CHANGE_TEAM_ID,
+                integerFieldRequired(team, BrasfootConstants.TEAM_ID));
+        ReflectionUtils.setFieldValue(change, BrasfootConstants.MANAGER_CHANGE_OUTGOING, outgoing);
+        ReflectionUtils.setFieldValue(change, BrasfootConstants.MANAGER_CHANGE_INCOMING, incoming);
+        return change;
+    }
+
+    private void rememberPreviousTeam(Object manager, Object team) throws ReflectiveOperationException {
+        setFieldIfPresent(manager, BrasfootConstants.MANAGER_PREVIOUS_TEAM, team);
+        setFieldIfPresent(manager, BrasfootConstants.MANAGER_PREVIOUS_TEAM_ID,
+                integerFieldRequired(team, BrasfootConstants.TEAM_ID));
+        Integer country = integerField(team, BrasfootConstants.TEAM_COUNTRY);
+        Integer division = integerField(team, BrasfootConstants.TEAM_DIVISION);
+        if (country != null) setFieldIfPresent(manager, BrasfootConstants.MANAGER_PREVIOUS_COUNTRY, country);
+        if (division != null) setFieldIfPresent(manager, BrasfootConstants.MANAGER_PREVIOUS_DIVISION, division - 1);
+    }
+
+    private void updateNationalTeamControl(Object manager, boolean human) throws ReflectiveOperationException {
+        Object nationalTeam;
+        try {
+            nationalTeam = ReflectionUtils.getFieldValue(manager, BrasfootConstants.MANAGER_NATIONAL_TEAM);
+        } catch (NoSuchFieldException e) {
+            return;
+        }
+        Integer managerId = integerField(manager, BrasfootConstants.MANAGER_ID);
+        if (nationalTeam != null && managerId != null && managerId >= 0
+                && managerId.equals(integerField(nationalTeam, BrasfootConstants.TEAM_MANAGER_ID))) {
+            ReflectionUtils.setFieldValue(nationalTeam, BrasfootConstants.TEAM_IS_HUMAN, human);
+        }
+    }
+
+    private Object findCurrentTeam(List<Object> teamObjects, Object managerObj) {
         Integer managerInternalId = integerField(managerObj, BrasfootConstants.MANAGER_ID);
-        if (managerInternalId == null) {
-            return null;
+        if (managerInternalId == null || managerInternalId < 0) return null;
+        Integer currentTeamId = integerField(managerObj, BrasfootConstants.MANAGER_CURRENT_TEAM_ID);
+        if (currentTeamId != null && currentTeamId >= 0) {
+            Object team = findTeamByInternalId(teamObjects, currentTeamId);
+            if (team != null && managerInternalId.equals(integerField(team, BrasfootConstants.TEAM_MANAGER_ID))) {
+                return team;
+            }
         }
         return teamObjects.stream()
                 .filter(team -> managerInternalId.equals(integerField(team, BrasfootConstants.TEAM_MANAGER_ID)))
@@ -585,88 +682,58 @@ public class ManagerManagementService implements GetManagerUseCase, UpdateManage
                 .orElse(null);
     }
 
-    private void validateTargetTeamAvailable(List<Object> managerObjects, int managerId, Object targetTeam,
-                                             int targetTeamId, Object managerObj) {
-        for (int i = 0; i < managerObjects.size(); i++) {
-            if (i == managerId) {
-                continue;
-            }
-            Object otherManager = managerObjects.get(i);
-            if (booleanField(otherManager, BrasfootConstants.MANAGER_IS_HUMAN)
-                    && Integer.valueOf(targetTeamId).equals(integerField(otherManager, BrasfootConstants.MANAGER_CURRENT_TEAM_ID))) {
-                throw new IllegalArgumentException("Time ja esta controlado por outro tecnico humano");
-            }
-        }
-
-        Integer currentManagerId = integerField(managerObj, BrasfootConstants.MANAGER_ID);
-        Integer targetManagerId = integerField(targetTeam, BrasfootConstants.TEAM_MANAGER_ID);
-        if (booleanField(targetTeam, BrasfootConstants.TEAM_IS_HUMAN)
-                && targetManagerId != null
-                && currentManagerId != null
-                && !targetManagerId.equals(currentManagerId)) {
-            throw new IllegalArgumentException("Time ja esta marcado como humano por outro tecnico");
-        }
-    }
-
-    private void attachManagerToTeam(Object root, Object teamObj, Object managerObj) throws ReflectiveOperationException {
-        Integer managerInternalId = integerField(managerObj, BrasfootConstants.MANAGER_ID);
-        if (managerInternalId == null) {
-            throw new IllegalArgumentException("Tecnico sem ID interno no save");
-        }
-        ReflectionUtils.setFieldValue(teamObj, BrasfootConstants.TEAM_IS_HUMAN, true);
+    private void assignManagerToTeam(Object root, Object teamObj, Object managerObj, boolean human)
+            throws ReflectiveOperationException {
+        int managerInternalId = integerFieldRequired(managerObj, BrasfootConstants.MANAGER_ID);
+        setManagerCurrentTeam(managerObj, teamObj);
+        updateClubControl(teamObj, human);
         ReflectionUtils.setFieldValue(teamObj, BrasfootConstants.TEAM_MANAGER_ID, managerInternalId);
         setFieldIfPresent(teamObj, BrasfootConstants.TEAM_MANAGER_REFERENCE, managerObj);
-        addHumanTeam(root, teamObj);
+        updateListMembership(root, BrasfootConstants.HUMAN_TEAMS_LIST, teamObj, human);
     }
 
-    private void detachManagerFromTeam(Object root, Object teamObj, Object managerObj) throws ReflectiveOperationException {
+    private void detachManagerFromTeam(Object root, Object teamObj) throws ReflectiveOperationException {
         if (teamObj == null) {
             return;
         }
-        Integer managerInternalId = integerField(managerObj, BrasfootConstants.MANAGER_ID);
-        Integer teamManagerId = integerField(teamObj, BrasfootConstants.TEAM_MANAGER_ID);
-        if (managerInternalId != null && teamManagerId != null && !managerInternalId.equals(teamManagerId)) {
-            return;
-        }
-        ReflectionUtils.setFieldValue(teamObj, BrasfootConstants.TEAM_IS_HUMAN, false);
+        updateClubControl(teamObj, false);
         ReflectionUtils.setFieldValue(teamObj, BrasfootConstants.TEAM_MANAGER_ID, -1);
         setFieldIfPresent(teamObj, BrasfootConstants.TEAM_MANAGER_REFERENCE, null);
-        removeHumanTeam(root, teamObj);
+        updateListMembership(root, BrasfootConstants.HUMAN_TEAMS_LIST, teamObj, false);
+    }
+
+    private void updateClubControl(Object team, boolean human) throws ReflectiveOperationException {
+        if (human != booleanField(team, BrasfootConstants.TEAM_IS_HUMAN)) {
+            setFieldIfPresent(team, BrasfootConstants.TEAM_LINEUP_CONFIRMED, false);
+            if (!human) setFieldIfPresent(team, BrasfootConstants.TEAM_AUTO_TRAINING, true);
+        }
+        ReflectionUtils.setFieldValue(team, BrasfootConstants.TEAM_IS_HUMAN, human);
     }
 
     private void setManagerCurrentTeam(Object managerObj, Object teamObj) throws ReflectiveOperationException {
         setFieldIfPresent(managerObj, BrasfootConstants.MANAGER_CURRENT_TEAM, teamObj);
-        if (teamObj == null) {
-            ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_CURRENT_TEAM_ID, -1);
-            setFieldIfPresent(managerObj, BrasfootConstants.MANAGER_PREVIOUS_TEAM, null);
-            setFieldIfPresent(managerObj, BrasfootConstants.MANAGER_PREVIOUS_TEAM_ID, -1);
-            return;
-        }
-        int teamId = integerFieldRequired(teamObj, BrasfootConstants.TEAM_ID);
+        int teamId = teamObj == null ? -1 : integerFieldRequired(teamObj, BrasfootConstants.TEAM_ID);
         ReflectionUtils.setFieldValue(managerObj, BrasfootConstants.MANAGER_CURRENT_TEAM_ID, teamId);
     }
 
-    @SuppressWarnings("unchecked")
-    private void addHumanTeam(Object root, Object teamObj) {
-        try {
-            List<Object> humanTeams = (List<Object>) ReflectionUtils.getFieldValue(root, BrasfootConstants.HUMAN_TEAMS_LIST);
-            if (humanTeams != null && !humanTeams.contains(teamObj)) {
-                humanTeams.add(teamObj);
-            }
-        } catch (ReflectiveOperationException e) {
-            log.trace("Human teams list not found", e);
+    private void updateListMembership(Object root, String fieldName, Object member, boolean included)
+            throws IllegalAccessException {
+        List<Object> list = optionalList(root, fieldName);
+        if (list == null) return;
+        if (!included) {
+            list.removeIf(value -> value == member);
+        } else if (list.stream().noneMatch(value -> value == member)) {
+            list.add(member);
         }
     }
 
     @SuppressWarnings("unchecked")
-    private void removeHumanTeam(Object root, Object teamObj) {
+    private List<Object> optionalList(Object root, String fieldName) throws IllegalAccessException {
         try {
-            List<Object> humanTeams = (List<Object>) ReflectionUtils.getFieldValue(root, BrasfootConstants.HUMAN_TEAMS_LIST);
-            if (humanTeams != null) {
-                humanTeams.remove(teamObj);
-            }
-        } catch (ReflectiveOperationException e) {
-            log.trace("Human teams list not found", e);
+            return (List<Object>) ReflectionUtils.getFieldValue(root, fieldName);
+        } catch (NoSuchFieldException e) {
+            log.trace("Optional list {} not found", fieldName, e);
+            return null;
         }
     }
 

@@ -202,7 +202,7 @@ nix-shell --run "mvn spring-boot:run"
 5. Selecione um arquivo `.s22` do Brasfoot.
 6. Aguarde o carregamento das abas de times, tecnicos, ligas e paises.
 7. Selecione um registro em uma tabela para preencher o editor lateral.
-8. Altere os campos desejados e clique no botao de salvar daquela area.
+8. Nas abas Times e Jogadores, selecione o registro e use `Aplicar alterações` no painel lateral. Nas outras abas, use o botão de edição da própria área.
 9. Para jogadores, pesquise o time pelo nome e selecione-o para carregar o elenco.
 10. Quando terminar, clique em `Salvar…` e escolha substituir o save aberto ou salvar com outro nome.
 11. Teste o save no Brasfoot antes de continuar a partida.
@@ -213,13 +213,13 @@ nix-shell --run "mvn spring-boot:run"
 
 Permite pesquisar times e editar informacoes estruturais do clube. Campos suportados incluem nome, apelido, pais, divisao, nivel, dinheiro, reputacao, estadio, setores do estadio, estilo de jogo, marcacao e foco dos ataques. Estilos e focos exclusivos do Real Brasfoot aparecem somente quando a biblioteca Real e detectada; no Brasfoot original, a lista e limitada aos valores disponiveis nessa versao.
 
-Os botoes `Editar time` e `Edicao em lote` separam a edicao individual das alteracoes gerais. A edicao em lote permite ajustar dinheiro, reputacao, estadio, nivel e estilo de jogo. Tambem permite enfraquecer todos os clubes exceto os associados a tecnicos humanos ou todos os clubes, mediante confirmacao.
+Selecione um time na tabela para abrir o formulário lateral. Use `Aplicar alterações` para atualizar o save em memória ou `Descartar alterações` para restaurar os valores. Ao trocar de registro, o editor guarda o rascunho até você voltar a ele. O botão `Edição em lote` abre uma janela separada para ajustar dinheiro, reputação, estádio, nível e estilo de jogo ou enfraquecer clubes mediante confirmação.
 
 ### Jogadores
 
 Os jogadores sao carregados por time; a busca mostra os times correspondentes enquanto o nome e digitado. A aba permite alterar dados basicos, contrato, caracteristicas, pais, estrelas e habilidades individuais como goleiro, velocidade, tecnica, passe, desarme, armacao e finalizacao.
 
-A edicao em lote aplica alteracoes nos jogadores do time atualmente selecionado. Valores sentinela indicados na propria UI, como `0=ignorar` ou `-1=ignorar`, evitam alterar campos nao desejados.
+Selecione um jogador no elenco para editar no painel lateral, com os mesmos controles de aplicar e descartar da aba Times. A janela de edição em lote atua sobre o elenco carregado e usa `-1` para manter valores numéricos. O comando `Salvar…` grava no arquivo as alterações já aplicadas.
 
 ### Tecnicos
 

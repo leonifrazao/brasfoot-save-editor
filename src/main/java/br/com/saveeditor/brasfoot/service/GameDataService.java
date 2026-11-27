@@ -31,10 +31,7 @@ public class GameDataService implements GameDataPort {
      */
     public List<Object> getManagers(Object root) {
         try {
-            return (List<Object>) ReflectionUtils.getFieldValue(root, BrasfootConstants.HUMAN_MANAGERS_LIST); // Assuming
-                                                                                                              // AL is
-                                                                                                              // managers
-                                                                                                              // list
+            return (List<Object>) ReflectionUtils.getFieldValue(root, BrasfootConstants.MANAGERS_LIST);
         } catch (Exception e) {
             System.err.println(ConsoleHelper.error("Error retrieving managers: " + e.getMessage()));
             return Collections.emptyList();

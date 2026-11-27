@@ -160,6 +160,43 @@ Jerónimo Alba | et=84000 fj()=84000 | eu=7977600 fk()=7977600 | ev=701607 fl()=
 
 `et` fica na escala de salário; `eu` fica na escala de valor de mercado. `ev` permanece sem utilidade confirmada.
 
+### Lado do jogador
+
+O importador do Brasfoot Next lê o lado de `best.F.er` (0 = direito, 1 = esquerdo) e o estilo de `best.F.ex`. O bytecode de `getLado()` e `setLado(int)` confirma `er` tanto no Brasfoot 22/23 quanto no Real Brasfoot 2026.
+
+## Calendário de copas e outras competições
+
+O calendário diário é a mesma estrutura para pontos corridos e mata-mata. O filtro antigo só aceitava partidas cuja fase `best.I.ht()` fosse `f.s`, por isso as partidas de copas nacionais, com fase `f.z`, não apareciam.
+
+| Classe | Campo | Uso confirmado |
+| --- | --- | --- |
+| `best.f` | `as` | Lista de dias da temporada, retornada por `R()`. |
+| `best.a` | `p`, `s`, `t`, `u` | Data `a()`, partidas `h()`, fases `j()` e competições `t()`. |
+| `best.a` | `v`, `w` | Dia processado `e()` e categoria da data `b()`. A categoria 2 é consultada pelo sorteio das copas nacionais. |
+| `best.I` | `fw`, `fx`, `fy` | Fase `ht()`, competição `hy()` e índice do dia `hM()`. |
+| `f.f` | `KR`, `YI` | País da copa `yg()` e mata-mata `yf()`. O construtor chama `F(2, …)`, e `best.Z.jc()` fornece o ID do país. |
+| `f.z` | `ZF` | Rodadas do mata-mata retornadas por `zp()`. |
+| `f.G` | `aai`, `aaj`, `as` | Partidas da ida `zW()`, partidas da volta `zX()` e índices de calendário na mesma ordem. |
+| `f.G` | `oj`, `aaf`, `var0` | Número da fase com base zero `lU()`, quantidade de clubes `zU()` e código de formato `ze()`. |
+| `f.G` | `w` | Categoria solicitada ao calendário na criação da rodada. `f.G.b(f.z, …)` grava o mesmo argumento usado em `best.a.a(int, boolean)` ou no seletor equivalente do Real. |
+| `f.z` | `Zg` | Código de fase `zf()`. O código distingue eliminatórias e play-offs de fases regulares com a mesma quantidade de clubes. |
+
+- O construtor de `best.I` grava o mesmo índice em `fy` e consulta `root.R().get(índice)` para registrar a partida e suas referências. O valor é um índice da lista, mesmo que coincida com o dia do ano menos um nos saves verificados.
+- Em ambos os executáveis, `f.G.b(f.z, …)` usa o índice escolhido pelo sorteio para construir a partida e chama `eZ(int)` para registrar o mesmo valor em `f.G.as`. A reabertura confirmou que `best.a.s` e `f.G.aai/aaj` apontam para as mesmas instâncias.
+- A competição é identificada pela classe `f.f` e pelo tipo 2, com o país lido por `yg().jc()`. O nome é o da competição gravada. Os códigos 2129, 2229 e 2329, junto com a tabela `best.aq.pt`, identificam as três primeiras fases do formato especial. O tamanho da chave e o número da fase identificam as demais chaves, e a posição em `f.G.as` distingue ida e volta.
+- A edição move as partidas entre as listas dos dias, atualiza `fy` e a entrada correspondente de `f.G.as` e sincroniza as referências da competição e da fase. Preserva a ordem das fases e as datas reservadas pelo jogo para novos sorteios. Datas reservadas sem partidas sorteadas ainda não têm uma rodada associada a um país para editar.
+
+Validação em cópias reais: no Real Brasfoot 2026, `leoposindep.s22` contém 20 partidas da segunda fase em 09/05/2029. No Brasfoot 22/23 original, `san.s22` contém quatro partidas de ida em 19/08/2042 e quatro de volta em 26/08/2042, pelas quartas de final. Os dois formatos usam os mesmos índices, com uma ou duas entradas conforme a fase.
+
+### Mata-matas continentais e de seleções
+
+- A inspeção dos saves completos confirmou o mesmo vínculo por identidade em `f.z.zp()` e `f.G.zW()/zX()` para Libertadores (`f.r`), Champions (`f.v`), Sul-Americana (`f.H`), Europa (`f.x`), Conference (`f.J`), Recopas (`f.D` e `f.E`), Finalíssima (`f.K`) e Liga das Nações (`f.M` e `f.N`). Em `san.s22`, Libertadores e Champions ocupam o mesmo dia de categoria 4 com objetos de competição e chaves diferentes.
+- O bytecode de `best.f.az()` nos dois executáveis exige `best.a.w > 0` para que um dia com jogos seja encontrado. Quando o destino está sem categoria, o editor usa a categoria confirmada da rodada (`f.G.w`). Categorias já presentes são preservadas, inclusive quando duas competições compartilham a data.
+- O editor protege a próxima reserva que pode ser usada para avançar uma chave. Nas eliminatórias confirmadas, inclui também as reservas da competição que recebe os eliminados. `f.G.b(boolean, boolean)` despacha esses fluxos para a Conference, Europa ou Sul-Americana, conforme o código de fase. Ao mover clube ou seleção, o aviso de conflito humano usa os tipos de competição de seleções 7, 9, 13 e 14 e as referências de seleção do save.
+- A preliminar continental do Real `f.ContinentalPreliminaryStage` herda o calendário de `f.z` e fornece o nome da fase pelo seu `zB()`. A fase 150 do Intercontinental fica fora da edição porque `f.IntercontinentalFormatPatch.repairLoaded()` pode reconstruí-la na abertura. Play-offs de liga e torneios amistosos com calendário especial também ficam fora desse fluxo.
+
+Reabertura e seleção da nova data pelo método nativo `best.f.az()` foram verificadas em `san.s22` para Libertadores e Champions, em `leoposindep.s22` para Champions, Sul-Americana, Conference League e Supercopa da UEFA, e em `leleo.s22` para a Liga das Nações da UEFA. Nos dias compartilhados, mover uma competição manteve as demais no dia original.
+
 ## Team (`best.ah`) / Manager (`best.al`)
 
 ### Vínculo técnico-time e time humano
@@ -175,7 +212,10 @@ Campos confirmados:
 | `best.al` | `nU` | ID interno do técnico retornado por `lT()` | `MANAGER_ID` |
 | `best.al` | `nV` | referência transient para o time atual | `MANAGER_CURRENT_TEAM` |
 | `best.al` | `bW` | cache serializado do ID do time atual | `MANAGER_CURRENT_TEAM_ID` |
+| `best.al` | `hy` | seleção vinculada, retornada por `jo()` | `MANAGER_NATIONAL_TEAM` |
 | `best.f` | `ak` | lista de times controlados por humano retornada por `aN()` | `HUMAN_TEAMS_LIST` |
+| `best.f` | `al`, `am` | todos os técnicos (`L()`) e técnicos humanos (`M()`) | `MANAGERS_LIST`, `HUMAN_MANAGERS_LIST` |
+| `best.f` | `at` | histórico de mudanças de técnico retornado por `bn()` | `MANAGER_CHANGES_LIST` |
 
 Evidências:
 
@@ -188,8 +228,11 @@ Evidências:
 - Em `best.al.fg()`, quando `nV` está nulo e `bW >= 0`, o jogo resolve o time por `best.f.x(bW)`; portanto `bW` é o ID serializado do time atual.
 - Em `best.al.n(best.ah)`, o jogo grava `nV` e sincroniza `bW` com `best.ah.lk()`; quando o time é nulo, grava `bW=-1`.
 - Em `best.f.aN()`, o jogo retorna a lista `ak`, e métodos de contratação/demissão adicionam/removem times dessa lista ao alternar controle humano.
+- Em saves reais com técnico de clube e seleção, o clube humano aparece em `ak` e a seleção humana mantém a flag em `best.ah.mW`. O getter `best.al.jo()` retorna `hy` no Brasfoot 22/23 e no Real Brasfoot 2026.
 
 Conclusão: transferir técnico humano de time exige atualizar o técnico (`mW`, `nV`, `bW`), o time antigo/novo (`mW`, `na`, `mZ`) e a lista raiz `ak`. Alterar apenas `best.al.nU` corrompe o vínculo porque `nU` identifica o técnico, não o time atual.
+
+O fluxo de troca `f.a(al, al)`, reproduzido em `coach_market.rs` do Brasfoot Next, registra a saída e a chegada dos dois técnicos. O editor usa essa troca quando ambos têm clube e o destino está sob controle do computador. A saída grava o clube, país e divisão anteriores (`nX`, `bf`, `nY`), e cada chegada zera as temporadas no clube (`oi`). O editor registra as trocas em `at` com objetos `best.u`, usando a data corrente do save. Quando muda o tipo de controle do clube, a confirmação da escalação (`nv`, getter `kf()`) é refeita. Caixa, contratos e seleções nacionais são preservados.
 
 ### Troféus / histórico do técnico
 
